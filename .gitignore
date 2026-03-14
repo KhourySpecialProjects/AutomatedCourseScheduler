@@ -1,6 +1,26 @@
-.env
+# Python
 __pycache__/
 *.pyc
 *.pyo
-.DS_Store
 .venv/
+*.egg-info/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log

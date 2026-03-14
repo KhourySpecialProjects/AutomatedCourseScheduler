@@ -34,5 +34,13 @@ services:
     volumes:
       - ./api:/app
 
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
