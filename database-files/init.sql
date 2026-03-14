@@ -1,0 +1,3 @@
+-- Seed file for Automated Course Scheduler
+-- This script runs automatically when the Postgres container is first created.
+-- Add your CREATE TABLE and INSERT statements here.
