@@ -25,7 +25,7 @@ def get_db():
     and closes it when the request is done.
 
     Usage in a route:
-        from backend.db_connection.db import get_db
+        from app.core.database import get_db
         from sqlalchemy.orm import Session
         from fastapi import Depends
 
