@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import Home from './pages/Home';
 import Schedules from './pages/Schedules';
+import Sections from './pages/Sections';
 
 function App() {
   return (
@@ -34,6 +35,16 @@ function App() {
                 >
                   Schedules
                 </NavLink>
+                <NavLink
+                  to="/sections"
+                  className={({ isActive }) =>
+                    isActive
+                      ? 'text-indigo-600 font-medium'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }
+                >
+                  Sections
+                </NavLink>
               </div>
             </div>
           </div>
@@ -43,6 +54,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/schedules" element={<Schedules />} />
+            <Route path="/sections" element={<Sections />} />
           </Routes>
         </main>
       </div>

@@ -1,0 +1,82 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/sections": {
+      "get": {
+        "tags": ["sections"],
+        "summary": "Get Sections",
+        "operationId": "get_sections_sections__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SectionResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Sections Sections  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SectionResponse": {
+        "properties": {
+          "SectionID": {
+            "type": "integer",
+            "title": "Sectionid"
+          },
+          "Schedule": {
+            "anyOf": [
+              { "type": "integer" },
+              { "type": "null" }
+            ],
+            "title": "Schedule"
+          },
+          "TimeBlock": {
+            "anyOf": [
+              { "type": "integer" },
+              { "type": "null" }
+            ],
+            "title": "Timeblock"
+          },
+          "Course": {
+            "anyOf": [
+              { "type": "integer" },
+              { "type": "null" }
+            ],
+            "title": "Course"
+          },
+          "Capacity": {
+            "anyOf": [
+              { "type": "integer" },
+              { "type": "null" }
+            ],
+            "title": "Capacity"
+          },
+          "Instructor": {
+            "anyOf": [
+              { "type": "integer" },
+              { "type": "null" }
+            ],
+            "title": "Instructor"
+          }
+        },
+        "type": "object",
+        "required": ["SectionID", "Schedule", "TimeBlock", "Course", "Capacity", "Instructor"],
+        "title": "SectionResponse"
+      }
+    }
+  }
+}

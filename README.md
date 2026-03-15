@@ -31,10 +31,10 @@ Each semester, scheduling administrators must coordinate course offerings, facul
 automated-course-scheduler/
 ├── frontend/                # React + TypeScript application
 │   ├── src/
+│   │   ├── api/             # API client functions
 │   │   ├── components/      # Reusable UI components
-│   │   ├── pages/           # Route-level page components
 │   │   ├── hooks/           # Custom React hooks
-│   │   ├── services/        # API client functions
+│   │   ├── pages/           # Route-level page components
 │   │   ├── types/           # TypeScript type definitions
 │   │   └── utils/           # Helper utilities
 │   ├── package.json
@@ -43,11 +43,11 @@ automated-course-scheduler/
 │   └── Dockerfile
 ├── backend/                 # FastAPI application
 │   ├── app/
-│   │   ├── routers/         # Route handlers
+│   │   ├── core/            # Config, security, dependencies
 │   │   ├── models/          # SQLAlchemy models
+│   │   ├── routers/         # Route handlers
 │   │   ├── schemas/         # Pydantic schemas
 │   │   ├── services/        # Business logic & algorithm
-│   │   ├── core/            # Config, security, dependencies
 │   │   └── main.py          # Application entry point
 │   ├── requirements.txt
 │   └── Dockerfile
