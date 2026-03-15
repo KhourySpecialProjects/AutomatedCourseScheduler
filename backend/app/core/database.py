@@ -11,7 +11,9 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
-DATABASE_URL = os.environ.get("DATABASE_URL") or "postgresql://{user}:{password}@{host}:5432/{db}".format(
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL"
+) or "postgresql://{user}:{password}@{host}:5432/{db}".format(
     user=os.environ["POSTGRES_USER"],
     password=os.environ["POSTGRES_PASSWORD"],
     host=os.environ.get("POSTGRES_HOST", "db"),

@@ -1,5 +1,5 @@
 .PHONY: help \
-	be-install be-dev be-lint be-format be-test \
+	be-install be-dev be-lint be-format be-format-fix be-test \
 	fe-install fe-dev fe-build fe-generate fe-lint fe-lint-fix fe-test fe-test-watch \
 	docker-up docker-down docker-build
 
@@ -17,8 +17,11 @@ be-dev: ## Start backend dev server (hot reload)
 be-lint: ## Run ruff linter on backend
 	cd backend && ruff check .
 
-be-format: ## Run ruff format check on backend
-	cd backend && ruff format --check .
+be-format: ## Check backend formatting (shows diff of changes needed)
+	cd backend && ruff format --check --diff .
+
+be-format-fix: ## Auto-fix backend formatting with ruff
+	cd backend && ruff format .
 
 be-test: ## Run backend tests
 	cd backend && pytest
