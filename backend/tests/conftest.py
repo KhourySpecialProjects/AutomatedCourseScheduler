@@ -1,4 +1,5 @@
-""" Test sqlite db """
+"""Test sqlite db"""
+
 import os
 
 # Must be set before any app imports — database.py reads this at module load time.
@@ -6,23 +7,20 @@ os.environ.setdefault("DATABASE_URL", "sqlite://")
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import Column, Integer, Table, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from sqlalchemy import Column, Integer, Table
-
 from app.core.database import Base, get_db
 from app.main import app
-from app.models.section import Section  
 
 # Stub tables so SQLAlchemy can resolve Section's FK references without
 # the real models being present. These only exist in the test process.
 _stub_tables = [
-    ("Schedule",        "ScheduleID"),
+    ("Schedule", "ScheduleID"),
     ("CampusTimeBlock", "CTBID"),
-    ("Course",          "CourseID"),
-    ("Faculty",         "NUID"),
+    ("Course", "CourseID"),
+    ("Faculty", "NUID"),
 ]
 for _table_name, _pk_name in _stub_tables:
     if _table_name not in Base.metadata.tables:

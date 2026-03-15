@@ -1,6 +1,6 @@
 """Section Database Model."""
 
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -12,7 +12,8 @@ class Section(Base):
     __tablename__ = "Section"
 
     SectionID = Column(Integer, primary_key=True, autoincrement=True)
-    Schedule = Column(Integer, ForeignKey("Schedule.ScheduleID"), nullable=True) # this should NOT be Nullable
+    # TODO: nullable=True should be removed once schema is finalized
+    Schedule = Column(Integer, ForeignKey("Schedule.ScheduleID"), nullable=True)
     TimeBlock = Column(Integer, ForeignKey("CampusTimeBlock.CTBID"), nullable=True)
     Course = Column(Integer, ForeignKey("Course.CourseID"), nullable=True)
     Capacity = Column(Integer)

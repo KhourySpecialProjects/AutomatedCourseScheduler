@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-from app.routers import section
 from app.core.database import Base, engine
+from app.routers import section
 
 Base.metadata.create_all(bind=engine)
 

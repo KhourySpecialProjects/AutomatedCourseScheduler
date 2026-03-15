@@ -8,10 +8,12 @@ def test_get_sections_empty(client):
 
 
 def test_get_sections_returns_all(client, db_session):
-    db_session.add_all([
-        Section(Capacity=30),
-        Section(Capacity=25),
-    ])
+    db_session.add_all(
+        [
+            Section(Capacity=30),
+            Section(Capacity=25),
+        ]
+    )
     db_session.commit()
 
     response = client.get("/sections")
@@ -29,11 +31,20 @@ def test_get_sections_response_shape(client, db_session):
     response = client.get("/sections")
     assert response.status_code == 200
     section = response.json()[0]
-    assert set(section.keys()) == {"SectionID", "Schedule", "TimeBlock", "Course", "Capacity", "Instructor"}
+    expected_keys = {
+        "SectionID",
+        "Schedule",
+        "TimeBlock",
+        "Course",
+        "Capacity",
+        "Instructor",
+    }
+    assert set(section.keys()) == expected_keys
 
 
 def test_get_sections_nullable_fields(client, db_session):
-    # FK columns are nullable — a section with only Capacity set should serialize cleanly.
+    # FK columns are nullable — a section with only Capacity set should
+    # serialize cleanly.
     db_session.add(Section(Capacity=15))
     db_session.commit()
 
