@@ -74,7 +74,7 @@ cd automated-course-scheduler
 cp .env.example .env
 
 # Build and start all services
-docker compose up --build
+make docker-build
 ```
 
 The application will be available at:
@@ -84,22 +84,24 @@ The application will be available at:
 
 ### Local Development
 
+A `Makefile` at the root provides shortcuts for common tasks. Run `make help` to see all available commands.
+
 **Backend:**
 
 ```bash
 cd backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+
+make be-install   # pip install -r requirements.txt
+make be-dev       # uvicorn app.main:app --reload
 ```
 
 **Frontend:**
 
 ```bash
-cd frontend
-npm install
-npm run dev
+make fe-install   # npm install
+make fe-dev       # npm run dev  (port 3000)
 ```
 
 ## User Roles
@@ -125,20 +127,16 @@ To run the same checks locally:
 **Backend:**
 
 ```bash
-cd backend
-pip install -r requirements.txt ruff
-ruff check .
-ruff format --check .
-pytest
+make be-lint      # ruff check .
+make be-format    # ruff format --check .
+make be-test      # pytest
 ```
 
 **Frontend:**
 
 ```bash
-cd frontend
-npm install
-npm run lint
-npm test
+make fe-lint      # eslint
+make fe-test      # vitest run
 ```
 
 ## API Design

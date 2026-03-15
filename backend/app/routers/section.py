@@ -9,6 +9,7 @@ from app.services import section as section_service
 
 router = APIRouter(prefix="/sections", tags=["sections"])
 
+
 # We will need to specify schedule ID at some point
 @router.get("", response_model=list[SectionResponse])
 def get_sections(db: Session = Depends(get_db)):

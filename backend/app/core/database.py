@@ -5,11 +5,18 @@
 # ------------------------------------------------------------
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = os.environ["DATABASE_URL"]
+load_dotenv()
 
+DATABASE_URL = os.environ.get("DATABASE_URL") or "postgresql://{user}:{password}@{host}:5432/{db}".format(
+    user=os.environ["POSTGRES_USER"],
+    password=os.environ["POSTGRES_PASSWORD"],
+    host=os.environ.get("POSTGRES_HOST", "db"),
+    db=os.environ["POSTGRES_DB"],
+)
 # The engine is the shared connection pool — one instance for the app.
 engine = create_engine(DATABASE_URL)
 
