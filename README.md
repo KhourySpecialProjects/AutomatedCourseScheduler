@@ -117,6 +117,48 @@ npm run dev
 | **Admin**   | Upload data, run algorithm, edit schedules, override warnings, export |
 | **Viewer**  | View schedules, leave comments                                     |
 
+## CI
+
+GitHub Actions runs on every pull request targeting `main`. The pipeline is path-scoped so only relevant jobs trigger based on what changed.
+
+| Workflow | Trigger | Steps |
+|---|---|---|
+| **Backend CI** | Changes to `backend/**` | Ruff lint → Ruff format check → pytest |
+
+Ruff enforces both linting and formatting in a single tool (replacing flake8 + black). All checks must pass before a PR can merge.
+
+To run the same checks locally:
+
+```bash
+cd backend
+pip install -r requirements.txt ruff
+ruff check .
+ruff format --check .
+pytest
+```
+
+## API Design
+
+Backend API responses are defined using **Pydantic schemas** in `backend/app/schemas/`. These serve as the contract between the backend and frontend — every endpoint declares an explicit `response_model`, which FastAPI uses to validate and serialize output.
+
+For example, `GET /sections` returns a list of `SectionResponse` objects:
+
+```python
+class SectionResponse(BaseModel):
+    SectionID: int
+    Schedule: int | None
+    TimeBlock: int | None
+    Course: int | None
+    Capacity: int | None
+    Instructor: int | None
+
+    model_config = {"from_attributes": True}
+```
+
+`from_attributes = True` allows the schema to be constructed directly from SQLAlchemy ORM instances without a manual conversion step.
+
+FastAPI automatically exposes the full OpenAPI spec at `/docs` (Swagger UI) and `/openapi.json`, which the frontend uses with **Orval** to generate a fully-typed TypeScript API client. This means frontend types stay in sync with backend schemas automatically — a schema change on the backend propagates to the frontend after re-running `npm run generate`.
+
 ## License
 
 This project is developed for Khoury College of Computer Sciences at Northeastern University.
