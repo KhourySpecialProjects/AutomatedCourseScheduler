@@ -43,7 +43,7 @@ automated-course-scheduler/
 │   └── Dockerfile
 ├── backend/                 # FastAPI application
 │   ├── app/
-│   │   ├── api/             # Route handlers
+│   │   ├── routers/         # Route handlers
 │   │   ├── models/          # SQLAlchemy models
 │   │   ├── schemas/         # Pydantic schemas
 │   │   ├── services/        # Business logic & algorithm
