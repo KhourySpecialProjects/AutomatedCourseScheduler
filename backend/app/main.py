@@ -7,6 +7,10 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+from app.core.cors_middleware import setup_cors
+
+setup_cors(app)
+
 app.include_router(section.router)
 
 
