@@ -102,14 +102,6 @@ npm install
 npm run dev
 ```
 
-## Environment Variables
-
-| Variable              | Description                     | Default                |
-|-----------------------|---------------------------------|------------------------|
-| `DATABASE_URL`        | PostgreSQL connection string    | see `.env.example`     |
-| `SECRET_KEY`          | JWT signing key                 | —                      |
-| `CORS_ORIGINS`        | Allowed frontend origins        | `http://localhost:3000`|
-
 ## User Roles
 
 | Role        | Permissions                                                        |
@@ -124,10 +116,13 @@ GitHub Actions runs on every pull request targeting `main`. The pipeline is path
 | Workflow | Trigger | Steps |
 |---|---|---|
 | **Backend CI** | Changes to `backend/**` | Ruff lint → Ruff format check → pytest |
+| **Frontend CI** | Changes to `frontend/**` | ESLint → Vitest |
 
-Ruff enforces both linting and formatting in a single tool (replacing flake8 + black). All checks must pass before a PR can merge.
+All checks must pass before a PR can merge.
 
 To run the same checks locally:
+
+**Backend:**
 
 ```bash
 cd backend
@@ -135,6 +130,15 @@ pip install -r requirements.txt ruff
 ruff check .
 ruff format --check .
 pytest
+```
+
+**Frontend:**
+
+```bash
+cd frontend
+npm install
+npm run lint
+npm test
 ```
 
 ## API Design
