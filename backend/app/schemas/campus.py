@@ -5,6 +5,6 @@ from pydantic import BaseModel
 
 class CampusResponse(BaseModel):
     CampusID: int
-    CampusName: str  
+    CampusName: str
 
     model_config = {"from_attributes": True}

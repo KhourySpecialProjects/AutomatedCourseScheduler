@@ -80,6 +80,14 @@
         "responses": {"204": {}}
       }
     },
+    "/schedules/{schedule_id}/sections": {
+      "get": {
+        "tags": ["schedules"],
+        "operationId": "get_schedule_sections",
+        "parameters": [{"name": "schedule_id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/SectionResponse"}}}}}}
+      }
+    },
     "/schedules/{schedule_id}/generate": {
       "post": {
         "tags": ["schedules"],

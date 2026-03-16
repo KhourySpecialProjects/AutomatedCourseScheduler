@@ -18,7 +18,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Automated Course Scheduler API",
     version="1.0.0",
-    description="API for the Automated Course Scheduler system for Khoury College of Computer Sciences - MVP endpoints only",
+    description="API for the Automated Course Scheduler system",
 )
 
 setup_cors(app)

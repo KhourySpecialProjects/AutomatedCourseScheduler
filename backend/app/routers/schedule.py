@@ -1,7 +1,6 @@
 """Schedule router."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -10,6 +9,8 @@ from app.schemas.schedule import (
     ScheduleResponse,
     ScheduleUpdate,
 )
+from app.schemas.section import SectionResponse
+from app.services import section as section_service
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
@@ -38,6 +39,12 @@ def get_schedule(schedule_id: int, db: Session = Depends(get_db)):
     """Retrieve a specific schedule."""
     # TODO: Implement schedule retrieval
     raise HTTPException(status_code=501, detail="Not implemented yet")
+
+
+@router.get("/{schedule_id}/sections", response_model=list[SectionResponse])
+def get_schedule_sections(schedule_id: int, db: Session = Depends(get_db)):
+    """Get all sections for a specific schedule."""
+    return section_service.get_all_sections(db, schedule_id=schedule_id)
 
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse)

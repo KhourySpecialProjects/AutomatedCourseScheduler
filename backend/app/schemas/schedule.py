@@ -16,7 +16,7 @@ class ScheduleResponse(BaseModel):
 
 class ScheduleCreate(BaseModel):
     ScheduleName: str
-    SemesterSeason: str  
+    SemesterSeason: str
     SemesterYear: int
     Campus: int
 
