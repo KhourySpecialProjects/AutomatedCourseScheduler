@@ -1,6 +1,6 @@
 """Schedule Database Model."""
 
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, SmallInteger, String
+from sqlalchemy import Boolean, Column, Integer, SmallInteger, String
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
