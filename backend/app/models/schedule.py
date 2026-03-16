@@ -12,7 +12,7 @@ class Schedule(Base):
     ScheduleName = Column(String(50))
     SemesterSeason = Column(String)  # 'Fall' or 'Spring' (enum in DB)
     SemesterYear = Column(SmallInteger)
-    Campus = Column(Integer, ForeignKey("Campus.CampusID"))
+    Campus = Column(Integer)
     Complete = Column(Boolean, default=False)
 
     sections = relationship("Section", back_populates="schedule")
