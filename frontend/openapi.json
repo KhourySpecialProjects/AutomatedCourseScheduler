@@ -1,81 +1,309 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "FastAPI",
-    "version": "0.1.0"
+    "title": "Automated Course Scheduler API",
+    "version": "1.0.0"
   },
+  "servers": [{"url": "http://localhost:8000"}],
   "paths": {
+    "/": {
+      "get": {
+        "tags": ["root"],
+        "operationId": "root",
+        "responses": {"200": {"content": {"application/json": {"schema": {"type": "object"}}}}}
+      }
+    },
     "/sections": {
       "get": {
         "tags": ["sections"],
-        "summary": "Get Sections",
-        "operationId": "get_sections_sections__get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SectionResponse"
-                  },
-                  "type": "array",
-                  "title": "Response Get Sections Sections  Get"
-                }
-              }
-            }
-          }
-        }
+        "operationId": "get_sections",
+        "responses": {"200": {"content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/SectionResponse"}}}}}}
+      },
+      "post": {
+        "tags": ["sections"],
+        "operationId": "create_section",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/SectionCreate"}}}},
+        "responses": {"201": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/SectionResponse"}}}}}
+      }
+    },
+    "/sections/{section_id}": {
+      "put": {
+        "tags": ["sections"],
+        "operationId": "update_section",
+        "parameters": [{"name": "section_id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/SectionUpdate"}}}},
+        "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/SectionResponse"}}}}}
+      },
+      "delete": {
+        "tags": ["sections"],
+        "operationId": "delete_section",
+        "parameters": [{"name": "section_id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"204": {}}
+      }
+    },
+    "/schedules": {
+      "get": {
+        "tags": ["schedules"],
+        "operationId": "get_schedules",
+        "parameters": [
+          {"name": "campus_id", "in": "query", "schema": {"type": "integer"}},
+          {"name": "semester_season", "in": "query", "schema": {"type": "string", "enum": ["Fall", "Spring"]}},
+          {"name": "semester_year", "in": "query", "schema": {"type": "integer"}}
+        ],
+        "responses": {"200": {"content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/ScheduleResponse"}}}}}}
+      },
+      "post": {
+        "tags": ["schedules"],
+        "operationId": "create_schedule",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ScheduleCreate"}}}},
+        "responses": {"201": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/ScheduleResponse"}}}}}
+      }
+    },
+    "/schedules/{schedule_id}": {
+      "get": {
+        "tags": ["schedules"],
+        "operationId": "get_schedule",
+        "parameters": [{"name": "schedule_id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/ScheduleResponse"}}}}}
+      },
+      "put": {
+        "tags": ["schedules"],
+        "operationId": "update_schedule",
+        "parameters": [{"name": "schedule_id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ScheduleUpdate"}}}},
+        "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/ScheduleResponse"}}}}}
+      },
+      "delete": {
+        "tags": ["schedules"],
+        "operationId": "delete_schedule",
+        "parameters": [{"name": "schedule_id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"204": {}}
+      }
+    },
+    "/schedules/{schedule_id}/sections": {
+      "get": {
+        "tags": ["schedules"],
+        "operationId": "get_schedule_sections",
+        "parameters": [{"name": "schedule_id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/SectionResponse"}}}}}}
+      }
+    },
+    "/schedules/{schedule_id}/generate": {
+      "post": {
+        "tags": ["schedules"],
+        "operationId": "generate_schedule",
+        "parameters": [{"name": "schedule_id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/ScheduleResponse"}}}}}
+      }
+    },
+    "/schedules/{schedule_id}/export/csv": {
+      "get": {
+        "tags": ["schedules"],
+        "operationId": "export_schedule_csv",
+        "parameters": [{"name": "schedule_id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"content": {"text/csv": {"schema": {"type": "string"}}}}}
+      }
+    },
+    "/courses": {
+      "get": {
+        "tags": ["courses"],
+        "operationId": "get_courses",
+        "responses": {"200": {"content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/CourseResponse"}}}}}}
+      }
+    },
+    "/faculty": {
+      "get": {
+        "tags": ["faculty"],
+        "operationId": "get_faculty",
+        "parameters": [
+          {"name": "campus_id", "in": "query", "schema": {"type": "integer"}},
+          {"name": "active_only", "in": "query", "schema": {"type": "boolean"}}
+        ],
+        "responses": {"200": {"content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/FacultyResponse"}}}}}}
+      }
+    },
+    "/time-blocks": {
+      "get": {
+        "tags": ["time-blocks"],
+        "operationId": "get_time_blocks",
+        "parameters": [{"name": "campus_id", "in": "query", "schema": {"type": "integer"}}],
+        "responses": {"200": {"content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/TimeBlockResponse"}}}}}}
+      }
+    },
+    "/campuses": {
+      "get": {
+        "tags": ["campuses"],
+        "operationId": "get_campuses",
+        "responses": {"200": {"content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/CampusResponse"}}}}}}
+      }
+    },
+    "/upload/courses": {
+      "post": {
+        "tags": ["upload"],
+        "operationId": "upload_courses",
+        "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {"type": "object", "properties": {"file": {"type": "string", "format": "binary"}}, "required": ["file"]}}}},
+        "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/UploadResponse"}}}}}
+      }
+    },
+    "/upload/faculty-preferences": {
+      "post": {
+        "tags": ["upload"],
+        "operationId": "upload_faculty_preferences",
+        "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {"type": "object", "properties": {"file": {"type": "string", "format": "binary"}}, "required": ["file"]}}}},
+        "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/UploadResponse"}}}}}
+      }
+    },
+    "/comments": {
+      "get": {
+        "tags": ["comments"],
+        "operationId": "get_comments",
+        "parameters": [{"name": "schedule_id", "in": "query", "schema": {"type": "integer"}}],
+        "responses": {"200": {"content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/Comment"}}}}}}
+      },
+      "post": {
+        "tags": ["comments"],
+        "operationId": "create_comment",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CommentCreate"}}}},
+        "responses": {"201": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Comment"}}}}}
       }
     }
   },
   "components": {
     "schemas": {
       "SectionResponse": {
-        "properties": {
-          "SectionID": {
-            "type": "integer",
-            "title": "Sectionid"
-          },
-          "Schedule": {
-            "anyOf": [
-              { "type": "integer" },
-              { "type": "null" }
-            ],
-            "title": "Schedule"
-          },
-          "TimeBlock": {
-            "anyOf": [
-              { "type": "integer" },
-              { "type": "null" }
-            ],
-            "title": "Timeblock"
-          },
-          "Course": {
-            "anyOf": [
-              { "type": "integer" },
-              { "type": "null" }
-            ],
-            "title": "Course"
-          },
-          "Capacity": {
-            "anyOf": [
-              { "type": "integer" },
-              { "type": "null" }
-            ],
-            "title": "Capacity"
-          },
-          "Instructor": {
-            "anyOf": [
-              { "type": "integer" },
-              { "type": "null" }
-            ],
-            "title": "Instructor"
-          }
-        },
         "type": "object",
-        "required": ["SectionID", "Schedule", "TimeBlock", "Course", "Capacity", "Instructor"],
-        "title": "SectionResponse"
+        "properties": {
+          "SectionID": {"type": "integer"},
+          "Schedule": {"type": "integer", "nullable": true},
+          "TimeBlock": {"type": "integer", "nullable": true},
+          "Course": {"type": "integer", "nullable": true},
+          "Capacity": {"type": "integer", "nullable": true},
+          "Instructor": {"type": "integer", "nullable": true}
+        },
+        "required": ["SectionID"]
+      },
+      "SectionCreate": {
+        "type": "object",
+        "properties": {
+          "Schedule": {"type": "integer"},
+          "TimeBlock": {"type": "integer", "nullable": true},
+          "Course": {"type": "integer"},
+          "Capacity": {"type": "integer"},
+          "Instructor": {"type": "integer", "nullable": true}
+        },
+        "required": ["Schedule", "Course", "Capacity"]
+      },
+      "SectionUpdate": {
+        "type": "object",
+        "properties": {
+          "TimeBlock": {"type": "integer", "nullable": true},
+          "Course": {"type": "integer", "nullable": true},
+          "Capacity": {"type": "integer", "nullable": true},
+          "Instructor": {"type": "integer", "nullable": true}
+        }
+      },
+      "ScheduleResponse": {
+        "type": "object",
+        "properties": {
+          "ScheduleID": {"type": "integer"},
+          "ScheduleName": {"type": "string", "nullable": true},
+          "SemesterSeason": {"type": "string", "enum": ["Fall", "Spring"], "nullable": true},
+          "SemesterYear": {"type": "integer", "nullable": true},
+          "Campus": {"type": "integer", "nullable": true},
+          "Complete": {"type": "boolean", "nullable": true}
+        },
+        "required": ["ScheduleID"]
+      },
+      "ScheduleCreate": {
+        "type": "object",
+        "properties": {
+          "ScheduleName": {"type": "string"},
+          "SemesterSeason": {"type": "string", "enum": ["Fall", "Spring"]},
+          "SemesterYear": {"type": "integer"},
+          "Campus": {"type": "integer"}
+        },
+        "required": ["ScheduleName", "SemesterSeason", "SemesterYear", "Campus"]
+      },
+      "ScheduleUpdate": {
+        "type": "object",
+        "properties": {
+          "ScheduleName": {"type": "string", "nullable": true},
+          "Complete": {"type": "boolean", "nullable": true}
+        }
+      },
+      "CourseResponse": {
+        "type": "object",
+        "properties": {
+          "CourseID": {"type": "integer"},
+          "CourseDescription": {"type": "string", "nullable": true},
+          "CourseNo": {"type": "integer", "nullable": true},
+          "CourseSubject": {"type": "string", "nullable": true},
+          "CourseName": {"type": "string", "nullable": true},
+          "SectionCount": {"type": "integer", "nullable": true}
+        },
+        "required": ["CourseID"]
+      },
+      "FacultyResponse": {
+        "type": "object",
+        "properties": {
+          "NUID": {"type": "integer"},
+          "FirstName": {"type": "string", "nullable": true},
+          "LastName": {"type": "string", "nullable": true},
+          "Email": {"type": "string", "nullable": true},
+          "Title": {"type": "string", "nullable": true},
+          "Campus": {"type": "integer", "nullable": true},
+          "Active": {"type": "boolean", "nullable": true},
+          "MaxLoad": {"type": "integer", "nullable": true}
+        },
+        "required": ["NUID"]
+      },
+      "TimeBlockResponse": {
+        "type": "object",
+        "properties": {
+          "BlockID": {"type": "integer", "nullable": true},
+          "CampusID": {"type": "integer", "nullable": true},
+          "Count": {"type": "integer", "nullable": true}
+        }
+      },
+      "CampusResponse": {
+        "type": "object",
+        "properties": {
+          "CampusID": {"type": "integer"},
+          "CampusName": {"type": "string", "enum": ["Boston", "London", "Oakland"]}
+        },
+        "required": ["CampusID", "CampusName"]
+      },
+      "UploadResponse": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string", "enum": ["success", "partial", "failed"]},
+          "message": {"type": "string"},
+          "records_processed": {"type": "integer"},
+          "records_successful": {"type": "integer"},
+          "records_failed": {"type": "integer"},
+          "errors": {"type": "array", "items": {"type": "string"}, "nullable": true}
+        }
+      },
+      "Comment": {
+        "type": "object",
+        "properties": {
+          "comment_id": {"type": "integer"},
+          "schedule_id": {"type": "integer", "nullable": true},
+          "section_id": {"type": "integer", "nullable": true},
+          "user_id": {"type": "integer"},
+          "content": {"type": "string"},
+          "created_at": {"type": "string", "format": "date-time"}
+        },
+        "required": ["comment_id", "user_id", "content"]
+      },
+      "CommentCreate": {
+        "type": "object",
+        "properties": {
+          "schedule_id": {"type": "integer", "nullable": true},
+          "section_id": {"type": "integer", "nullable": true},
+          "content": {"type": "string"}
+        },
+        "required": ["content"]
       }
     }
   }

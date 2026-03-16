@@ -17,6 +17,9 @@ be-dev: ## Start backend dev server (hot reload)
 be-lint: ## Run ruff linter on backend
 	cd backend && ruff check .
 
+be-lint-fix: ## Run ruff linter on backend and fix
+	cd backend && ruff check . --fix
+
 be-format: ## Check backend formatting (shows diff of changes needed)
 	cd backend && ruff format --check --diff .
 
