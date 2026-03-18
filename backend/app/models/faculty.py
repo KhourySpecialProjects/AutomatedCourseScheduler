@@ -1,15 +1,16 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
-from sqlalchemy import String, Boolean, DateTime
+
+from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-from datetime import datetime
 
 from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.course_preference import CoursePreference
-    from app.models.meeting_preference import MeetingPreference
     from app.models.faculty_assignment import FacultyAssignment
+    from app.models.meeting_preference import MeetingPreference
 
 
 class Faculty(Base):
@@ -28,11 +29,18 @@ class Faculty(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
-    course_preferences: Mapped[list["CoursePreference"]] = relationship("CoursePreference", back_populates="faculty")
-    meeting_preferences: Mapped[list["MeetingPreference"]] = relationship("MeetingPreference", back_populates="faculty")
-    faculty_assignments: Mapped[list["FacultyAssignment"]] = relationship("FacultyAssignment", back_populates="faculty")
+    course_preferences: Mapped[list["CoursePreference"]] = relationship(
+        "CoursePreference", back_populates="faculty"
+    )
+    meeting_preferences: Mapped[list["MeetingPreference"]] = relationship(
+        "MeetingPreference", back_populates="faculty"
+    )
+    faculty_assignments: Mapped[list["FacultyAssignment"]] = relationship(
+        "FacultyAssignment", back_populates="faculty"
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
-
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )

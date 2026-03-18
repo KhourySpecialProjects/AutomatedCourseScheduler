@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
-from sqlalchemy import String, DateTime
+
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-from datetime import datetime
 
 from app.core.database import Base
 
@@ -25,9 +26,12 @@ class TimeBlock(Base):
     classroom: Mapped[str] = mapped_column(String(100))
 
     # Relationships
-    sections: Mapped[list["Section"]] = relationship("Section", back_populates="time_block")
+    sections: Mapped[list["Section"]] = relationship(
+        "Section", back_populates="time_block"
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
-
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )

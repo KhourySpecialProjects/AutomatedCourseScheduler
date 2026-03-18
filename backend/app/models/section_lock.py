@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from sqlalchemy import String, DateTime, ForeignKey, UniqueConstraint
+
+from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -14,20 +15,24 @@ if TYPE_CHECKING:
 
 class SectionLock(Base):
     """Represents a pessimistic lock on a section to prevent concurrent edits
-    by multiple users."""
+    by multiple users.
+
+    NOTE: Locking endpoints are not yet implemented — scheduled for a future sprint.
+    """
 
     __tablename__ = "section_lock"
-    __table_args__ = (UniqueConstraint("section_id", name="uq_section_lock_section_id"),)
 
     section_lock_id: Mapped[str] = mapped_column(String(50), primary_key=True)
 
     # Foreign Keys
-    section_id: Mapped[str] = mapped_column(String(50), ForeignKey("section.section_id"))
+    section_id: Mapped[str] = mapped_column(
+        String(50), ForeignKey("section.section_id"), unique=True
+    )
     locked_by: Mapped[str] = mapped_column(String(50), ForeignKey("user.nuid"))
 
     # Relationships
-    section: Mapped["Section"] = relationship("Section", back_populates="section_lock")
-    user: Mapped["User"] = relationship("User", back_populates="section_locks")
+    section: Mapped[Section] = relationship("Section", back_populates="section_lock")
+    user: Mapped[User] = relationship("User", back_populates="section_locks")
 
     # Timestamps
     locked_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())

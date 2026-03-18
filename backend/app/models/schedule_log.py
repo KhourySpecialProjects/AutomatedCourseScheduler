@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
-from sqlalchemy import String, DateTime, ForeignKey
+
+from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-from datetime import datetime
 
 from app.core.database import Base
 
@@ -20,12 +21,17 @@ class ScheduleLog(Base):
     content: Mapped[str] = mapped_column(String(500))
 
     # Foreign Keys
-    schedule_id: Mapped[str] = mapped_column(String(50), ForeignKey("schedule.schedule_id"))
+    schedule_id: Mapped[str] = mapped_column(
+        String(50), ForeignKey("schedule.schedule_id")
+    )
 
     # Relationships
-    schedule: Mapped["Schedule"] = relationship("Schedule", back_populates="schedule_log")
+    schedule: Mapped["Schedule"] = relationship(
+        "Schedule", back_populates="schedule_log"
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
-
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )

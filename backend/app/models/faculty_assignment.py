@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
-from sqlalchemy import String, DateTime, ForeignKey
+
+from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-from datetime import datetime
 
 from app.core.database import Base
 
@@ -20,13 +21,20 @@ class FacultyAssignment(Base):
 
     # Foreign Keys
     faculty_nuid: Mapped[str] = mapped_column(String(50), ForeignKey("faculty.nuid"))
-    section_id: Mapped[str] = mapped_column(String(50), ForeignKey("section.section_id"))
+    section_id: Mapped[str] = mapped_column(
+        String(50), ForeignKey("section.section_id")
+    )
 
     # Relationships
-    faculty: Mapped["Faculty"] = relationship("Faculty", back_populates="faculty_assignments")
-    section: Mapped["Section"] = relationship("Section", back_populates="faculty_assignments")
+    faculty: Mapped["Faculty"] = relationship(
+        "Faculty", back_populates="faculty_assignments"
+    )
+    section: Mapped["Section"] = relationship(
+        "Section", back_populates="faculty_assignments"
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
-
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )

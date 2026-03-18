@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
-from sqlalchemy import String, DateTime, ForeignKey, Enum
+
+from sqlalchemy import DateTime, Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-from datetime import datetime
 
 from app.core.database import Base
 from app.core.enums import PreferenceLevel
@@ -26,9 +27,12 @@ class MeetingPreference(Base):
     faculty_nuid: Mapped[str] = mapped_column(String(50), ForeignKey("faculty.nuid"))
 
     # Relationships
-    faculty: Mapped["Faculty"] = relationship("Faculty", back_populates="meeting_preferences")
+    faculty: Mapped["Faculty"] = relationship(
+        "Faculty", back_populates="meeting_preferences"
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
-
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
