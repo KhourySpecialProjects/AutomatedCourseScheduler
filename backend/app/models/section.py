@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import TYPE_CHECKING
 from sqlalchemy import String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,7 +12,10 @@ if TYPE_CHECKING:
     from app.models.time_block import TimeBlock
     from app.models.course import Course
     from app.models.faculty_assignment import FacultyAssignment
+    from app.models.section_lock import SectionLock
 
+if TYPE_CHECKING:
+    from app.models.section_lock import SectionLock
 
 class Section(Base):
     """Represents a section offering a course in a schedule
@@ -34,6 +38,7 @@ class Section(Base):
     time_block: Mapped["TimeBlock"] = relationship("TimeBlock", back_populates="sections")
     course: Mapped["Course"] = relationship("Course", back_populates="sections")
     faculty_assignments: Mapped[list["FacultyAssignment"]] = relationship("FacultyAssignment", back_populates="section")
+    section_lock: Mapped["SectionLock"] = relationship("SectionLock", back_populates="section", uselist=False)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

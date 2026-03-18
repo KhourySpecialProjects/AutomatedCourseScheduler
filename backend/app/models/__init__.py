@@ -8,6 +8,7 @@ from app.models.schedule import Schedule
 from app.models.schedule_log import ScheduleLog
 from app.models.section import Section
 from app.models.faculty_assignment import FacultyAssignment
+from app.models.section_lock import SectionLock
 
 __all__ = [
     "User",
@@ -20,4 +21,5 @@ __all__ = [
     "ScheduleLog",
     "Section",
     "FacultyAssignment",
+    "SectionLock",
 ]
