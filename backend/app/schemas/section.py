@@ -4,26 +4,27 @@ from pydantic import BaseModel
 
 
 class SectionResponse(BaseModel):
-    SectionID: int
-    Schedule: int | None
-    TimeBlock: int | None
-    Course: int | None
-    Capacity: int | None
-    Instructor: int | None
+    section_id: int
+    schedule_id: int
+    time_block_id: int
+    course_id: int
+    capacity: int
+    section_number: int
+    enrollment: int
 
     model_config = {"from_attributes": True}
 
 
 class SectionCreate(BaseModel):
-    Schedule: int
-    TimeBlock: int | None = None
-    Course: int
-    Capacity: int
-    Instructor: int | None = None
+    schedule_id: int
+    time_block_id: int
+    course_id: int
+    capacity: int
+    section_number: int
+    enrollment: int = 0
 
 
 class SectionUpdate(BaseModel):
-    TimeBlock: int | None = None
-    Course: int | None = None
-    Capacity: int | None = None
-    Instructor: int | None = None
+    time_block_id: int | None = None
+    course_id: int | None = None
+    capacity: int | None = None

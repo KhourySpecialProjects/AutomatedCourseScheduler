@@ -32,7 +32,9 @@ class Section(Base):
     enrollment: Mapped[int] = mapped_column(Integer)
 
     # Foreign Keys
-    schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("schedule.schedule_id"))
+    schedule_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("schedule.schedule_id")
+    )
     time_block_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("time_block.time_block_id")
     )

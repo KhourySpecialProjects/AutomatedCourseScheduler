@@ -2,80 +2,101 @@ from app.models import Schedule, Section
 
 
 def test_get_schedule_sections_empty(client, db_session):
-    schedule = Schedule(
-        name="Test", semester="Fall", year=2024
-    )
+    schedule = Schedule(name="Test", semester="Fall", year=2024)
     db_session.add(schedule)
     db_session.commit()
 
-    response = client.get(f"/schedules/{schedule.ScheduleID}/sections")
+    response = client.get(f"/schedules/{schedule.schedule_id}/sections")
     assert response.status_code == 200
     assert response.json() == []
 
 
 def test_get_schedule_sections_returns_all(client, db_session):
-    schedule = Schedule(
-        name="Test", semester="Fall", year=2024
-    )
+    schedule = Schedule(name="Test", semester="Fall", year=2024)
     db_session.add(schedule)
     db_session.commit()
 
     db_session.add_all(
         [
-            Section(Schedule=schedule.ScheduleID, Capacity=30),
-            Section(Schedule=schedule.ScheduleID, Capacity=25),
+            Section(
+                schedule_id=schedule.schedule_id,
+                time_block_id=1,
+                course_id=1,
+                section_number=1,
+                capacity=30,
+                enrollment=0,
+            ),
+            Section(
+                schedule_id=schedule.schedule_id,
+                time_block_id=2,
+                course_id=2,
+                section_number=2,
+                capacity=25,
+                enrollment=0,
+            ),
         ]
     )
     db_session.commit()
 
-    response = client.get(f"/schedules/{schedule.ScheduleID}/sections")
-
+    response = client.get(f"/schedules/{schedule.schedule_id}/sections")
     assert response.status_code == 200
     assert len(response.json()) == 2
 
 
 def test_get_schedule_sections_response_shape(client, db_session):
-    schedule = Schedule(
-        name="Test", semester="Fall", year=2024
-    )
+    schedule = Schedule(name="Test", semester="Fall", year=2024)
     db_session.add(schedule)
     db_session.commit()
 
     db_session.add(
-        Section(Schedule=schedule.ScheduleID, Course=101, Capacity=20, Instructor=999)
+        Section(
+            schedule_id=schedule.schedule_id,
+            time_block_id=1,
+            course_id=101,
+            section_number=1,
+            capacity=20,
+            enrollment=0,
+        )
     )
     db_session.commit()
 
-    response = client.get(f"/schedules/{schedule.ScheduleID}/sections")
+    response = client.get(f"/schedules/{schedule.schedule_id}/sections")
     assert response.status_code == 200
     section = response.json()[0]
     expected_keys = {
-        "SectionID",
-        "Schedule",
-        "TimeBlock",
-        "Course",
-        "Capacity",
-        "Instructor",
+        "section_id",
+        "schedule_id",
+        "time_block_id",
+        "course_id",
+        "capacity",
+        "section_number",
+        "enrollment",
     }
     assert set(section.keys()) == expected_keys
 
 
-def test_get_schedule_sections_nullable_fields(client, db_session):
-    schedule = Schedule(
-        name="Test", semester="Fall", year=2024
-    )
+def test_get_schedule_sections_field_values(client, db_session):
+    schedule = Schedule(name="Test", semester="Fall", year=2024)
     db_session.add(schedule)
     db_session.commit()
 
-    # FK columns are nullable — a section with only Capacity set should
-    # serialize cleanly.
-    db_session.add(Section(Schedule=schedule.ScheduleID, Capacity=15))
+    db_session.add(
+        Section(
+            schedule_id=schedule.schedule_id,
+            time_block_id=5,
+            course_id=101,
+            section_number=3,
+            capacity=15,
+            enrollment=0,
+        )
+    )
     db_session.commit()
 
-    response = client.get(f"/schedules/{schedule.ScheduleID}/sections")
+    response = client.get(f"/schedules/{schedule.schedule_id}/sections")
     section = response.json()[0]
-    assert section["Capacity"] == 15
-    assert section["Schedule"] == schedule.ScheduleID
-    assert section["TimeBlock"] is None
-    assert section["Course"] is None
-    assert section["Instructor"] is None
+    assert section["capacity"] == 15
+    assert section["schedule_id"] == schedule.schedule_id
+    assert section["time_block_id"] == 5
+    assert section["course_id"] == 101
+    assert section["section_number"] == 3
+    assert section["enrollment"] == 0

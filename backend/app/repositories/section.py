@@ -10,4 +10,4 @@ def get_all(db: Session) -> list[Section]:
 
 
 def get_by_schedule(db: Session, schedule_id: int) -> list[Section]:
-    return db.query(Section).filter(Section.Schedule == schedule_id).all()
+    return db.query(Section).filter(Section.schedule_id == schedule_id).all()
