@@ -29,7 +29,6 @@ class Section(Base):
     section_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     section_number: Mapped[int] = mapped_column(Integer)
     capacity: Mapped[int] = mapped_column(Integer)
-    enrollment: Mapped[int] = mapped_column(Integer)
 
     # Foreign Keys
     schedule_id: Mapped[int] = mapped_column(

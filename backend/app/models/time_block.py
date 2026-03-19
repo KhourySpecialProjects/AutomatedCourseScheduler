@@ -23,7 +23,6 @@ class TimeBlock(Base):
     end_time: Mapped[datetime] = mapped_column(DateTime)
     timezone: Mapped[str] = mapped_column(String(4))
     campus: Mapped[str] = mapped_column(String(100))
-    classroom: Mapped[str] = mapped_column(String(100))
 
     # Relationships
     sections: Mapped[list["Section"]] = relationship(
