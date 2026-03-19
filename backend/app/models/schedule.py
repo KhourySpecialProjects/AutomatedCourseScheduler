@@ -19,7 +19,7 @@ class Schedule(Base):
 
     __tablename__ = "schedule"
 
-    schedule_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    schedule_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
     semester: Mapped[str] = mapped_column(String(50))
     year: Mapped[int] = mapped_column(Integer)

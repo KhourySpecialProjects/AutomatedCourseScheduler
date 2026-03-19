@@ -17,7 +17,7 @@ class Course(Base):
 
     __tablename__ = "course"
 
-    course_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    course_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str] = mapped_column(String(1000))
     credits: Mapped[int] = mapped_column(Integer)

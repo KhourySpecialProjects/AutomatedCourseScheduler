@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -22,13 +22,13 @@ class SectionLock(Base):
 
     __tablename__ = "section_lock"
 
-    section_lock_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    section_lock_id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
     # Foreign Keys
-    section_id: Mapped[str] = mapped_column(
-        String(50), ForeignKey("section.section_id"), unique=True
+    section_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("section.section_id"), unique=True
     )
-    locked_by: Mapped[str] = mapped_column(String(50), ForeignKey("user.nuid"))
+    locked_by: Mapped[int] = mapped_column(Integer, ForeignKey("user.nuid"))
 
     # Relationships
     section: Mapped[Section] = relationship("Section", back_populates="section_lock")

@@ -13,6 +13,7 @@ from app.routers import (
     upload,
 )
 
+import app.models
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(

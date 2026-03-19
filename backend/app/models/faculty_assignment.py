@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -17,13 +17,11 @@ class FacultyAssignment(Base):
 
     __tablename__ = "faculty_assignment"
 
-    faculty_assignment_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    faculty_assignment_id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
     # Foreign Keys
-    faculty_nuid: Mapped[str] = mapped_column(String(50), ForeignKey("faculty.nuid"))
-    section_id: Mapped[str] = mapped_column(
-        String(50), ForeignKey("section.section_id")
-    )
+    faculty_nuid: Mapped[int] = mapped_column(Integer, ForeignKey("faculty.nuid"))
+    section_id: Mapped[int] = mapped_column(Integer, ForeignKey("section.section_id"))
 
     # Relationships
     faculty: Mapped["Faculty"] = relationship(

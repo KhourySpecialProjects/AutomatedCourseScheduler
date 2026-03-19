@@ -3,7 +3,7 @@ from app.models import Schedule, Section
 
 def test_get_schedule_sections_empty(client, db_session):
     schedule = Schedule(
-        ScheduleName="Test", SemesterSeason="Fall", SemesterYear=2024, Campus=1
+        name="Test", semester="Fall", year=2024
     )
     db_session.add(schedule)
     db_session.commit()
@@ -15,7 +15,7 @@ def test_get_schedule_sections_empty(client, db_session):
 
 def test_get_schedule_sections_returns_all(client, db_session):
     schedule = Schedule(
-        ScheduleName="Test", SemesterSeason="Fall", SemesterYear=2024, Campus=1
+        name="Test", semester="Fall", year=2024
     )
     db_session.add(schedule)
     db_session.commit()
@@ -36,7 +36,7 @@ def test_get_schedule_sections_returns_all(client, db_session):
 
 def test_get_schedule_sections_response_shape(client, db_session):
     schedule = Schedule(
-        ScheduleName="Test", SemesterSeason="Fall", SemesterYear=2024, Campus=1
+        name="Test", semester="Fall", year=2024
     )
     db_session.add(schedule)
     db_session.commit()
@@ -62,7 +62,7 @@ def test_get_schedule_sections_response_shape(client, db_session):
 
 def test_get_schedule_sections_nullable_fields(client, db_session):
     schedule = Schedule(
-        ScheduleName="Test", SemesterSeason="Fall", SemesterYear=2024, Campus=1
+        name="Test", semester="Fall", year=2024
     )
     db_session.add(schedule)
     db_session.commit()

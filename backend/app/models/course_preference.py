@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -19,12 +19,13 @@ class CoursePreference(Base):
 
     __tablename__ = "course_preference"
 
-    preference_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    preference_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     preference: Mapped[PreferenceLevel] = mapped_column(Enum(PreferenceLevel))
 
     # Foreign Keys
-    faculty_nuid: Mapped[str] = mapped_column(String(50), ForeignKey("faculty.nuid"))
     course_id: Mapped[str] = mapped_column(String(50), ForeignKey("course.course_id"))
+    faculty_nuid: Mapped[int] = mapped_column(Integer, ForeignKey("faculty.nuid"))
+    course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
 
     # Relationships
     faculty: Mapped["Faculty"] = relationship(

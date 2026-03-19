@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -26,19 +26,17 @@ class Section(Base):
 
     __tablename__ = "section"
 
-    section_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    section_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     section_number: Mapped[int] = mapped_column(Integer)
     capacity: Mapped[int] = mapped_column(Integer)
     enrollment: Mapped[int] = mapped_column(Integer)
 
     # Foreign Keys
-    schedule_id: Mapped[str] = mapped_column(
-        String(50), ForeignKey("schedule.schedule_id")
+    schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("schedule.schedule_id"))
+    time_block_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("time_block.time_block_id")
     )
-    time_block_id: Mapped[str] = mapped_column(
-        String(50), ForeignKey("time_block.time_block_id")
-    )
-    course_id: Mapped[str] = mapped_column(String(50), ForeignKey("course.course_id"))
+    course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
 
     # Relationships
     schedule: Mapped[Schedule] = relationship("Schedule", back_populates="sections")

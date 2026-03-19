@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -17,13 +17,11 @@ class ScheduleLog(Base):
 
     __tablename__ = "schedule_log"
 
-    schedule_log_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    schedule_log_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     content: Mapped[str] = mapped_column(String(500))
 
     # Foreign Keys
-    schedule_id: Mapped[str] = mapped_column(
-        String(50), ForeignKey("schedule.schedule_id")
-    )
+    schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("schedule.schedule_id"))
 
     # Relationships
     schedule: Mapped["Schedule"] = relationship(
