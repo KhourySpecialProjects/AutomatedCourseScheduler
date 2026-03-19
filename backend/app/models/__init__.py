@@ -4,4 +4,5 @@ from app.models.faculty import Faculty
 from app.models.schedule import Schedule
 from app.models.section import Section
 
-__all__ = ["CampusTimeBlock", "Course", "Faculty", "Schedule", "Section"]
+__all__ = ["CampusTimeBlock", "Course", "CoursePreference",
+           "Faculty", "Schedule", "Section", "TimeBlock", "User", "Campus"]

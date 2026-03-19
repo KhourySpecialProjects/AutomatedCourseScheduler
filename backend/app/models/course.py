@@ -15,5 +15,6 @@ class Course(Base):
     SectionCount = Column(Integer, nullable=True)
 
     __table_args__ = (
-        CheckConstraint('CourseNo >= 1000', name='validate_course_number')
+        CheckConstraint('CourseNo >= 1000 AND CourseNo <= 10000',
+                        name='validate_course_number')
     )

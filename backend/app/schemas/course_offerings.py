@@ -1,11 +1,9 @@
-"""Upload Pydantic schemas."""
+"""Course Offerings Pydantic schemas."""
 
 from pydantic import BaseModel
 
 
-class OfferingsSchema(BaseModel):
-    courseId: int
+class CourseOfferingsSchema(BaseModel):
     courseNo: int
     courseSubject: str
     courseName: str
-    sectionCount: str
