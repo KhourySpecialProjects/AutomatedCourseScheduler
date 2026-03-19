@@ -7,9 +7,9 @@ class Settings(BaseSettings):
     """Centralized application configuration loaded from environment variables.
     All values are read from the .env file at startup."""
 
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
+    POSTGRES_USER: str = ""
+    POSTGRES_PASSWORD: str = ""
+    POSTGRES_DB: str = ""
     POSTGRES_HOST: str = "db"  # host is set to db but overrided if set in env
     DATABASE_URL: str = ""
 
