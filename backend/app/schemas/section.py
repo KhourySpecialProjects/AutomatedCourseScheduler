@@ -10,7 +10,6 @@ class SectionResponse(BaseModel):
     course_id: int
     capacity: int
     section_number: int
-    enrollment: int
 
     model_config = {"from_attributes": True}
 
@@ -21,7 +20,6 @@ class SectionCreate(BaseModel):
     course_id: int
     capacity: int
     section_number: int
-    enrollment: int = 0
 
 
 class SectionUpdate(BaseModel):

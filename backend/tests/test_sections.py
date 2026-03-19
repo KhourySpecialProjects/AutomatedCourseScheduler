@@ -1,8 +1,9 @@
+from app.core.enums import Semester
 from app.models import Schedule, Section
 
 
 def test_get_schedule_sections_empty(client, db_session):
-    schedule = Schedule(name="Test", semester="Fall", year=2024)
+    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
     db_session.add(schedule)
     db_session.commit()
 
@@ -12,7 +13,7 @@ def test_get_schedule_sections_empty(client, db_session):
 
 
 def test_get_schedule_sections_returns_all(client, db_session):
-    schedule = Schedule(name="Test", semester="Fall", year=2024)
+    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
     db_session.add(schedule)
     db_session.commit()
 
@@ -24,7 +25,6 @@ def test_get_schedule_sections_returns_all(client, db_session):
                 course_id=1,
                 section_number=1,
                 capacity=30,
-                enrollment=0,
             ),
             Section(
                 schedule_id=schedule.schedule_id,
@@ -32,7 +32,6 @@ def test_get_schedule_sections_returns_all(client, db_session):
                 course_id=2,
                 section_number=2,
                 capacity=25,
-                enrollment=0,
             ),
         ]
     )
@@ -44,7 +43,7 @@ def test_get_schedule_sections_returns_all(client, db_session):
 
 
 def test_get_schedule_sections_response_shape(client, db_session):
-    schedule = Schedule(name="Test", semester="Fall", year=2024)
+    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
     db_session.add(schedule)
     db_session.commit()
 
@@ -55,7 +54,6 @@ def test_get_schedule_sections_response_shape(client, db_session):
             course_id=101,
             section_number=1,
             capacity=20,
-            enrollment=0,
         )
     )
     db_session.commit()
@@ -70,13 +68,12 @@ def test_get_schedule_sections_response_shape(client, db_session):
         "course_id",
         "capacity",
         "section_number",
-        "enrollment",
     }
     assert set(section.keys()) == expected_keys
 
 
 def test_get_schedule_sections_field_values(client, db_session):
-    schedule = Schedule(name="Test", semester="Fall", year=2024)
+    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
     db_session.add(schedule)
     db_session.commit()
 
@@ -87,7 +84,6 @@ def test_get_schedule_sections_field_values(client, db_session):
             course_id=101,
             section_number=3,
             capacity=15,
-            enrollment=0,
         )
     )
     db_session.commit()
@@ -99,4 +95,3 @@ def test_get_schedule_sections_field_values(client, db_session):
     assert section["time_block_id"] == 5
     assert section["course_id"] == 101
     assert section["section_number"] == 3
-    assert section["enrollment"] == 0
