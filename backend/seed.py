@@ -18,17 +18,17 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.core.database import Base, SessionLocal, engine  # noqa: E402
-from app.core.enums import PreferenceLevel  # noqa: E402
-from app.models.course import Course  # noqa: E402
-from app.models.course_preference import CoursePreference  # noqa: E402
-from app.models.faculty import Faculty  # noqa: E402
-from app.models.faculty_assignment import FacultyAssignment  # noqa: E402
-from app.models.meeting_preference import MeetingPreference  # noqa: E402
-from app.models.schedule import Schedule  # noqa: E402
-from app.models.schedule_log import ScheduleLog  # noqa: E402
-from app.models.section import Section  # noqa: E402
-from app.models.time_block import TimeBlock  # noqa: E402
+from app.core.database import Base, SessionLocal, engine  
+from app.core.enums import PreferenceLevel, Semester
+from app.models.course import Course 
+from app.models.course_preference import CoursePreference  
+from app.models.faculty import Faculty  
+from app.models.faculty_assignment import FacultyAssignment  
+from app.models.meeting_preference import MeetingPreference  
+from app.models.schedule import Schedule 
+from app.models.schedule_log import ScheduleLog  
+from app.models.section import Section 
+from app.models.time_block import TimeBlock  
 
 
 def seed(db: Session) -> None:
@@ -89,18 +89,18 @@ def seed(db: Session) -> None:
     # MWF blocks (anchor to Mon Sep 7 / Wed Sep 9 / Fri Sep 11 — stored as one row each)
     # TTh blocks (anchor to Tue Sep 8 / Thu Sep 10)
     time_blocks = [
-        TimeBlock(start_time=dt(7, 8, 0),  end_time=dt(7, 9, 5),  timezone="EST", campus="Boston", classroom="EXP 103"),   # MWF 8–9:05
-        TimeBlock(start_time=dt(7, 9, 15), end_time=dt(7, 10, 20), timezone="EST", campus="Boston", classroom="EXP 105"),  # MWF 9:15–10:20
-        TimeBlock(start_time=dt(7, 10, 30), end_time=dt(7, 11, 35), timezone="EST", campus="Boston", classroom="EXP 201"), # MWF 10:30–11:35
-        TimeBlock(start_time=dt(7, 11, 45), end_time=dt(7, 12, 50), timezone="EST", campus="Boston", classroom="EXP 203"), # MWF 11:45–12:50
-        TimeBlock(start_time=dt(7, 13, 35), end_time=dt(7, 14, 40), timezone="EST", campus="Boston", classroom="EXP 301"), # MWF 1:35–2:40
-        TimeBlock(start_time=dt(7, 14, 50), end_time=dt(7, 15, 55), timezone="EST", campus="Boston", classroom="EXP 303"), # MWF 2:50–3:55
-        TimeBlock(start_time=dt(8, 8, 0),  end_time=dt(8, 9, 40),  timezone="EST", campus="Boston", classroom="EXP 104"),  # TTh 8–9:40
-        TimeBlock(start_time=dt(8, 9, 50), end_time=dt(8, 11, 30), timezone="EST", campus="Boston", classroom="EXP 106"),  # TTh 9:50–11:30
-        TimeBlock(start_time=dt(8, 11, 45), end_time=dt(8, 13, 25), timezone="EST", campus="Boston", classroom="EXP 202"), # TTh 11:45–1:25
-        TimeBlock(start_time=dt(8, 13, 35), end_time=dt(8, 15, 15), timezone="EST", campus="Boston", classroom="EXP 204"), # TTh 1:35–3:15
-        TimeBlock(start_time=dt(8, 15, 30), end_time=dt(8, 17, 10), timezone="EST", campus="Boston", classroom="EXP 302"), # TTh 3:30–5:10
-        TimeBlock(start_time=dt(7, 18, 0),  end_time=dt(7, 21, 0),  timezone="EST", campus="Boston", classroom="EXP 401"), # Mon eve 6–9
+        TimeBlock(start_time=dt(7, 8, 0),  end_time=dt(7, 9, 5),  timezone="EST", campus="Boston"),   # MWF 8–9:05
+        TimeBlock(start_time=dt(7, 9, 15), end_time=dt(7, 10, 20), timezone="EST", campus="Boston"),  # MWF 9:15–10:20
+        TimeBlock(start_time=dt(7, 10, 30), end_time=dt(7, 11, 35), timezone="EST", campus="Boston"), # MWF 10:30–11:35
+        TimeBlock(start_time=dt(7, 11, 45), end_time=dt(7, 12, 50), timezone="EST", campus="Boston"), # MWF 11:45–12:50
+        TimeBlock(start_time=dt(7, 13, 35), end_time=dt(7, 14, 40), timezone="EST", campus="Boston"), # MWF 1:35–2:40
+        TimeBlock(start_time=dt(7, 14, 50), end_time=dt(7, 15, 55), timezone="EST", campus="Boston"), # MWF 2:50–3:55
+        TimeBlock(start_time=dt(8, 8, 0),  end_time=dt(8, 9, 40),  timezone="EST", campus="Boston"),  # TTh 8–9:40
+        TimeBlock(start_time=dt(8, 9, 50), end_time=dt(8, 11, 30), timezone="EST", campus="Boston"),  # TTh 9:50–11:30
+        TimeBlock(start_time=dt(8, 11, 45), end_time=dt(8, 13, 25), timezone="EST", campus="Boston"), # TTh 11:45–1:25
+        TimeBlock(start_time=dt(8, 13, 35), end_time=dt(8, 15, 15), timezone="EST", campus="Boston"), # TTh 1:35–3:15
+        TimeBlock(start_time=dt(8, 15, 30), end_time=dt(8, 17, 10), timezone="EST", campus="Boston"), # TTh 3:30–5:10
+        TimeBlock(start_time=dt(7, 18, 0),  end_time=dt(7, 21, 0),  timezone="EST", campus="Boston"), # Mon eve 6–9
     ]
     db.add_all(time_blocks)
     db.flush()
@@ -108,7 +108,7 @@ def seed(db: Session) -> None:
     # ------------------------------------------------------------------
     # Schedule
     # ------------------------------------------------------------------
-    schedule = Schedule(name="Fall 2026 Draft", semester="Fall", year=2026, draft=True)
+    schedule = Schedule(name="Fall 2026 Draft", semester=Semester.FALL, year=2026, draft=True)
     db.add(schedule)
     db.flush()
 
@@ -121,40 +121,39 @@ def seed(db: Session) -> None:
     # (course_index, time_block_index, section_number, capacity, enrollment)
     section_specs = [
         # CS1 — 3 sections
-        (0,  0, 1, 60, 58), (0,  2, 2, 60, 55), (0,  6, 3, 60, 47),
+        (0,  0, 1, 60), (0,  2, 2, 60), (0,  6, 3, 60),
         # CS2 — 3 sections
-        (1,  1, 1, 50, 50), (1,  3, 2, 50, 43), (1,  7, 3, 50, 49),
+        (1,  1, 1, 50), (1,  3, 2, 50), (1,  7, 3, 50),
         # OOD — 3 sections
-        (2,  2, 1, 40, 38), (2,  4, 2, 40, 31), (2,  8, 3, 40, 40),
+        (2,  2, 1, 40), (2,  4, 2, 40), (2,  8, 3, 40),
         # Algorithms — 2 sections
-        (3,  3, 1, 40, 39), (3,  9, 2, 40, 35),
+        (3,  3, 1, 40), (3,  9, 2, 40),
         # Computer Systems — 2 sections
-        (4,  4, 1, 35, 33), (4,  7, 2, 35, 30),
+        (4,  4, 1, 35), (4,  7, 2, 35),
         # Software Dev — 2 sections
-        (5,  5, 1, 30, 28), (5,  10, 2, 30, 22),
+        (5,  5, 1, 30), (5,  10, 2, 30),
         # Theory of Computation — 2 sections
-        (6,  1, 1, 30, 29), (6,  6, 2, 30, 27),
+        (6,  1, 1, 30), (6,  6, 2, 30),
         # Foundations of AI — 2 sections
-        (7,  2, 1, 35, 34), (7,  9, 2, 35, 30),
+        (7,  2, 1, 35), (7,  9, 2, 35),
         # Database Design — 2 sections
-        (8,  0, 1, 35, 32), (8,  8, 2, 35, 31),
+        (8,  0, 1, 35), (8,  8, 2, 35),
         # Networks — 2 sections
-        (9,  3, 1, 30, 25), (9,  10, 2, 30, 20),
+        (9,  3, 1, 30), (9,  10, 2, 30),
         # Programming Languages — 2 sections
-        (10, 4, 1, 25, 24), (10, 11, 2, 25, 18),
+        (10, 4, 1, 25), (10, 11, 2, 25),
         # Capstone — 3 sections
-        (11, 5, 1, 20, 19), (11, 9, 2, 20, 15), (11, 11, 3, 20, 12),
+        (11, 5, 1, 20), (11, 9, 2, 20), (11, 11, 3, 20),
         # Additional CS1 / CS2 sections to exceed 30
-        (0,  5, 4, 60, 42), (1,  8, 4, 50, 46),
-        (2,  10, 4, 40, 33), (3,  11, 3, 40, 17),
+        (0,  5, 4, 60), (1,  8, 4, 50),
+        (2,  10, 4, 40), (3,  11, 3, 40),
     ]
 
     sections = []
-    for course_idx, tb_idx, sec_num, cap, enroll in section_specs:
+    for course_idx, tb_idx, sec_num, cap in section_specs:
         sections.append(Section(
             section_number=sec_num,
             capacity=cap,
-            enrollment=enroll,
             schedule_id=schedule.schedule_id,
             time_block_id=time_blocks[tb_idx].time_block_id,
             course_id=courses[course_idx].course_id,
