@@ -1,5 +1,5 @@
 .PHONY: help \
-	be-install be-dev be-lint be-format be-format-fix be-test \
+	be-install be-dev be-lint be-format be-format-fix be-test be-seed \
 	fe-install fe-dev fe-build fe-generate fe-lint fe-lint-fix fe-test fe-test-watch \
 	docker-up docker-down docker-build
 
@@ -25,6 +25,9 @@ be-format: ## Check backend formatting (shows diff of changes needed)
 
 be-format-fix: ## Auto-fix backend formatting with ruff
 	cd backend && ruff format .
+
+be-seed: ## Seed the database with development data
+	cd backend && python3 seed.py
 
 be-test: ## Run backend tests
 	cd backend && pytest
