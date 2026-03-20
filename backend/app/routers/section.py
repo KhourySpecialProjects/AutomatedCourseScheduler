@@ -14,11 +14,10 @@ from app.services import section as section_service
 router = APIRouter(prefix="/sections", tags=["sections"])
 
 
-# We will need to specify schedule ID at some point
-@router.get("", response_model=list[SectionResponse])
-def get_sections(db: Session = Depends(get_db)):
+@router.get("/{schedule_id}", response_model=list[SectionResponse])
+def get_sections(schedule_id: int, db: Session = Depends(get_db)):
     """Get all sections."""
-    return section_service.get_all_sections(db)
+    return section_service.get_all_sections(db, schedule_id)
 
 
 @router.post("", response_model=SectionResponse, status_code=201)
