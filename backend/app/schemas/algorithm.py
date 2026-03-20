@@ -150,4 +150,4 @@ class DraftScheduleResult(BaseModel):
     )
     StabilityScore: float = Field(..., description="Overall schedule quality score")
     Warnings: list[Warning] = Field(..., description="Schedule warnings and issues")
-    RunMetadata: RunMetadata = Field(..., description="Algorithm run metadata")
+    Metadata: RunMetadata = Field(..., description="Algorithm run metadata")
