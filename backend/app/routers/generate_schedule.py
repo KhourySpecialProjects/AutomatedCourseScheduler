@@ -21,6 +21,7 @@ def run_algorithm(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
+    # TODO: query db for schedule_id, raise 404 if not found
     # TODO: check if algorithm is already running, raise 409 if so
     # TODO: update status in db
     background_tasks.add_task(_run_algorithm_task, schedule_id)
