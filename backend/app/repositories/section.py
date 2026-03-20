@@ -17,7 +17,8 @@ def get_by_schedule(db: Session, schedule_id: int) -> list[Section]:
 
 
 def get_rich_by_schedule(db: Session, schedule_id: int) -> list[Section]:
-    """Return sections with course, time_block, and instructor preferences eager-loaded."""
+    """Return sections with course,
+    time_block, and instructor preferences eager-loaded."""
     return (
         db.query(Section)
         .options(
