@@ -10,4 +10,3 @@ class Campus(Base):
     __tablename__ = "Campus"
     CampusID = Column(Integer, primary_key=True, autoincrement=True)
     CampusName = Column(String, nullable=False)
-    

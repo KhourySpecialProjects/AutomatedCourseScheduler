@@ -14,18 +14,6 @@ from sqlalchemy.pool import StaticPool
 from app.core.database import Base, get_db
 from app.main import app
 
-# Stub tables so SQLAlchemy can resolve Section's FK references without
-# the real models being present. These only exist in the test process.
-_stub_tables = [
-    ("Schedule", "ScheduleID"),
-    ("CampusTimeBlock", "CTBID"),
-    ("Course", "CourseID"),
-    ("Faculty", "NUID"),
-]
-for _table_name, _pk_name in _stub_tables:
-    if _table_name not in Base.metadata.tables:
-        Table(_table_name, Base.metadata, Column(_pk_name, Integer, primary_key=True))
-
 SQLITE_URL = "sqlite://"
 
 # StaticPool ensures all connections share the same in-memory DB,

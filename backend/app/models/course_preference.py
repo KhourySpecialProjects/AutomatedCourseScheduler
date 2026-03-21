@@ -9,10 +9,10 @@ from app.core.database import Base
 class CoursePreference(Base):
     __tablename__ = "CoursePreference"
     PreferenceId = Column(Integer, primary_key=True, autoincrement=True)
-    FacultyId = Column(String, ForeignKey("Faculty.FacultyId"), nullable=False)
-    CourseId = Column(Integer, ForeignKey("Course.CourseId"), nullable=False)
+    FacultyId = Column(String, ForeignKey("Faculty.NUID"), nullable=False)
+    CourseId = Column(Integer, ForeignKey("Course.CourseID"), nullable=False)
     Rank = Column(Integer)
 
     __table_args__ = (
-        CheckConstraint('Rank >= 1 AND Rank <= 3', name='validate_rank')
+        CheckConstraint('Rank >= 1 AND Rank <= 3', name='validate_rank'),
     )

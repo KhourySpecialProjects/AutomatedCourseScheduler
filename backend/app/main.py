@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 
 from app.core.cors_middleware import setup_cors
-from app.core.database import Base, engine
 from app.routers import (
     campus,
     comment,
@@ -12,8 +11,6 @@ from app.routers import (
     time_block,
     upload,
 )
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Automated Course Scheduler API",

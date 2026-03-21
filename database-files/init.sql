@@ -5,7 +5,7 @@
 CREATE TYPE role AS ENUM ('Admin', 'Basic');
 CREATE TYPE location AS ENUM ('Boston', 'London', 'Oakland');
 CREATE TYPE weekday AS ENUM ('M', 'T', 'W', 'R', 'F');
-CREATE TYPE semester_season AS ENUM ('Fall', 'Spring');
+CREATE TYPE semester_season AS ENUM ('Fall', 'Spring', 'Summer 1', 'Summer 2');
 
 CREATE TABLE IF NOT EXISTS "User" (
   UserID SERIAL PRIMARY KEY,
