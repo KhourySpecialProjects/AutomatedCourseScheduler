@@ -3,24 +3,13 @@
 # Import `get_db` as a FastAPI dependency in your routes,
 # or use `engine` directly for raw SQL / table creation.
 # ------------------------------------------------------------
-import os
-
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-load_dotenv()
+from app.core.settings import settings
 
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL"
-) or "postgresql://{user}:{password}@{host}:5432/{db}".format(
-    user=os.environ["POSTGRES_USER"],
-    password=os.environ["POSTGRES_PASSWORD"],
-    host=os.environ.get("POSTGRES_HOST", "db"),
-    db=os.environ["POSTGRES_DB"],
-)
 # The engine is the shared connection pool — one instance for the app.
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.db_url)
 
 # SessionLocal is a factory; each request gets its own session.
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

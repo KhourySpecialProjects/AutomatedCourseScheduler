@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+import app.models
 from app.core.cors_middleware import setup_cors
 from app.core.database import Base, engine
 from app.routers import (

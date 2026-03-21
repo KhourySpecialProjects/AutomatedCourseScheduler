@@ -8,35 +8,26 @@ from sqlalchemy.sql import func
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.course_preference import CoursePreference
-    from app.models.faculty_assignment import FacultyAssignment
-    from app.models.meeting_preference import MeetingPreference
+    from app.models.section_lock import SectionLock
 
 
-class Faculty(Base):
-    """Represents a faculty member whose courses and preferences
-    are used to generate the course schedule."""
+class User(Base):
+    """Represents a user of the application who can log in and
+    perform tasks like running the scheduler and editing schedule
+    drafts."""
 
-    __tablename__ = "faculty"
+    __tablename__ = "user"
 
     nuid: Mapped[int] = mapped_column(Integer, primary_key=True)
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
     email: Mapped[str] = mapped_column(String(100), unique=True)
     phone_number: Mapped[str] = mapped_column(String(15))
-    title: Mapped[str] = mapped_column(String(100))
-    campus: Mapped[str] = mapped_column(String(100))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
-    course_preferences: Mapped[list["CoursePreference"]] = relationship(
-        "CoursePreference", back_populates="faculty"
-    )
-    meeting_preferences: Mapped[list["MeetingPreference"]] = relationship(
-        "MeetingPreference", back_populates="faculty"
-    )
-    faculty_assignments: Mapped[list["FacultyAssignment"]] = relationship(
-        "FacultyAssignment", back_populates="faculty"
+    section_locks: Mapped[list["SectionLock"]] = relationship(
+        "SectionLock", back_populates="user"
     )
 
     # Timestamps
