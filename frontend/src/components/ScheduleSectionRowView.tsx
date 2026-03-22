@@ -5,7 +5,7 @@ import SectionDetailPanel from './SectionDetailPanel';
 
 type SortKey = 'course' | 'section' | 'time' | 'instructor' | 'capacity';
 type SortDir = 'asc' | 'desc';
-type DayFilter = 'all' | 'MWF' | 'TTh' | 'Eve';
+type DayFilter = 'all' | 'MWR' | 'MR' | 'WF';
 
 interface Props {
   sections: SectionRichResponse[];
@@ -42,9 +42,10 @@ function getSortValue(section: SectionRichResponse, key: SortKey): string | numb
 }
 
 function dayCategory(days: string): DayFilter {
-  if (days === 'MWF') return 'MWF';
-  if (days === 'TTh') return 'TTh';
-  return 'Eve';
+  if (days === 'MWR') return 'MWR';
+  if (days === 'MR') return 'MR';
+  if (days === 'WF') return 'WF';
+  return 'MWR';
 }
 
 export default function ScheduleSectionRowView({ sections, scheduleId }: Props) {
@@ -138,7 +139,7 @@ export default function ScheduleSectionRowView({ sections, scheduleId }: Props) 
         </div>
 
         <div className="flex gap-1">
-          {(['all', 'MWF', 'TTh', 'Eve'] as DayFilter[]).map((f) => (
+          {(['all', 'MWR', 'MR', 'WF'] as DayFilter[]).map((f) => (
             <button
               key={f}
               onClick={() => setDayFilter(f)}

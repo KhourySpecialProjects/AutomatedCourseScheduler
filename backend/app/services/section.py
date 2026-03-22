@@ -26,9 +26,11 @@ def get_all_sections(db: Session, schedule_id: int) -> list[Section]:
 def _derive_days(start_time: datetime) -> str:
     weekday = start_time.weekday()
     if weekday == 0:
-        return "MWF"
-    if weekday == 1:
-        return "TTh"
+        return "MWR"
+    if weekday == 2:
+        return "WF"
+    if weekday == 3:
+        return "MR"
     return start_time.strftime("%A")
 
 

@@ -39,6 +39,7 @@ function ScheduleView({ scheduleId }: { scheduleId: number }) {
 
 export default function Schedules() {
   const { scheduleId } = useParams<{ scheduleId?: string }>();
+  // FLAG: hardcoded schedule ID, in prod first grab all schedules, then get specific sections using schedule_id
   const id = scheduleId ? parseInt(scheduleId, 10) : 1;
 
   return <ScheduleView scheduleId={id} />;
