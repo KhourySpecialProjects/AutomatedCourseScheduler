@@ -1,7 +1,7 @@
 import enum
 
 
-class PreferenceLevel(str, enum.Enum):
+class PreferenceLevel(enum.StrEnum):
     FIRST = "Eager to teach"
     SECOND = "Ready to teach"
     THIRD = "Willing to teach"

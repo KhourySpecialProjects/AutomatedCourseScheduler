@@ -1,19 +1,20 @@
 """Upload router."""
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlalchemy.orm import Session
-from sqlalchemy import insert
-from app.models.course_preference import CoursePreference
-from app.models.course import Course
-from app.models.faculty import Faculty
-from app.schemas.course_preferences import CoursePreferencesSchema
-from app.schemas.course_offerings import CourseOfferingsSchema
-
-from app.core.database import get_db
-from app.schemas.upload import UploadResponse
-from pydantic import ValidationError
 import csv
 import logging
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from pydantic import ValidationError
+from sqlalchemy import insert
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.models.course import Course
+from app.models.course_preference import CoursePreference
+from app.models.faculty import Faculty
+from app.schemas.course_offerings import CourseOfferingsSchema
+from app.schemas.course_preferences import CoursePreferencesSchema
+from app.schemas.upload import UploadResponse
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 logging.basicConfig(level=logging.INFO)
@@ -24,21 +25,27 @@ COURSE_PREFERENCES = "Course Preferences"
 
 
 """
+    Upload a CSV file containing course offering data.
+    
+    Params: None
+    Body: 
+        - expects one file in request body with key "file"
+        - Each row should contain information for one course offering. Format must
+          match exepcted schema. 
+        
+    Result: 
+        - If valid, inserts all courses found in the file into DB Course table. 
 
 """
 
 
 @router.post("/courses", response_model=UploadResponse)
 def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    """Upload a CSV file containing course offering data."""
-    if not file.filename.endswith('.csv'):
+    if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a .csv")
 
     elif file.content_type != "text/csv":
         raise HTTPException(status_code=400, detail="Invalid document type")
-
-    # elif file.size > ??:  TODO will add later idk what the size limit should be
-    #     raise HTTPException(status_code=400, detail="File exceeds ?? ?b size limit")
 
     else:
         try:
@@ -50,10 +57,20 @@ def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
             raise
         return UploadResponse(
             status="success",
-            message="Faculty preferences uploaded successfully",
+            message="Courses uploaded successfully",
             records_processed=len(to_insert),
             records_successful=len(to_insert),
         )
+
+
+"""
+    Upload a CSV file containing course offering data.
+    
+    Params: None
+    Body: 
+        - expects one file in request body with key "file"
+
+"""
 
 
 @router.post("/faculty-preferences", response_model=UploadResponse)
@@ -61,16 +78,11 @@ def upload_faculty_preferences(
     file: UploadFile = File(...), db: Session = Depends(get_db)
 ):
     """Upload a CSV file containing faculty preference data."""
-    # TODO: Implement CSV parsing and faculty preference ingestion
-
-    if not file.filename.endswith('.csv'):
+    if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a .csv")
 
     elif file.content_type != "text/csv":
         raise HTTPException(status_code=400, detail="Invalid document type")
-
-    # elif file.size > ??:  TODO will add later idk what the size limit should be
-    #     raise HTTPException(status_code=400, detail="File exceeds ?? ?b size limit")
 
     else:
         try:
@@ -79,7 +91,8 @@ def upload_faculty_preferences(
             db.commit()
         except HTTPException as e:
             logger.error(
-                f"Database error in upload_faculty_preferences: {str(e)}")
+                f"Database error in upload_faculty_preferences: {str(e)}"
+            )
             raise
         return UploadResponse(
             status="success",
@@ -94,12 +107,13 @@ def upload_faculty_preferences(
 
     Args:
         file (File): The file to be read; must be .csv
-        schema (String): Specifies the contents of the given csv. Must be either Course Offerings or Course Preferences"
+        schema (String): Specifies the contents of the given csv. Must be either
+            Course Offerings or Course Preferences.
         db (Session): The current database session
 
     Returns:
-        List of course offerings validated against the corresponding schema and translated into expected db model format
-        parsed from the given file
+        List of course offerings validated against the corresponding schema and
+        translated into expected db model format parsed from the given file
 
 """
 
@@ -109,6 +123,10 @@ def parse_file(file, schema, db):
     content = file.file.read().decode("utf-8").splitlines()
     dialect = csv.Sniffer().sniff(content[0]) if content else csv.excel
     reader = csv.DictReader(content, dialect=dialect)
+    headers_ok = validate_headers(reader.fieldnames, schema)
+    if not headers_ok.get("valid"):
+        raise HTTPException(status_code=422,
+                            detail=f"Invalid column names {reader.fieldnames}. Expected {headers_ok.get("expected")}")
 
     for i, row in enumerate(reader):
         try:
@@ -116,7 +134,7 @@ def parse_file(file, schema, db):
                 normalized = {
                     "courseName": row["Course"],
                     "credits": row["Credit Hours"],
-                    "description": row["Description"]
+                    "description": row["Description"],
                 }
                 validated = CourseOfferingsSchema(**normalized)
                 db_entry = validated.translate()
@@ -131,45 +149,77 @@ def parse_file(file, schema, db):
                 }
                 validated = CoursePreferencesSchema(**normalized)
                 course = db.query(Course).filter(
-                    Course.name == validated.course).first()
+                    Course.name == validated.course
+                ).first()
                 faculty = db.query(Faculty).filter(
-                    Faculty.nuid == validated.facultyId).first()
+                    Faculty.nuid == validated.facultyId
+                ).first()
                 if not course:
                     raise HTTPException(
-                        status_code=422, detail=f"Row {i}: course '{validated.course}' not found")
+                        status_code=422,
+                        detail=f"Row {i}: course '{validated.course}' not found",
+                    )
                 elif not faculty:
                     raise HTTPException(
-                        status_code=422, detail=f"Row {i}: faculty '{validated.facultyName} with id '{validated.facultyId}' not found")
+                        status_code=422,
+                        detail=(
+                            f"Row {i}: faculty '{validated.facultyName}' "
+                            f"with id '{validated.facultyId}' not found"
+                        ),
+                    )
                 else:
                     db_entry = validated.translate(course.course_id)
                     table_entries.append(db_entry)
             else:
                 logger.error(
-                    f"Unknown file content type {schema}. Expected one of: {[COURSE_OFFERINGS, COURSE_PREFERENCES]}")
+                    f"Unknown file content type {schema}. "
+                    f"Expected one of: {[COURSE_OFFERINGS, COURSE_PREFERENCES]}"
+                )
                 return
 
         except ValidationError as e:
             print(e.errors())
             print(row)
             raise HTTPException(
-                status_code=422, detail=f"row: {i}, error:{e.errors()}")
+                status_code=422, detail=f"row: {i}, error:{e.errors()}"
+            )
 
     return table_entries
 
 
-def validate_headers(row, schema):
+"""
+    Validates the given column headers against the expected schema
+
+    Args:
+        headers (List[String]): The column headers 
+        schema (String): Specifies the contents of the origin csv file. Must be either
+            Course Offerings or Course Preferences.
+
+    Returns:
+        A dict with two keys:
+            - expected (List[String]): The headers expected for the provided schema 
+            - valid (Boolean): True if the headers match expected schema, False otherwise 
+"""
+
+
+def validate_headers(headers, schema):
+    valid = True
     if schema == COURSE_OFFERINGS:
         expected_headers = ["Course", "Credit Hours", "Description"]
     elif schema == COURSE_PREFERENCES:
-        expected_headers = ["Faculty Name", "Faculty ID",
-                            "Course", "Semester", "Preference"]
+        expected_headers = [
+            "Faculty Name",
+            "Faculty ID",
+            "Course",
+            "Semester",
+            "Preference",
+        ]
     else:
         logger.error(
-            f"Unknown schema {schema}. Expected one of: {[COURSE_OFFERINGS, COURSE_PREFERENCES]}")
+            f"Unknown schema {schema}. "
+            f"Expected one of: {[COURSE_OFFERINGS, COURSE_PREFERENCES]}"
+        )
 
-    for i in range(len(expected_headers)):
-        if row[i] != expected_headers[i]:
-            raise ValueError(
-                f"Unexpected headers: {row}. Need {expected_headers}.")
+    valid = (set(expected_headers) == set(headers))
 
-    return True
+    return {"expected": expected_headers, "valid": valid}
