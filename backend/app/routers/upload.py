@@ -26,15 +26,15 @@ COURSE_PREFERENCES = "Course Preferences"
 
 """
     Upload a CSV file containing course offering data.
-    
+
     Params: None
-    Body: 
+    Body:
         - expects one file in request body with key "file"
         - Each row should contain information for one course offering. Format must
-          match exepcted schema. 
-        
-    Result: 
-        - If valid, inserts all courses found in the file into DB Course table. 
+          match expected schema.
+
+    Result:
+        - If valid, inserts all courses found in the file into DB Course table.
 
 """
 
@@ -64,10 +64,10 @@ def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
 
 
 """
-    Upload a CSV file containing course offering data.
-    
+    Upload a CSV file containing faculty preference data.
+
     Params: None
-    Body: 
+    Body:
         - expects one file in request body with key "file"
 
 """
@@ -125,8 +125,13 @@ def parse_file(file, schema, db):
     reader = csv.DictReader(content, dialect=dialect)
     headers_ok = validate_headers(reader.fieldnames, schema)
     if not headers_ok.get("valid"):
-        raise HTTPException(status_code=422,
-                            detail=f"Invalid column names {reader.fieldnames}. Expected {headers_ok.get("expected")}")
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Invalid column names {reader.fieldnames}. "
+                f"Expected {headers_ok.get('expected')}"
+            ),
+        )
 
     for i, row in enumerate(reader):
         try:
@@ -182,7 +187,7 @@ def parse_file(file, schema, db):
             print(row)
             raise HTTPException(
                 status_code=422, detail=f"row: {i}, error:{e.errors()}"
-            )
+            ) from e
 
     return table_entries
 
@@ -191,19 +196,18 @@ def parse_file(file, schema, db):
     Validates the given column headers against the expected schema
 
     Args:
-        headers (List[String]): The column headers 
-        schema (String): Specifies the contents of the origin csv file. Must be either
-            Course Offerings or Course Preferences.
+        headers (List[String]): The column headers
+        schema (String): Specifies the contents of the origin csv file. Must be
+            either Course Offerings or Course Preferences.
 
     Returns:
         A dict with two keys:
-            - expected (List[String]): The headers expected for the provided schema 
-            - valid (Boolean): True if the headers match expected schema, False otherwise 
+            - expected (List[String]): The headers expected for the provided schema
+            - valid (Boolean): True if headers match expected schema, False otherwise
 """
 
 
 def validate_headers(headers, schema):
-    valid = True
     if schema == COURSE_OFFERINGS:
         expected_headers = ["Course", "Credit Hours", "Description"]
     elif schema == COURSE_PREFERENCES:
@@ -220,6 +224,6 @@ def validate_headers(headers, schema):
             f"Expected one of: {[COURSE_OFFERINGS, COURSE_PREFERENCES]}"
         )
 
-    valid = (set(expected_headers) == set(headers))
+    valid = set(expected_headers) == set(headers)
 
     return {"expected": expected_headers, "valid": valid}
