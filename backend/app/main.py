@@ -1,6 +1,12 @@
-from fastapi import FastAPI
+import os
 
-import app.models
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from fastapi import Depends, FastAPI
+
+from app.core.auth import get_current_user
 from app.core.cors_middleware import setup_cors
 from app.core.database import Base, engine
 from app.routers import (
@@ -24,14 +30,14 @@ app = FastAPI(
 
 setup_cors(app)
 
-app.include_router(section.router)
-app.include_router(schedule.router)
-app.include_router(course.router)
-app.include_router(faculty.router)
-app.include_router(time_block.router)
-app.include_router(campus.router)
-app.include_router(upload.router)
-app.include_router(comment.router)
+app.include_router(section.router, dependencies=[Depends(get_current_user)])
+app.include_router(schedule.router, dependencies=[Depends(get_current_user)])
+app.include_router(course.router, dependencies=[Depends(get_current_user)])
+app.include_router(faculty.router, dependencies=[Depends(get_current_user)])
+app.include_router(time_block.router, dependencies=[Depends(get_current_user)])
+app.include_router(campus.router, dependencies=[Depends(get_current_user)])
+app.include_router(upload.router, dependencies=[Depends(get_current_user)])
+app.include_router(comment.router, dependencies=[Depends(get_current_user)])
 
 
 @app.get("/")
