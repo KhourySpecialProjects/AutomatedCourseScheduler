@@ -1,7 +1,7 @@
 .PHONY: help \
-	be-install be-dev be-lint be-format be-format-fix be-test \
+	be-install be-dev be-lint be-format be-format-fix be-test be-seed \
 	fe-install fe-dev fe-build fe-generate fe-lint fe-lint-fix fe-test fe-test-watch \
-	docker-up docker-down docker-build
+	up down build seed
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' | sort
@@ -25,6 +25,9 @@ be-format: ## Check backend formatting (shows diff of changes needed)
 
 be-format-fix: ## Auto-fix backend formatting with ruff
 	cd backend && ruff format .
+
+be-seed: ## Seed the database with development data
+	cd backend && python3 seed.py
 
 be-test: ## Run backend tests
 	cd backend && pytest
@@ -57,11 +60,15 @@ fe-test-watch: ## Run frontend tests in watch mode
 
 # ── Docker ───────────────────────────────────────────────────────────────────
 
-docker-up: ## Start all services with Docker Compose
+up: ## Start all services with Docker Compose
 	docker compose up
 
-docker-build: ## Rebuild and start all services with Docker Compose
+seed: ## Start Docker services and seed the database
+	docker compose up -d --wait
+	docker compose exec api python seed.py
+
+build: ## Rebuild and start all services with Docker Compose
 	docker compose up --build
 
-docker-down: ## Stop all Docker Compose services
+down: ## Stop all Docker Compose services
 	docker compose down
