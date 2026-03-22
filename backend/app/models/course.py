@@ -23,13 +23,15 @@ class Course(Base):
     credits: Mapped[int] = mapped_column(Integer)
 
     # Relationships
-    sections: Mapped[list["Section"]] = relationship("Section", back_populates="course")
+    sections: Mapped[list["Section"]] = relationship(
+        "Section", back_populates="course")
     course_preferences: Mapped[list["CoursePreference"]] = relationship(
         "CoursePreference", back_populates="course"
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from typing import Optional
 
 from app.core.database import Base
 
@@ -23,8 +24,8 @@ class Faculty(Base):
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
     email: Mapped[str] = mapped_column(String(100), unique=True)
-    phone_number: Mapped[str] = mapped_column(String(15))
-    title: Mapped[str] = mapped_column(String(100))
+    phone_number: Mapped[Optional[str]] = mapped_column(String(15))
+    title: Mapped[Optional[str]] = mapped_column(String(100))
     campus: Mapped[str] = mapped_column(String(100))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
@@ -40,7 +41,8 @@ class Faculty(Base):
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
