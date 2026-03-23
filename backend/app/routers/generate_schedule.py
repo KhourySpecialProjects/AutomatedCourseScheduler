@@ -37,7 +37,7 @@ def _build_mock_input() -> AlgorithmInput:
 
 def _run_algorithm_task(schedule_id: int):
     algorithm_input = _build_mock_input()
-    result = generate_schedule(algorithm_input)
+    generate_schedule(algorithm_input)
 
     # TODO:
     # - write result.SectionAssignments back to DB
