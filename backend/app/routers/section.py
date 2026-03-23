@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.models.schedule import Schedule
 from app.schemas.section import (
     SectionCreate,
     SectionResponse,
@@ -15,15 +16,24 @@ from app.services import section as section_service
 router = APIRouter(prefix="/sections", tags=["sections"])
 
 
+def _require_schedule(db: Session, schedule_id: int) -> None:
+    """Raise 404 if schedule does not exist."""
+    schedule = db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+
+
 @router.get("/{schedule_id}/rich", response_model=list[SectionRichResponse])
 def get_rich_sections(schedule_id: int, db: Session = Depends(get_db)):
     """Get all sections with denormalized course, time block, and instructor data."""
+    _require_schedule(db, schedule_id)
     return section_service.get_rich_sections(db, schedule_id)
 
 
 @router.get("/{schedule_id}", response_model=list[SectionResponse])
 def get_sections(schedule_id: int, db: Session = Depends(get_db)):
     """Get all sections."""
+    _require_schedule(db, schedule_id)
     return section_service.get_all_sections(db, schedule_id)
 
 

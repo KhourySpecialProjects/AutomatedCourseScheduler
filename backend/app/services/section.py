@@ -1,6 +1,6 @@
 """Section service — business logic."""
 
-from datetime import datetime
+from datetime import time
 
 from sqlalchemy.orm import Session
 
@@ -23,19 +23,8 @@ def get_all_sections(db: Session, schedule_id: int) -> list[Section]:
     return section_repo.get_all(db)
 
 
-def _derive_days(start_time: datetime) -> str:
-    weekday = start_time.weekday()
-    if weekday == 0:
-        return "MWR"
-    if weekday == 2:
-        return "WF"
-    if weekday == 3:
-        return "MR"
-    return start_time.strftime("%A")
-
-
-def _fmt_time(dt: datetime) -> str:
-    return dt.strftime("%I:%M %p").lstrip("0")
+def _fmt_time(t: time) -> str:
+    return t.strftime("%I:%M %p").lstrip("0")
 
 
 def get_rich_sections(db: Session, schedule_id: int) -> list[SectionRichResponse]:
@@ -57,17 +46,17 @@ def get_rich_sections(db: Session, schedule_id: int) -> list[SectionRichResponse
                 ),
                 time_block=TimeBlockInfo(
                     time_block_id=s.time_block.time_block_id,
-                    days=_derive_days(s.time_block.start_time),
+                    days=s.time_block.meetingDays,
                     start_time=_fmt_time(s.time_block.start_time),
                     end_time=_fmt_time(s.time_block.end_time),
-                    timezone=s.time_block.timezone,
+                    timezone=s.time_block.timezone or "",
                 ),
                 instructors=[
                     InstructorInfo(
                         nuid=fa.faculty.nuid,
                         first_name=fa.faculty.first_name,
                         last_name=fa.faculty.last_name,
-                        title=fa.faculty.title,
+                        title=fa.faculty.title or "",
                         email=fa.faculty.email,
                         course_preferences=[
                             CoursePreferenceInfo(
@@ -79,7 +68,7 @@ def get_rich_sections(db: Session, schedule_id: int) -> list[SectionRichResponse
                         ],
                         meeting_preferences=[
                             MeetingPreferenceInfo(
-                                meeting_time=mp.meeting_time,
+                                meeting_time=str(mp.meeting_time),
                                 preference=mp.preference.value,
                             )
                             for mp in fa.faculty.meeting_preferences
