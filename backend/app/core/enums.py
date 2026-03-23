@@ -23,3 +23,16 @@ class Semester(enum.Enum):
     SPRING = "Spring"
     SUMMER_1 = "Summer 1"
     SUMMER_2 = "Summer 2"
+
+class Severity(int, enum.Enum):
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+
+
+class WarningType(enum.StrEnum):
+    TIME_BLOCK_OVERLOAD = "Time block surpasses threshold"
+    UNPREFERENCED_COURSE = "Faculty assigned unpreferenced course"
+    UNPREFERENCED_TIME = "Faculty assigned unpreferenced time"
+    CONFLICT_GROUP_VIOLATION = "Conflict group courses overlap"
+    FACULTY_OVERLOAD = "Faculty overloaded with assignments"

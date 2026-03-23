@@ -1,51 +1,39 @@
 """Mock algorithm service for generating draft schedules."""
 
 import random
+import time
 from datetime import datetime
 
-from app.schemas.algorithm import (
-    AlgorithmInput,
-    DraftScheduleResult,
-    Preference,
-    RunMetadata,
-    Section,
-    Severity,
-    Warning,
-    WarningType,
-)
+from app.core.enums import Severity, WarningType
+from app.schemas.algorithm_input import AlgorithmInput
+from app.schemas.algorithm_output import DraftScheduleResult, RunMetadata, Warning
 
 
-def generate_schedule(input: AlgorithmInput) -> DraftScheduleResult:
+def generate_schedule(algorithm_input: AlgorithmInput) -> DraftScheduleResult:
     start = datetime.now()
+    time.sleep(15)  # Simulate algorithm processing time
 
-    sections = []
+    # Mock: assign a fake section ID per required section
+    section_ids = []
+    mock_section_id = 1
+    faculty_ids = [f.NUID for f in algorithm_input.AllFaculty]
 
-    for course in input.OfferedCourses:
-        for _i in range(course.SectionCount):
-            faculty = random.choice(input.AllFaculty)
-            block = random.choice(input.TimeBlocks)
-            course_pref = random.choice(list(Preference))
-            time_pref = random.choice(list(Preference))
-            score = (4 - course_pref.value + 4 - time_pref.value) / 6.0
+    for course in algorithm_input.OfferedCourses:
+        for _ in range(course.SectionCount):
+            section_ids.append(mock_section_id)
+            mock_section_id += 1
 
-            sections.append(
-                Section(
-                    CourseID=course.CourseID,
-                    FacultyID=faculty.NUID,
-                    BlockID=block.BlockID,
-                    CoursePreference=course_pref,
-                    TimePreference=time_pref,
-                    AssignmentScore=round(score, 2),
-                )
-            )
+    stability = round(random.uniform(0.65, 0.95), 2)
 
     warnings = [
         Warning(
             Type=WarningType.UNPREFERENCED_COURSE,
             SeverityRank=Severity.MEDIUM,
             Message="Mock warning: faculty assigned unpreferenced course",
-            FacultyID=sections[0].FacultyID if sections else None,
-            CourseID=sections[0].CourseID if sections else None,
+            FacultyID=faculty_ids[0] if faculty_ids else None,
+            CourseID=algorithm_input.OfferedCourses[0].CourseID
+            if algorithm_input.OfferedCourses
+            else None,
         )
     ]
 
@@ -58,13 +46,9 @@ def generate_schedule(input: AlgorithmInput) -> DraftScheduleResult:
         Version=1,
     )
 
-    stability = (
-        sum(s.AssignmentScore for s in sections) / len(sections) if sections else 0.0
-    )
-
     return DraftScheduleResult(
-        SectionAssignments=sections,
-        StabilityScore=round(stability, 2),
+        SectionAssignments=section_ids,
+        StabilityScore=stability,
         Warnings=warnings,
-        RunMetadata=metadata,
+        Metadata=metadata,
     )
