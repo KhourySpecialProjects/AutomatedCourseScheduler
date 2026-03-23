@@ -23,10 +23,8 @@ class CoursePreference(Base):
     preference: Mapped[PreferenceLevel] = mapped_column(Enum(PreferenceLevel))
 
     # Foreign Keys
-    faculty_nuid: Mapped[int] = mapped_column(
-        Integer, ForeignKey("faculty.nuid"))
-    course_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("course.course_id"))
+    faculty_nuid: Mapped[int] = mapped_column(Integer, ForeignKey("faculty.nuid"))
+    course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
 
     # Relationships
     faculty: Mapped["Faculty"] = relationship(
@@ -37,8 +35,7 @@ class CoursePreference(Base):
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )

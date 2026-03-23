@@ -93,8 +93,7 @@ def upload_faculty_preferences(
             db.execute(insert(CoursePreference), to_insert)
             db.commit()
         except HTTPException as e:
-            logger.error(
-                f"Database error in upload_faculty_preferences: {str(e)}")
+            logger.error(f"Database error in upload_faculty_preferences: {str(e)}")
             raise
         return UploadResponse(
             status="success",
@@ -179,8 +178,7 @@ def parse_file(file, schema, db):
                 }
                 validated = CoursePreferencesSchema(**normalized)
                 course = (
-                    db.query(Course).filter(
-                        Course.name == validated.course).first()
+                    db.query(Course).filter(Course.name == validated.course).first()
                 )
                 faculty = (
                     db.query(Faculty)
