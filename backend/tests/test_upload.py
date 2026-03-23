@@ -7,7 +7,6 @@ from fastapi.testclient import TestClient
 
 from app.routers.upload import (
     parse_file,
-    validate_headers,
     COURSE_PREFERENCES,
     COURSE_OFFERINGS,
 )
@@ -58,92 +57,118 @@ def make_upload_file_from_disk(path: str):
     return mock_file
 
 
-# """Asserts parse_file correctly validates csv preference entries against the schema and returns expected model format"""
+"""Asserts parse_file correctly validates csv preference entries
+against the schema and returns expected model format.
+"""
 
 
-# def test_parse_file_preferences_valid():
-#     preferences_csv = "Faculty Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
-#     offerings_csv = "Course,Credit Hours,Description\nCS 2500,4,This course provides an overview of CS 2500 concepts.\n"
+def test_parse_file_preferences_valid():
+    preferences_csv = (
+        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
+        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
+    )
+    offerings_csv = (
+        "Course,Credit Hours,Description\n"
+        "CS 2500,4,This course provides an overview of CS 2500 concepts.\n"
+    )
 
-#     preferences_result = parse_file(make_upload_file(preferences_csv),
-#                                     COURSE_PREFERENCES, mock_db)
-#     offerings_result = parse_file(make_upload_file(
-#         offerings_csv), COURSE_OFFERINGS, mock_db)
+    preferences_result = parse_file(make_upload_file(preferences_csv),
+                                    COURSE_PREFERENCES, mock_db)
+    offerings_result = parse_file(make_upload_file(
+        offerings_csv), COURSE_OFFERINGS, mock_db)
 
-#     assert len(preferences_result) == 1
-#     assert len(offerings_result) == 1
-#     assert preferences_result[0]["faculty_nuid"] == 1001
-#     assert preferences_result[0]["course_id"] == 42
-#     assert preferences_result[0]["preference"] == PreferenceLevel.FIRST
-#     assert offerings_result[0]["name"] == "CS 2500"
-#     assert offerings_result[0]["credits"] == 4
-#     assert offerings_result[0]["description"] == "This course provides an overview of CS 2500 concepts."
-
-
-# """Asserts parse_file throws an error when an unknown course has been found in the provided file"""
-
-
-# def test_parse_file_preferences_course_not_found():
-#     csv_content = "Faculty Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
-
-#     def query_null_course_side_effefct(model):
-#         mock_query = MagicMock()
-#         if model == Course:
-#             mock_query.filter.return_value.first.return_value = None
-#         elif model == Faculty:
-#             mock_query.filter.return_value.first.return_value = mock_faculty
-#         return mock_query
-
-#     mock_db_local = MagicMock()
-#     mock_db_local.query.side_effect = query_null_course_side_effefct
-
-#     with pytest.raises(HTTPException) as exc:
-#         parse_file(make_upload_file(csv_content),
-#                    COURSE_PREFERENCES, mock_db_local)
-
-#     assert exc.value.status_code == 422
+    assert len(preferences_result) == 1
+    assert len(offerings_result) == 1
+    assert preferences_result[0]["faculty_nuid"] == 1001
+    assert preferences_result[0]["course_id"] == 42
+    assert preferences_result[0]["preference"] == PreferenceLevel.FIRST
+    assert offerings_result[0]["name"] == "CS 2500"
+    assert offerings_result[0]["credits"] == 4
+    assert offerings_result[0]["description"] == (
+        "This course provides an overview of CS 2500 concepts."
+    )
 
 
-# """Asserts parse_file throws an error when an unknown course has been found in the provided file"""
+"""Asserts parse_file throws an error when an unknown course
+has been found in the provided file.
+"""
 
 
-# def test_parse_file_preferences_faculty_not_found():
-#     csv_content = "Faculty Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
+def test_parse_file_preferences_course_not_found():
+    csv_content = (
+        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
+        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
+    )
 
-#     def query_null_faculty_side_effect(model):
-#         mock_query = MagicMock()
-#         if model == Course:
-#             mock_query.filter.return_value.first.return_value = mock_course
-#         elif model == Faculty:
-#             mock_query.filter.return_value.first.return_value = None
-#         return mock_query
+    def query_null_course_side_effefct(model):
+        mock_query = MagicMock()
+        if model == Course:
+            mock_query.filter.return_value.first.return_value = None
+        elif model == Faculty:
+            mock_query.filter.return_value.first.return_value = mock_faculty
+        return mock_query
 
-#     mock_db_local = MagicMock()
-#     mock_db_local.query.side_effect = query_null_faculty_side_effect
+    mock_db_local = MagicMock()
+    mock_db_local.query.side_effect = query_null_course_side_effefct
 
-#     with pytest.raises(HTTPException) as exc:
-#         parse_file(make_upload_file(csv_content),
-#                    COURSE_PREFERENCES, mock_db_local)
+    with pytest.raises(HTTPException) as exc:
+        parse_file(make_upload_file(csv_content),
+                   COURSE_PREFERENCES, mock_db_local)
 
-#     assert exc.value.status_code == 422
-
-
-# """Asserts parse_file throws an error when an unknown preference rank has been found in the provided file"""
-
-
-# def test_parse_file_preferences_invalid_enum():
-#     csv_content = "Faculty Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Invalid value\n"
-
-#     mock_db = MagicMock()
-
-#     with pytest.raises(HTTPException) as exc:
-#         parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db)
-
-#     assert exc.value.status_code == 422
+    assert exc.value.status_code == 422
 
 
-"""Asserts parse_file correctly validates csv preference entries against the schema and returns expected model format.
-   Checked against real file with multiple entries.
+"""Asserts parse_file throws an error when an unknown course
+has been found in the provided file.
+"""
+
+
+def test_parse_file_preferences_faculty_not_found():
+    csv_content = (
+        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
+        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
+    )
+
+    def query_null_faculty_side_effect(model):
+        mock_query = MagicMock()
+        if model == Course:
+            mock_query.filter.return_value.first.return_value = mock_course
+        elif model == Faculty:
+            mock_query.filter.return_value.first.return_value = None
+        return mock_query
+
+    mock_db_local = MagicMock()
+    mock_db_local.query.side_effect = query_null_faculty_side_effect
+
+    with pytest.raises(HTTPException) as exc:
+        parse_file(make_upload_file(csv_content),
+                   COURSE_PREFERENCES, mock_db_local)
+
+    assert exc.value.status_code == 422
+
+
+"""Asserts parse_file throws an error when an unknown preference rank
+has been found in the provided file.
+"""
+
+
+def test_parse_file_preferences_invalid_enum():
+    csv_content = (
+        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
+        "John Smith,1001,CS 3200,Fall 2026,Invalid value\n"
+    )
+
+    mock_db = MagicMock()
+
+    with pytest.raises(HTTPException) as exc:
+        parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db)
+
+    assert exc.value.status_code == 422
+
+
+"""Asserts parse_file correctly validates csv preference entries
+against the schema and returns expected model format.
+Checked against real file with multiple entries.
 """
 
 
@@ -172,12 +197,22 @@ def test_parse_file_from_real_csv():
     assert isinstance(preferences_result, list)
     assert len(preferences_result) > 0
     assert all(
-        "faculty_nuid" in entry and "course_id" in entry and "preference" in entry for entry in preferences_result)
+        "faculty_nuid" in entry
+        and "course_id" in entry
+        and "preference" in entry
+        for entry in preferences_result
+    )
     assert all(
-        "name" in entry and "credits" in entry and "description" in entry for entry in offerings_result)
+        "name" in entry
+        and "credits" in entry
+        and "description" in entry
+        for entry in offerings_result
+    )
 
 
-"""Assert POST /upload/faculty-preferences parses the CSV and inserts rows into the DB."""
+"""Assert POST /upload/faculty-preferences parses the CSV
+and inserts rows into the DB.
+"""
 
 
 def test_upload_faculty_preferences():
@@ -214,7 +249,9 @@ def test_upload_faculty_preferences():
     assert inserted_rows[0]["preference"] == PreferenceLevel.FIRST
 
 
-"""Assert POST /upload/faculty-preferences parses the CSV and inserts rows into the DB."""
+"""Assert POST /upload/faculty-preferences parses the CSV
+and inserts rows into the DB.
+"""
 
 
 def test_upload_course_offerings():
@@ -248,50 +285,52 @@ def test_upload_course_offerings():
     assert len(inserted_rows) == 1
     assert inserted_rows[0]["name"] == "CS 2500"
     assert inserted_rows[0]["credits"] == 4
-    assert inserted_rows[0]["description"] == "This course provides an overview of cs 2500 concepts."
+    assert inserted_rows[0]["description"] == (
+        "This course provides an overview of cs 2500 concepts."
+    )
 
 
-# """Asserts parse_file accepts files with correct headers."""
+"""Asserts parse_file accepts files with correct headers."""
 
 
-# def test_validate_headers_preferences_valid():
-#     csv_content = (
-#         "Faculty Name,Faculty ID,Course,Semester,Preference\n"
-#         "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
-#     )
-#     result = parse_file(make_upload_file(csv_content),
-#                         COURSE_PREFERENCES, mock_db)
-#     assert isinstance(result, list)
+def test_validate_headers_preferences_valid():
+    csv_content = (
+        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
+        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
+    )
+    result = parse_file(make_upload_file(csv_content),
+                        COURSE_PREFERENCES, mock_db)
+    assert isinstance(result, list)
 
 
-# def test_validate_headers_offerings_valid():
-#     csv_content = (
-#         "Course,Credit Hours,Description\n"
-#         "CS 2500,4,Intro to CS.\n"
-#     )
-#     result = parse_file(make_upload_file(csv_content),
-#                         COURSE_OFFERINGS, mock_db)
-#     assert isinstance(result, list)
+def test_validate_headers_offerings_valid():
+    csv_content = (
+        "Course,Credit Hours,Description\n"
+        "CS 2500,4,Intro to CS.\n"
+    )
+    result = parse_file(make_upload_file(csv_content),
+                        COURSE_OFFERINGS, mock_db)
+    assert isinstance(result, list)
 
 
-# """Asserts parse_file raises HTTPException when headers are wrong."""
+"""Asserts parse_file raises HTTPException when headers are wrong."""
 
 
-# def test_validate_headers_preferences_invalid():
-#     csv_content = (
-#         "Wrong Name,Faculty ID,Course,Semester,Preference\n"
-#         "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
-#     )
-#     with pytest.raises(HTTPException) as exc:
-#         parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db)
-#     assert exc.value.status_code == 422
+def test_validate_headers_preferences_invalid():
+    csv_content = (
+        "Wrong Name,Faculty ID,Course,Semester,Preference\n"
+        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
+    )
+    with pytest.raises(HTTPException) as exc:
+        parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db)
+    assert exc.value.status_code == 422
 
 
-# def test_validate_headers_offerings_invalid():
-#     csv_content = (
-#         "Course,Credits,Description\n"
-#         "CS 2500,4,Intro to CS.\n"
-#     )
-#     with pytest.raises(HTTPException) as exc:
-#         parse_file(make_upload_file(csv_content), COURSE_OFFERINGS, mock_db)
-#     assert exc.value.status_code == 422
+def test_validate_headers_offerings_invalid():
+    csv_content = (
+        "Course,Credits,Description\n"
+        "CS 2500,4,Intro to CS.\n"
+    )
+    with pytest.raises(HTTPException) as exc:
+        parse_file(make_upload_file(csv_content), COURSE_OFFERINGS, mock_db)
+    assert exc.value.status_code == 422

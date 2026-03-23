@@ -1,7 +1,7 @@
 """Course Prefences Pydantic schemas."""
 
-from pydantic import BaseModel
 from app.core.enums import PreferenceLevel
+from pydantic import BaseModel
 
 
 class CoursePreferencesSchema(BaseModel):

@@ -1,7 +1,6 @@
 """Course Offerings Pydantic schemas."""
 
 from pydantic import BaseModel
-from app.models.course import Course
 
 
 class CourseOfferingsSchema(BaseModel):
