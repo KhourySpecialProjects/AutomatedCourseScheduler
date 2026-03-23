@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel
 
+from app.schemas.section import CoursePreferenceInfo, MeetingPreferenceInfo
+
 
 class FacultyResponse(BaseModel):
     NUID: int
@@ -14,3 +16,15 @@ class FacultyResponse(BaseModel):
     MaxLoad: int | None = None
 
     model_config = {"from_attributes": True}
+
+
+class FacultyProfileResponse(BaseModel):
+    nuid: int
+    first_name: str
+    last_name: str
+    email: str
+    title: str | None = None
+    campus: str
+    active: bool
+    course_preferences: list[CoursePreferenceInfo]
+    meeting_preferences: list[MeetingPreferenceInfo]
