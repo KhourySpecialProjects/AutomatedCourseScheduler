@@ -1,7 +1,7 @@
-from datetime import time, datetime
+from datetime import datetime, time
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, DateTime, Time, Integer, String
+from sqlalchemy import DateTime, Enum, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 

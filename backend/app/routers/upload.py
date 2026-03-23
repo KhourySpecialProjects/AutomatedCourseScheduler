@@ -118,8 +118,9 @@ def upload_faculty_preferences(
 
 """
 
+
 @router.post("/time-preferences", response_model=UploadResponse)
-def upload_faculty_preferences(
+def upload_time_preferences(
     file: UploadFile = File(...), db: Session = Depends(get_db)
 ):
 
