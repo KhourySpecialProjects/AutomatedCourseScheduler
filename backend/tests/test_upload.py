@@ -1,20 +1,21 @@
 """Tests for parse_file in upload router."""
 import os
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, call
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from app.routers.upload import (
-    parse_file,
-    COURSE_PREFERENCES,
-    COURSE_OFFERINGS,
-)
+from app.core.database import get_db
+from app.core.enums import PreferenceLevel
+from app.main import app
 from app.models.course import Course
 from app.models.faculty import Faculty
-from app.core.enums import PreferenceLevel
-from app.core.database import get_db
-from app.main import app
+from app.routers.upload import (
+    COURSE_OFFERINGS,
+    COURSE_PREFERENCES,
+    parse_file,
+)
 
 COURSE_PREFERENCES_CSV = os.path.join(
     os.path.dirname(__file__), "course_preferences.csv")
