@@ -12,7 +12,7 @@ class CourseOfferingsSchema(BaseModel):
         json_payload = {
             "name": self.courseName,
             "credits": self.credits,
-            "description": self.description
+            "description": self.description,
         }
 
         return json_payload

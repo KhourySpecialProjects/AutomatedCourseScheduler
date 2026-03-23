@@ -16,7 +16,7 @@ class CoursePreferencesSchema(BaseModel):
         json_payload = {
             "faculty_nuid": self.facultyId,
             "course_id": courseId,
-            "preference": self.preference
+            "preference": self.preference,
         }
 
         return json_payload
