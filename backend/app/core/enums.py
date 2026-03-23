@@ -24,6 +24,7 @@ class Semester(enum.Enum):
     SUMMER_1 = "Summer 1"
     SUMMER_2 = "Summer 2"
 
+
 class Severity(int, enum.Enum):
     LOW = 1
     MEDIUM = 2

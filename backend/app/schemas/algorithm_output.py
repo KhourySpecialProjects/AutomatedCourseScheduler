@@ -1,8 +1,10 @@
 """Algorithm output Pydantic schemas"""
 
 from pydantic import BaseModel, Field
-from app.schemas.warning import Warning
+
 from app.schemas.run_metadata import RunMetadata
+from app.schemas.warning import Warning
+
 
 class DraftScheduleResult(BaseModel):
     SectionAssignments: list[int] = Field(

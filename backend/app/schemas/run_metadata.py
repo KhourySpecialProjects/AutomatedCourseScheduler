@@ -1,7 +1,9 @@
 """Algorithm output Pydantic schemas"""
 
 from datetime import datetime
+
 from pydantic import BaseModel, Field
+
 
 class RunMetadata(BaseModel):
     StartTime: datetime = Field(..., description="Algorithm run start time")

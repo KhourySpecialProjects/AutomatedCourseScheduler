@@ -1,6 +1,7 @@
-''' Define Pydantic schemas for algorithm parameters'''
+"""Define Pydantic schemas for algorithm parameters"""
 
 from pydantic import BaseModel, Field
+
 
 class AlgorithmParameters(BaseModel):
     MaxTimeBlockCapacity: float = Field(

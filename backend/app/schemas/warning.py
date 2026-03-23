@@ -1,8 +1,9 @@
 """Schedule Warning Pydantic schemas"""
 
-
 from pydantic import BaseModel, Field
+
 from app.core.enums import Severity, WarningType
+
 
 class Warning(BaseModel):
     Type: WarningType | None = Field(default=None, description="Type of warning")

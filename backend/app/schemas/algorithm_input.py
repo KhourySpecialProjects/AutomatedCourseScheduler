@@ -1,10 +1,13 @@
 """Algorithm Input Pydantic schemas for the scheduling algorithm"""
 
 from pydantic import BaseModel, Field
+
 from app.schemas.algorithm_params import AlgorithmParameters
 from app.schemas.conflict_group import ConflictGroup
 from app.schemas.course import CourseResponse
 from app.schemas.faculty import FacultyResponse
+
+
 # ---------------------
 # Algorithm Input
 # ---------------------
