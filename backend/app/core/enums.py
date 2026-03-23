@@ -1,12 +1,21 @@
 import enum
 
 
-class PreferenceLevel(enum.Enum):
-    """Represents a faculty member's level of preference."""
+class PreferenceLevel(enum.StrEnum):
+    FIRST = "Eager to teach"
+    SECOND = "Ready to teach"
+    THIRD = "Willing to teach"
+    NO = "Not my cup of tea"
 
-    EAGER = "Eager to teach"
-    WILLING = "Willing to teach"
-    NOT_INTERESTED = "Not my cup of tea"
+    def to_int(self) -> int:
+        mapping = {
+            PreferenceLevel.FIRST: 1,
+            PreferenceLevel.SECOND: 2,
+            PreferenceLevel.THIRD: 3,
+            PreferenceLevel.NO: 4,
+        }
+
+        return mapping[self]
 
 
 class Semester(enum.Enum):

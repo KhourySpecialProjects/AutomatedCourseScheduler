@@ -25,7 +25,6 @@ class CoursePreference(Base):
     # Foreign Keys
     faculty_nuid: Mapped[int] = mapped_column(Integer, ForeignKey("faculty.nuid"))
     course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
-    faculty_nuid: Mapped[int] = mapped_column(Integer, ForeignKey("faculty.nuid"))
 
     # Relationships
     faculty: Mapped["Faculty"] = relationship(
