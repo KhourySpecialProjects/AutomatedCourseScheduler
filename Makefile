@@ -72,3 +72,8 @@ build: ## Rebuild and start all services with Docker Compose
 
 down: ## Stop all Docker Compose services
 	docker compose down
+
+reseed: ## Tear down (with volumes), rebuild, and reseed the database
+	docker compose down -v
+	docker compose up --build -d --wait
+	docker compose exec api python seed.py

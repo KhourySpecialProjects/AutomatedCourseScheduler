@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import Home from './pages/Home';
 import Schedules from './pages/Schedules';
-import Sections from './pages/Sections';
 
 function App() {
   return (
@@ -54,7 +53,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/schedules" element={<Schedules />} />
-            <Route path="/sections" element={<Sections />} />
+            <Route path="/schedules/:scheduleId" element={<Schedules />} />
           </Routes>
         </main>
       </div>
