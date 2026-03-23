@@ -68,7 +68,7 @@ def test_get_schedule_sections_response_shape(client, db_session):
         "course_id",
         "capacity",
         "section_number",
-        "assignment_score"
+        "assignment_score",
     }
     assert set(section.keys()) == expected_keys
 
