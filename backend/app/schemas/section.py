@@ -10,6 +10,7 @@ class SectionResponse(BaseModel):
     course_id: int
     capacity: int
     section_number: int
+    assignment_score: float | None = None
 
     model_config = {"from_attributes": True}
 
