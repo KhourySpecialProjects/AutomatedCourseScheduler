@@ -1,19 +1,23 @@
-"""Mock algorithm service for generating draft schedules."""
+"""Algorithm service — mock implementation and background tasks."""
 
 import random
 import time
 from datetime import datetime
 
 from app.core.enums import Severity, WarningType
-from app.schemas.algorithm_input import AlgorithmInput
+from app.schemas.algorithm_input import (
+    AlgorithmInput,
+    AlgorithmParameters,
+)
 from app.schemas.algorithm_output import DraftScheduleResult, RunMetadata, Warning
+from app.schemas.course import CourseResponse as Course
+from app.schemas.faculty import FacultyResponse as Faculty
 
 
 def generate_schedule(algorithm_input: AlgorithmInput) -> DraftScheduleResult:
     start = datetime.now()
     time.sleep(15)  # Simulate algorithm processing time
 
-    # Mock: assign a fake section ID per required section
     section_ids = []
     mock_section_id = 1
     faculty_ids = [f.NUID for f in algorithm_input.AllFaculty]
@@ -52,3 +56,66 @@ def generate_schedule(algorithm_input: AlgorithmInput) -> DraftScheduleResult:
         Warnings=warnings,
         Metadata=metadata,
     )
+
+
+def _build_mock_input(parameters: AlgorithmParameters) -> AlgorithmInput:
+    # TODO: replace with real DB queries once SSIP-40 is merged
+    # e.g. load Schedule -> OfferedCourses, AllFaculty, TimeBlocks, preferences
+    return AlgorithmInput(
+        OfferedCourses=[
+            Course(CourseID=1, SectionCount=2),
+            Course(CourseID=2, SectionCount=1),
+        ],
+        AllFaculty=[
+            Faculty(NUID=1001, MaxLoad=3),
+            Faculty(NUID=1002, MaxLoad=4),
+        ],
+        TimeBlocks=[101, 102, 103],
+        CoursePreferences=[],
+        TimePreferences=[],
+        ConflictGroups=[],
+        Parameters=parameters,
+    )
+
+
+def _build_mock_partial_input(parameters: AlgorithmParameters) -> AlgorithmInput:
+    # TODO: replace with real DB queries
+    # Load only unassigned sections — existing assigned sections are preserved
+    # e.g. query sections where faculty_id IS NULL or time_block_id IS NULL
+    return AlgorithmInput(
+        OfferedCourses=[
+            Course(CourseID=3, SectionCount=1),
+        ],
+        AllFaculty=[
+            Faculty(NUID=1001, MaxLoad=3),
+            Faculty(NUID=1002, MaxLoad=4),
+        ],
+        TimeBlocks=[101, 102, 103],
+        CoursePreferences=[],
+        TimePreferences=[],
+        ConflictGroups=[],
+        Parameters=parameters,
+    )
+
+
+def run_algorithm_task(schedule_id: int, parameters: AlgorithmParameters):
+    algorithm_input = _build_mock_input(parameters)
+    result = generate_schedule(algorithm_input)
+
+    # TODO:
+    # - write result.SectionAssignments back to DB
+    # - set schedule.status = ScheduleStatus.COMPLETED
+    # - set schedule.status = ScheduleStatus.FAILED on exception
+
+
+def run_regenerate_task(schedule_id: int, parameters: AlgorithmParameters):
+    # Runs algorithm only on unassigned sections — preserves existing assignments
+    result = generate_schedule(_build_mock_partial_input(parameters))
+
+    # TODO: define regenerate_schedule() once regeneration logic is scoped
+    # TODO:
+    # - merge result.SectionAssignments into existing schedule
+    #   (do not overwrite assigned)
+    # - set schedule.status = ScheduleStatus.COMPLETED
+    # - set schedule.status = ScheduleStatus.FAILED on exception
+    pass
