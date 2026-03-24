@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.user import User
-from app.models.section import Section
 from app.models.comment import Comment
-from app.schemas.comment import Comment, CommentCreate
+from app.models.section import Section
+from app.models.user import User
+from app.schemas.comment import CommentCreate
 
 router = APIRouter(prefix="/comments", tags=["comments"])
 
@@ -16,7 +16,8 @@ router = APIRouter(prefix="/comments", tags=["comments"])
 
 
 @router.post("", response_model=CommentCreate)
-def post_comment(user_id: int, content: str, section_id: int, db: Session = Depends(get_db)):
+def post_comment(user_id: int, content: str, section_id: int,
+                 db: Session = Depends(get_db)):
     errors = []
     user = (db.query(User).filter(User.nuid == user_id).first())
     section = (db.query(Section).filter(
@@ -26,13 +27,16 @@ def post_comment(user_id: int, content: str, section_id: int, db: Session = Depe
     if not section:
         errors.append(f"Section with id '{section_id} not found")
     comment = Comment(user_id=user_id, content=content, section_id=section_id)
+    db.add(comment)
+    db.commit()
 
 
 """Post a new comment reply."""
 
 
 @router.post("", response_model=CommentCreate)
-def post_reply(user_id: int, content: str, section_id: int, parent: int, db: Session = Depends(get_db)):
+def post_reply(user_id: int, content: str, section_id: int, parent: int,
+               db: Session = Depends(get_db)):
     # TODO: Implement comment replies
     raise HTTPException(status_code=501, detail="Not implemented yet")
 

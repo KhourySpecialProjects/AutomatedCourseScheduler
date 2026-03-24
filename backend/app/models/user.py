@@ -8,8 +8,8 @@ from sqlalchemy.sql import func
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.section_lock import SectionLock
     from app.models.comment import Comment
+    from app.models.section_lock import SectionLock
 
 
 class User(Base):
