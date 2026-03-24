@@ -38,14 +38,11 @@ class Section(Base):
     time_block_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("time_block.time_block_id")
     )
-    course_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("course.course_id"))
+    course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
 
     # Relationships
-    schedule: Mapped[Schedule] = relationship(
-        "Schedule", back_populates="sections")
-    time_block: Mapped[TimeBlock] = relationship(
-        "TimeBlock", back_populates="sections")
+    schedule: Mapped[Schedule] = relationship("Schedule", back_populates="sections")
+    time_block: Mapped[TimeBlock] = relationship("TimeBlock", back_populates="sections")
     course: Mapped[Course] = relationship("Course", back_populates="sections")
     faculty_assignments: Mapped[list[FacultyAssignment]] = relationship(
         "FacultyAssignment", back_populates="section"
@@ -53,12 +50,10 @@ class Section(Base):
     section_lock: Mapped[SectionLock] = relationship(
         "SectionLock", back_populates="section", uselist=False
     )
-    comments: Mapped[list[Comment]] = relationship(
-        "Comment", back_populates="section")
+    comments: Mapped[list[Comment]] = relationship("Comment", back_populates="section")
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )

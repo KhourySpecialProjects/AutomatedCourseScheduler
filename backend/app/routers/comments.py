@@ -16,12 +16,12 @@ router = APIRouter(prefix="/comments", tags=["comments"])
 
 
 @router.post("", response_model=CommentCreate)
-def post_comment(user_id: int, content: str, section_id: int,
-                 db: Session = Depends(get_db)):
+def post_comment(
+    user_id: int, content: str, section_id: int, db: Session = Depends(get_db)
+):
     errors = []
-    user = (db.query(User).filter(User.nuid == user_id).first())
-    section = (db.query(Section).filter(
-        Section.section_id == section_id).first())
+    user = db.query(User).filter(User.nuid == user_id).first()
+    section = db.query(Section).filter(Section.section_id == section_id).first()
     if not user:
         errors.append(f"User with id '{user_id}' not found")
     if not section:
@@ -35,8 +35,13 @@ def post_comment(user_id: int, content: str, section_id: int,
 
 
 @router.post("", response_model=CommentCreate)
-def post_reply(user_id: int, content: str, section_id: int, parent: int,
-               db: Session = Depends(get_db)):
+def post_reply(
+    user_id: int,
+    content: str,
+    section_id: int,
+    parent: int,
+    db: Session = Depends(get_db),
+):
     # TODO: Implement comment replies
     raise HTTPException(status_code=501, detail="Not implemented yet")
 
@@ -53,7 +58,9 @@ def get_comments(section_id: int, db: Session = Depends(get_db)):
 """Delete the given comment"""
 
 
-@router.delete("", )
+@router.delete(
+    "",
+)
 def delete_comment(comment_id: int, db: Section = Depends(get_db)):
     # TODO: Implement comment deletion
     raise HTTPException(status_code=501, detail="Not implemented yet")
@@ -62,7 +69,9 @@ def delete_comment(comment_id: int, db: Section = Depends(get_db)):
 """Resolve the given comment"""
 
 
-@router.put("", )
+@router.put(
+    "",
+)
 def resolve_comment(comment_id: int, db: Session = Depends(get_db)):
     # TODO: Implement comment resolution
     raise HTTPException(status_code=501, detail="Not implemented yet")

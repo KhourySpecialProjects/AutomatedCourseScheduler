@@ -30,12 +30,10 @@ class User(Base):
     section_locks: Mapped[list["SectionLock"]] = relationship(
         "SectionLock", back_populates="user"
     )
-    comments: Mapped[list["Comment"]] = relationship(
-        "Comment", back_populates="user")
+    comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="user")
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
