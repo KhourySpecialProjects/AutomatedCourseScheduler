@@ -117,8 +117,7 @@ def upload_faculty_preferences(
                 db.execute(update(CoursePreference), to_update)
             db.commit()
         except HTTPException as e:
-            logger.error(
-                f"Upload error in upload_faculty_preferences: {str(e)}")
+            logger.error(f"Upload error in upload_faculty_preferences: {str(e)}")
             raise
 
         return UploadResponse(
@@ -349,8 +348,7 @@ def parse_course_offerings(db, reader):
             normalized = normalize_headers(row, COURSE_OFFERINGS)
             validated = CourseOfferingsSchema(**normalized)
             existing = (
-                db.query(Course).filter(Course.name ==
-                                        validated.courseName).first()
+                db.query(Course).filter(Course.name == validated.courseName).first()
             )
             if existing:
                 logger.info(
@@ -390,15 +388,12 @@ def parse_course_preferences(db, reader):
         try:
             normalized = normalize_headers(row, COURSE_PREFERENCES)
             validated = CoursePreferencesSchema(**normalized)
-            course = db.query(Course).filter(
-                Course.name == validated.course).first()
+            course = db.query(Course).filter(Course.name == validated.course).first()
             faculty = (
-                db.query(Faculty).filter(
-                    Faculty.nuid == validated.facultyId).first()
+                db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
             )
             if not course:
-                errors.append(
-                    f"Row {i}: course '{validated.course}' not found")
+                errors.append(f"Row {i}: course '{validated.course}' not found")
             elif not faculty:
                 errors.append(
                     f"Row {i}: faculty '{validated.facultyName}' "
