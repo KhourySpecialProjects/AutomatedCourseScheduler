@@ -37,6 +37,7 @@ COURSE_PREFERENCES = "Course Preferences"
         - If valid, inserts all courses found in the file into DB Course table.
 
 """
+# Query for exisiting course... don't add duplicates
 
 
 @router.post("/courses", response_model=UploadResponse)
@@ -72,6 +73,8 @@ def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
 
 """
 
+# query for exisitng prefernce... update
+
 
 @router.post("/faculty-preferences", response_model=UploadResponse)
 def upload_faculty_preferences(
@@ -98,6 +101,29 @@ def upload_faculty_preferences(
             records_processed=len(to_insert),
             records_successful=len(to_insert),
         )
+
+
+"""
+    Upload a CSV file containing faculty time preference data.
+
+    Params: None
+    Body:
+        - expects one file in request body with key "file"
+        - Each row should contain information for one course offering. Format must
+          match expected schema.
+
+    Result:
+        - If valid, inserts all courses found in the file into DB Course table.
+
+"""
+
+
+@router.post("/time-preferences", response_model=UploadResponse)
+def upload_time_preferences(
+    file: UploadFile = File(...), db: Session = Depends(get_db)
+):
+
+    raise HTTPException(status_code=400, detail="Not implemented")
 
 
 """

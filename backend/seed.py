@@ -206,81 +206,58 @@ def seed(db: Session) -> None:
         """Return a datetime for the given day-of-month in Sep 2026."""
         return datetime(2026, 9, day, hour, minute)
 
-    # MWF blocks (anchor to Mon Sep 7 / Wed Sep 9 / Fri Sep 11 — stored as one row each)
-    # TTh blocks (anchor to Tue Sep 8 / Thu Sep 10)
+    # MWR blocks (anchor to Mon Sep 7  — weekday 0 → "MWR")
+    # MR  blocks (anchor to Thu Sep 10 — weekday 3 → "MR")
+    # WF  blocks (anchor to Wed Sep 9  — weekday 2 → "WF")
     time_blocks = [
         TimeBlock(
             start_time=dt(7, 8, 0),
             end_time=dt(7, 9, 5),
             timezone="EST",
             campus="Boston",
-        ),  # MWF 8–9:05
+        ),  # idx 0  MWR 8:00–9:05
         TimeBlock(
             start_time=dt(7, 9, 15),
             end_time=dt(7, 10, 20),
             timezone="EST",
             campus="Boston",
-        ),  # MWF 9:15–10:20
+        ),  # idx 1  MWR 9:15–10:20
         TimeBlock(
             start_time=dt(7, 10, 30),
             end_time=dt(7, 11, 35),
             timezone="EST",
             campus="Boston",
-        ),  # MWF 10:30–11:35
+        ),  # idx 2  MWR 10:30–11:35
         TimeBlock(
-            start_time=dt(7, 11, 45),
-            end_time=dt(7, 12, 50),
+            start_time=dt(10, 11, 45),
+            end_time=dt(10, 13, 25),
             timezone="EST",
             campus="Boston",
-        ),  # MWF 11:45–12:50
+        ),  # idx 3  MR 11:45–1:25
         TimeBlock(
-            start_time=dt(7, 13, 35),
-            end_time=dt(7, 14, 40),
+            start_time=dt(10, 13, 35),
+            end_time=dt(10, 15, 15),
             timezone="EST",
             campus="Boston",
-        ),  # MWF 1:35–2:40
+        ),  # idx 4  MR 1:35–3:15
         TimeBlock(
-            start_time=dt(7, 14, 50),
-            end_time=dt(7, 15, 55),
+            start_time=dt(9, 11, 45),
+            end_time=dt(9, 13, 25),
             timezone="EST",
             campus="Boston",
-        ),  # MWF 2:50–3:55
+        ),  # idx 5  WF 11:45–1:25
         TimeBlock(
-            start_time=dt(8, 8, 0),
-            end_time=dt(8, 9, 40),
+            start_time=dt(9, 13, 35),
+            end_time=dt(9, 15, 15),
             timezone="EST",
             campus="Boston",
-        ),  # TTh 8–9:40
+        ),  # idx 6  WF 1:35–3:15
         TimeBlock(
-            start_time=dt(8, 9, 50),
-            end_time=dt(8, 11, 30),
+            start_time=dt(9, 14, 50),
+            end_time=dt(9, 16, 30),
             timezone="EST",
             campus="Boston",
-        ),  # TTh 9:50–11:30
-        TimeBlock(
-            start_time=dt(8, 11, 45),
-            end_time=dt(8, 13, 25),
-            timezone="EST",
-            campus="Boston",
-        ),  # TTh 11:45–1:25
-        TimeBlock(
-            start_time=dt(8, 13, 35),
-            end_time=dt(8, 15, 15),
-            timezone="EST",
-            campus="Boston",
-        ),  # TTh 1:35–3:15
-        TimeBlock(
-            start_time=dt(8, 15, 30),
-            end_time=dt(8, 17, 10),
-            timezone="EST",
-            campus="Boston",
-        ),  # TTh 3:30–5:10
-        TimeBlock(
-            start_time=dt(7, 18, 0),
-            end_time=dt(7, 21, 0),
-            timezone="EST",
-            campus="Boston",
-        ),  # Mon eve 6–9
+        ),  # idx 7  WF 2:50–4:30
     ]
     db.add_all(time_blocks)
     db.flush()
@@ -303,53 +280,54 @@ def seed(db: Session) -> None:
     # ------------------------------------------------------------------
     # Sections  (30+ spread across courses and time blocks)
     # ------------------------------------------------------------------
-    # (course_index, time_block_index, section_number, capacity, enrollment)
+    # (course_index, time_block_index, section_number, capacity)
+    # time_block indices: 0=MWR 8:00, 1=MWR 9:15, 2=MWR 10:30,
+    #                     3=MR 11:45, 4=MR 1:35,
+    #                     5=WF 11:45, 6=WF 1:35, 7=WF 2:50
     section_specs = [
-        # CS1 — 3 sections
+        # CS1 — 4 sections
         (0, 0, 1, 60),
-        (0, 2, 2, 60),
-        (0, 6, 3, 60),
-        # CS2 — 3 sections
+        (0, 1, 2, 60),
+        (0, 5, 3, 60),
+        (0, 7, 4, 60),
+        # CS2 — 4 sections
         (1, 1, 1, 50),
         (1, 3, 2, 50),
-        (1, 7, 3, 50),
-        # OOD — 3 sections
+        (1, 5, 3, 50),
+        (1, 6, 4, 50),
+        # OOD — 4 sections
         (2, 2, 1, 40),
         (2, 4, 2, 40),
-        (2, 8, 3, 40),
+        (2, 6, 3, 40),
+        (2, 7, 4, 40),
         # Algorithms — 2 sections
         (3, 3, 1, 40),
-        (3, 9, 2, 40),
+        (3, 4, 2, 40),
         # Computer Systems — 2 sections
-        (4, 4, 1, 35),
-        (4, 7, 2, 35),
+        (4, 1, 1, 35),
+        (4, 4, 2, 35),
         # Software Dev — 2 sections
         (5, 5, 1, 30),
-        (5, 10, 2, 30),
+        (5, 7, 2, 30),
         # Theory of Computation — 2 sections
-        (6, 1, 1, 30),
-        (6, 6, 2, 30),
+        (6, 0, 1, 30),
+        (6, 1, 2, 30),
         # Foundations of AI — 2 sections
         (7, 2, 1, 35),
-        (7, 9, 2, 35),
+        (7, 3, 2, 35),
         # Database Design — 2 sections
         (8, 0, 1, 35),
-        (8, 8, 2, 35),
+        (8, 6, 2, 35),
         # Networks — 2 sections
         (9, 3, 1, 30),
-        (9, 10, 2, 30),
+        (9, 7, 2, 30),
         # Programming Languages — 2 sections
-        (10, 4, 1, 25),
-        (10, 11, 2, 25),
+        (10, 2, 1, 25),
+        (10, 4, 2, 25),
         # Capstone — 3 sections
         (11, 5, 1, 20),
-        (11, 9, 2, 20),
-        (11, 11, 3, 20),
-        # Additional CS1 / CS2 sections to exceed 30
-        (0, 5, 4, 60),
-        (1, 8, 4, 50),
-        (2, 10, 4, 40),
-        (3, 11, 3, 40),
+        (11, 3, 2, 20),
+        (11, 6, 3, 20),
     ]
 
     sections = []
@@ -529,67 +507,67 @@ def seed(db: Session) -> None:
     meeting_prefs = [
         MeetingPreference(
             faculty_nuid=100001,
-            meeting_time="MWF Morning",
+            meeting_time="MWR Morning",
             preference=PreferenceLevel.EAGER,
         ),
         MeetingPreference(
             faculty_nuid=100001,
-            meeting_time="TTh Afternoon",
+            meeting_time="MR Afternoon",
             preference=PreferenceLevel.WILLING,
         ),
         MeetingPreference(
             faculty_nuid=100002,
-            meeting_time="TTh Morning",
+            meeting_time="MR Morning",
             preference=PreferenceLevel.EAGER,
         ),
         MeetingPreference(
             faculty_nuid=100002,
-            meeting_time="Evening",
+            meeting_time="WF Afternoon",
             preference=PreferenceLevel.NOT_INTERESTED,
         ),
         MeetingPreference(
             faculty_nuid=100003,
-            meeting_time="MWF Afternoon",
+            meeting_time="WF Afternoon",
             preference=PreferenceLevel.EAGER,
         ),
         MeetingPreference(
             faculty_nuid=100004,
-            meeting_time="TTh Morning",
+            meeting_time="MR Morning",
             preference=PreferenceLevel.WILLING,
         ),
         MeetingPreference(
             faculty_nuid=100004,
-            meeting_time="Evening",
+            meeting_time="WF Afternoon",
             preference=PreferenceLevel.NOT_INTERESTED,
         ),
         MeetingPreference(
             faculty_nuid=100005,
-            meeting_time="MWF Morning",
+            meeting_time="MWR Morning",
             preference=PreferenceLevel.EAGER,
         ),
         MeetingPreference(
             faculty_nuid=100005,
-            meeting_time="MWF Afternoon",
+            meeting_time="WF Morning",
             preference=PreferenceLevel.WILLING,
         ),
         MeetingPreference(
             faculty_nuid=100006,
-            meeting_time="TTh Afternoon",
+            meeting_time="MR Afternoon",
             preference=PreferenceLevel.EAGER,
         ),
         MeetingPreference(
             faculty_nuid=100007,
-            meeting_time="Evening",
+            meeting_time="WF Afternoon",
             preference=PreferenceLevel.WILLING,
         ),
         MeetingPreference(
             faculty_nuid=100008,
-            meeting_time="MWF Morning",
+            meeting_time="MWR Morning",
             preference=PreferenceLevel.WILLING,
         ),
         MeetingPreference(
             faculty_nuid=100008,
-            meeting_time="Evening",
+            meeting_time="WF Afternoon",
             preference=PreferenceLevel.EAGER,
         ),
     ]
