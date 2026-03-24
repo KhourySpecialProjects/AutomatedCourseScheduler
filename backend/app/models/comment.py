@@ -13,12 +13,14 @@ if TYPE_CHECKING:
 
 
 class Comment(Base):
+    """Represents a comment"""
     __tablename__ = "comment"
 
     comment_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.nuid"))
     content: Mapped[str] = mapped_column(String(200))
-    section_id: Mapped[int] = mapped_column(Integer, ForeignKey("section.section_id"))
+    section_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("section.section_id"))
     resolved: Mapped[bool] = mapped_column(Boolean, default=False)
     parent_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("comment.comment_id")
@@ -26,13 +28,15 @@ class Comment(Base):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="comments")
-    section: Mapped["Section"] = relationship("Section", back_populates="comments")
+    section: Mapped[Section] = relationship(
+        "Section", back_populates="comments")
     replies: Mapped[list["Comment"]] = relationship(
         "Comment", back_populates="parent_id"
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
