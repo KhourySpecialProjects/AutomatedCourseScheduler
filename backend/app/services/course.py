@@ -1,5 +1,3 @@
-"""Course service — business logic."""
-
 from sqlalchemy.orm import Session
 
 from app.models.course import Course

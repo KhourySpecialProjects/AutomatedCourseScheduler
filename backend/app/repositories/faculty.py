@@ -1,5 +1,3 @@
-"""Faculty repository — raw DB access."""
-
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.course_preference import CoursePreference

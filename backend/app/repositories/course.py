@@ -1,5 +1,3 @@
-"""Course repository — raw DB access."""
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
