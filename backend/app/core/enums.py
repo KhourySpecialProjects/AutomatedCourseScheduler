@@ -37,8 +37,8 @@ class WarningType(enum.StrEnum):
     UNPREFERENCED_TIME = "Faculty assigned unpreferenced time"
     CONFLICT_GROUP_VIOLATION = "Conflict group courses overlap"
     FACULTY_OVERLOAD = "Faculty overloaded with assignments"
-    
-    
+
+
 class Campus(enum.StrEnum):
     BOSTON = "Boston"
     OAKLAND = "Oakland"
