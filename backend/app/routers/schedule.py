@@ -63,13 +63,6 @@ def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
     raise HTTPException(status_code=501, detail="Not implemented yet")
 
 
-@router.post("/{schedule_id}/generate", response_model=ScheduleResponse)
-def generate_schedule(schedule_id: int, db: Session = Depends(get_db)):
-    """Trigger the scheduling algorithm to generate a draft schedule."""
-    # TODO: Implement schedule generation algorithm
-    raise HTTPException(status_code=501, detail="Algorithm not yet implemented")
-
-
 @router.get("/{schedule_id}/export/csv")
 def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
     """Export a finalized schedule in CourseLeaf-compatible CSV format."""
