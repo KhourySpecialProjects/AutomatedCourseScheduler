@@ -23,3 +23,9 @@ class Semester(enum.Enum):
     SPRING = "Spring"
     SUMMER_1 = "Summer 1"
     SUMMER_2 = "Summer 2"
+
+
+class Campus(enum.StrEnum):
+    BOSTON = "Boston"
+    OAKLAND = "Oakland"
+    LONDON = "London"

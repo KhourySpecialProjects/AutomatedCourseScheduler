@@ -253,3 +253,11 @@ VALUES
 (401, 'Almudena', 'Konrad', 'almudena.konrad@northeastern.edu', NULL, 'Professor', 'Boston', TRUE),
 (774, 'Melanie', 'Tory', 'melanie.tory@northeastern.edu', NULL, 'Professor', 'Boston', TRUE),
 (101544, 'Jessica', 'Staddon', 'jessica.staddon@northeastern.edu', NULL, 'Professor', 'Boston', TRUE);
+
+
+INSERT INTO faculty (nuid, first_name, last_name, email, phone_number, campus, active)
+VALUES
+(286, 'Alexander', 'Grob', 'grob.alexander@northeastern.edu', NULL, 'Boston', TRUE),
+(673, 'Sarah', 'Sellke', 'sellke.sarah@northeastern.edu', NULL, 'Boston', TRUE),
+(627, 'Vance', 'Ricks', 'ricks.vance@northeastern.edu', NULL, 'Boston', TRUE),
+(393, 'Rebecca', 'Kleinberger', 'kleinberger.rebecca@northeastern.edu', NULL, 'Boston', TRUE);

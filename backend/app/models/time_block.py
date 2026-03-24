@@ -1,11 +1,12 @@
-from datetime import datetime
+from datetime import datetime, time
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import DateTime, Enum, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
+from app.core.enums import Campus
 
 if TYPE_CHECKING:
     from app.models.section import Section
@@ -19,10 +20,12 @@ class TimeBlock(Base):
     __tablename__ = "time_block"
 
     time_block_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    start_time: Mapped[datetime] = mapped_column(DateTime)
-    end_time: Mapped[datetime] = mapped_column(DateTime)
-    timezone: Mapped[str] = mapped_column(String(4))
-    campus: Mapped[str] = mapped_column(String(100))
+    meetingDays: Mapped[str] = mapped_column(String)
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)
+    end_time: Mapped[time] = mapped_column(Time, nullable=False)
+    timezone: Mapped[str | None] = mapped_column(String(4))
+    campus: Mapped[Campus] = mapped_column(Enum(Campus), nullable=False)
+    block_group: Mapped[str | None] = mapped_column(String(1))
 
     # Relationships
     sections: Mapped[list["Section"]] = relationship(
@@ -30,7 +33,8 @@ class TimeBlock(Base):
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
