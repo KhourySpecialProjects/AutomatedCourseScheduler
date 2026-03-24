@@ -98,24 +98,24 @@ def _build_mock_partial_input(parameters: AlgorithmParameters) -> AlgorithmInput
     )
 
 
-def run_algorithm_task(schedule_id: int, parameters: AlgorithmParameters):
-    algorithm_input = _build_mock_input(parameters)
-    result = generate_schedule(algorithm_input)
+# def run_algorithm_task(schedule_id: int, parameters: AlgorithmParameters):
+#     algorithm_input = _build_mock_input(parameters)
+#     result = generate_schedule(algorithm_input)
 
-    # TODO:
-    # - write result.SectionAssignments back to DB
-    # - set schedule.status = ScheduleStatus.COMPLETED
-    # - set schedule.status = ScheduleStatus.FAILED on exception
+#     # TODO:
+#     # - write result.SectionAssignments back to DB
+#     # - set schedule.status = ScheduleStatus.COMPLETED
+#     # - set schedule.status = ScheduleStatus.FAILED on exception
 
 
-def run_regenerate_task(schedule_id: int, parameters: AlgorithmParameters):
-    # Runs algorithm only on unassigned sections — preserves existing assignments
-    result = generate_schedule(_build_mock_partial_input(parameters))
+# def run_regenerate_task(schedule_id: int, parameters: AlgorithmParameters):
+#     # Runs algorithm only on unassigned sections — preserves existing assignments
+#     result = generate_schedule(_build_mock_partial_input(parameters))
 
-    # TODO: define regenerate_schedule() once regeneration logic is scoped
-    # TODO:
-    # - merge result.SectionAssignments into existing schedule
-    #   (do not overwrite assigned)
-    # - set schedule.status = ScheduleStatus.COMPLETED
-    # - set schedule.status = ScheduleStatus.FAILED on exception
-    pass
+#     # TODO: define regenerate_schedule() once regeneration logic is scoped
+#     # TODO:
+#     # - merge result.SectionAssignments into existing schedule
+#     #   (do not overwrite assigned)
+#     # - set schedule.status = ScheduleStatus.COMPLETED
+#     # - set schedule.status = ScheduleStatus.FAILED on exception
+#     pass
