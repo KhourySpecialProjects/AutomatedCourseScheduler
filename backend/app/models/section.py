@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -29,6 +29,7 @@ class Section(Base):
     section_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     section_number: Mapped[int] = mapped_column(Integer)
     capacity: Mapped[int] = mapped_column(Integer)
+    room: Mapped[str | None] = mapped_column(String(10))
 
     # Foreign Keys
     schedule_id: Mapped[int] = mapped_column(
@@ -38,11 +39,19 @@ class Section(Base):
         Integer, ForeignKey("time_block.time_block_id")
     )
     course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
+    crosslisted_section_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("section.section_id"), unique=True
+    )
 
     # Relationships
     schedule: Mapped[Schedule] = relationship("Schedule", back_populates="sections")
     time_block: Mapped[TimeBlock] = relationship("TimeBlock", back_populates="sections")
     course: Mapped[Course] = relationship("Course", back_populates="sections")
+    crosslisted_section: Mapped[Section | None] = relationship(
+        foreign_keys=[crosslisted_section_id],
+        remote_side="Section.section_id",
+        post_update=True,
+    )
     faculty_assignments: Mapped[list[FacultyAssignment]] = relationship(
         "FacultyAssignment", back_populates="section"
     )
