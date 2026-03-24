@@ -2,8 +2,8 @@
 
 import csv
 import logging
-
 from datetime import time
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import ValidationError
 from sqlalchemy import insert, update
@@ -13,9 +13,9 @@ from app.core.database import get_db
 from app.core.enums import Campus
 from app.models.course import Course
 from app.models.course_preference import CoursePreference
+from app.models.faculty import Faculty
 from app.models.meeting_preference import MeetingPreference
 from app.models.time_block import TimeBlock
-from app.models.faculty import Faculty
 from app.schemas.course_offerings import CourseOfferingsSchema
 from app.schemas.course_preferences import CoursePreferencesSchema
 from app.schemas.meeting_preferences import MeetingPreferencesSchema
@@ -62,7 +62,10 @@ def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
             else:
                 return UploadResponse(
                     status="success",
-                    message="File does not contain any non-existing courses. Nothing inserted.",
+                    message=(
+                        "File does not contain any non-existing courses. "
+                        "Nothing inserted."
+                    ),
                     records_processed=len(to_insert),
                     records_successful=len(to_insert),
                 )
@@ -111,8 +114,7 @@ def upload_faculty_preferences(
                 db.execute(update(CoursePreference), to_update)
             db.commit()
         except HTTPException as e:
-            logger.error(
-                f"Upload error in upload_faculty_preferences: {str(e)}")
+            logger.error(f"Upload error in upload_faculty_preferences: {str(e)}")
             raise
 
         return UploadResponse(
@@ -147,8 +149,7 @@ def upload_time_preferences(
                 db.execute(update(MeetingPreference), to_update)
             db.commit()
         except HTTPException as e:
-            logger.error(
-                f"Upload error in upload_time_preferences: {str(e)}")
+            logger.error(f"Upload error in upload_time_preferences: {str(e)}")
             raise
 
         return UploadResponse(
@@ -169,8 +170,8 @@ def upload_time_preferences(
         db (Session): The current database session
 
     Returns:
-        List of course offerings/preferences validated against the corresponding schema and
-        translated into expected db model format parsed from the given file
+        List of course offerings/preferences validated against the corresponding
+        schema and translated into expected db model format parsed from the given file
 
 """
 
@@ -197,8 +198,8 @@ def parse_file(file, schema, db):
         return parse_time_preferences(db, reader)
     else:
         logger.error(
-            f"Unknown file content type {schema}. "
-            f"Expected one of: {[COURSE_OFFERINGS, COURSE_PREFERENCES, TIME_PREFERENCES]}"
+            f"Unknown file content type {schema}. Expected one of: "
+            f"{[COURSE_OFFERINGS, COURSE_PREFERENCES, TIME_PREFERENCES]}"
         )
         return
 
@@ -238,13 +239,19 @@ def parse_time_preferences(db, reader):
             segments = validated.normalize_meeting_time()
             for days, start_time, end_time in segments:
                 logger.info(
-                    f"Row {i}: parsed segment — days={days}, start={start_time}, end={end_time}")
+                    f"Row {i}: parsed segment — days={days}, "
+                    f"start={start_time}, end={end_time}"
+                )
 
-                time_block = db.query(TimeBlock).filter(
-                    TimeBlock.meetingDays == days,
-                    TimeBlock.start_time == start_time,
-                    TimeBlock.end_time == end_time,
-                ).first()
+                time_block = (
+                    db.query(TimeBlock)
+                    .filter(
+                        TimeBlock.meetingDays == days,
+                        TimeBlock.start_time == start_time,
+                        TimeBlock.end_time == end_time,
+                    )
+                    .first()
+                )
 
                 faculty = (
                     db.query(Faculty)
@@ -254,11 +261,16 @@ def parse_time_preferences(db, reader):
 
                 if not time_block:
                     time_block = TimeBlock(
-                        meetingDays=days, start_time=start_time, end_time=end_time, campus=Campus.BOSTON)
+                        meetingDays=days,
+                        start_time=start_time,
+                        end_time=end_time,
+                        campus=Campus.BOSTON,
+                    )
                     db.add(time_block)
                     db.flush()
                     # errors.append(
-                    #     f"Row {i}: time block '{days} {start_time}-{end_time}' not found")
+                    #     f"Row {i}: time block "
+                    #     f"'{days} {start_time}-{end_time}' not found")
                     # continue
 
                 elif not faculty:
@@ -278,8 +290,12 @@ def parse_time_preferences(db, reader):
                 )
                 if existing_pref:
                     if existing_pref.preference != validated.preference:
-                        updates.append({"preference_id": existing_pref.preference_id,
-                                        "preference": validated.preference})
+                        updates.append(
+                            {
+                                "preference_id": existing_pref.preference_id,
+                                "preference": validated.preference,
+                            }
+                        )
                 else:
                     db_entry = validated.translate(time_block.time_block_id)
                     inserts.append(db_entry)
@@ -314,12 +330,12 @@ def parse_course_offerings(db, reader):
             normalized = normalize_headers(row, COURSE_OFFERINGS)
             validated = CourseOfferingsSchema(**normalized)
             existing = (
-                db.query(Course).filter(Course.name ==
-                                        validated.courseName).first()
+                db.query(Course).filter(Course.name == validated.courseName).first()
             )
             if existing:
                 logger.info(
-                    f"Row {i}: course '{validated.courseName}' already exists, skipping")
+                    f"Row {i}: course '{validated.courseName}' already exists, skipping"
+                )
                 continue
             db_entry = validated.translate()
             table_entries.append(db_entry)
@@ -354,18 +370,12 @@ def parse_course_preferences(db, reader):
         try:
             normalized = normalize_headers(row, COURSE_PREFERENCES)
             validated = CoursePreferencesSchema(**normalized)
-            course = (
-                db.query(Course).filter(
-                    Course.name == validated.course).first()
-            )
+            course = db.query(Course).filter(Course.name == validated.course).first()
             faculty = (
-                db.query(Faculty)
-                .filter(Faculty.nuid == validated.facultyId)
-                .first()
+                db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
             )
             if not course:
-                errors.append(
-                    f"Row {i}: course '{validated.course}' not found")
+                errors.append(f"Row {i}: course '{validated.course}' not found")
             elif not faculty:
                 errors.append(
                     f"Row {i}: faculty '{validated.facultyName}' "
@@ -382,8 +392,12 @@ def parse_course_preferences(db, reader):
                 )
                 if existing_pref:
                     if existing_pref.preference != validated.preference:
-                        updates.append({"preference_id": existing_pref.preference_id,
-                                        "preference": validated.preference})
+                        updates.append(
+                            {
+                                "preference_id": existing_pref.preference_id,
+                                "preference": validated.preference,
+                            }
+                        )
                 else:
                     db_entry = validated.translate(course.course_id)
                     inserts.append(db_entry)
@@ -428,12 +442,12 @@ def validate_headers(headers, schema):
             "Faculty Name",
             "Faculty ID",
             "Meetingtime",
-            "Preference"
+            "Preference",
         ]
     else:
         logger.error(
-            f"Unknown schema {schema}. "
-            f"Expected one of: {[COURSE_OFFERINGS, COURSE_PREFERENCES, TIME_PREFERENCES]}"
+            f"Unknown schema {schema}. Expected one of: "
+            f"{[COURSE_OFFERINGS, COURSE_PREFERENCES, TIME_PREFERENCES]}"
         )
 
     valid = set(expected_headers) == set(headers)

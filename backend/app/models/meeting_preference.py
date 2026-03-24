@@ -23,8 +23,7 @@ class MeetingPreference(Base):
     preference: Mapped[PreferenceLevel] = mapped_column(Enum(PreferenceLevel))
 
     # Foreign Keys
-    faculty_nuid: Mapped[int] = mapped_column(
-        Integer, ForeignKey("faculty.nuid"))
+    faculty_nuid: Mapped[int] = mapped_column(Integer, ForeignKey("faculty.nuid"))
     meeting_time: Mapped[int] = mapped_column(
         Integer, ForeignKey("time_block.time_block_id")
     )
@@ -35,8 +34,7 @@ class MeetingPreference(Base):
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
