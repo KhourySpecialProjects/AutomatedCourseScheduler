@@ -27,6 +27,8 @@ class Schedule(Base):
         Integer, CheckConstraint("year >= 1000 AND year <= 9999")
     )
     draft: Mapped[bool] = mapped_column(Boolean, default=True)
+    campus: Mapped[int] = mapped_column(Integer)
+    complete: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
     sections: Mapped[list["Section"]] = relationship(
