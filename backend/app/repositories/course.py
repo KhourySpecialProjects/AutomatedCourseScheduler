@@ -2,6 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.course import Course
+from app.models.schedule import Schedule
 from app.models.section import Section
 
 
@@ -29,3 +30,12 @@ def get_section_count(
     if schedule_id is not None:
         query = query.filter(Section.schedule_id == schedule_id)
     return query.scalar() or 0
+
+
+def schedule_exists(db: Session, schedule_id: int) -> bool:
+    return (
+        db.query(Schedule.schedule_id)
+        .filter(Schedule.schedule_id == schedule_id)
+        .first()
+        is not None
+    )

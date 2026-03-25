@@ -18,7 +18,10 @@ def get_courses(
     db: Session = Depends(get_db),
 ):
     "Retrieve all courses, optionally filtered by schedule"
-    return course_service.get_courses(db, schedule_id=schedule_id)
+    try:
+        return course_service.get_courses(db, schedule_id=schedule_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/{course_id}", response_model=CourseResponse)
@@ -30,7 +33,10 @@ def get_course(
     db: Session = Depends(get_db),
 ):
     "Retrieve a course by ID with section count."
-    course = course_service.get_course(db, course_id, schedule_id=schedule_id)
+    try:
+        course = course_service.get_course(db, course_id, schedule_id=schedule_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     if course is None:
         raise HTTPException(status_code=404, detail="Course not found")
     return course

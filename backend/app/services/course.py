@@ -17,6 +17,8 @@ def _course_to_response(course: Course, section_count: int) -> CourseResponse:
 
 
 def get_courses(db: Session, schedule_id: int | None = None) -> list[CourseResponse]:
+    if schedule_id is not None and not course_repo.schedule_exists(db, schedule_id):
+        raise ValueError("ScheduleID is invalid")
     if schedule_id is not None:
         courses = course_repo.get_by_schedule(db, schedule_id)
     else:
@@ -34,6 +36,8 @@ def get_courses(db: Session, schedule_id: int | None = None) -> list[CourseRespo
 def get_course(
     db: Session, course_id: int, schedule_id: int | None = None
 ) -> CourseResponse | None:
+    if schedule_id is not None and not course_repo.schedule_exists(db, schedule_id):
+        raise ValueError("ScheduleID is invalid")
     course = course_repo.get_by_id(db, course_id)
     if course is None:
         return None

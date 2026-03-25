@@ -73,6 +73,10 @@ def test_get_courses_includes_section_count(client, db_session):
     assert data[0]["SectionCount"] == 2
     assert data[0]["CourseName"] == "Algorithms"
 
+    response = client.get("/courses?schedule_id=99999")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "ScheduleID is invalid"
+
 
 def test_get_courses_filter_by_schedule_id(client, db_session):
     c1 = Course(name="CS 2500", description="A", credits=4)
@@ -120,6 +124,16 @@ def test_get_courses_filter_by_schedule_id(client, db_session):
     data = response.json()
     assert len(data) == 1
     assert data[0]["CourseName"] == "CS 2500"
+
+
+def test_get_course_by_id_invalid_schedule_id_returns_400(client, db_session):
+    course = Course(name="OOD", description="Object-oriented", credits=4)
+    db_session.add(course)
+    db_session.commit()
+
+    response = client.get(f"/courses/{course.course_id}?schedule_id=99999")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "ScheduleID is invalid"
 
 
 def test_get_course_by_id(client, db_session):
