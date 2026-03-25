@@ -10,21 +10,22 @@ from app.schemas.schedule import (
     ScheduleUpdate,
 )
 from app.schemas.section import SectionResponse
-from app.services import section as section_service
 from app.services import schedule as schedule_service
+from app.services import section as section_service
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
 
 @router.get("", response_model=list[ScheduleResponse])
 def get_schedules(
-    campus_id: int | None = Query(None, description="Filter by campus ID"),
-    semester_season: str | None = Query(None, description="Filter by semester season"),
-    semester_year: int | None = Query(None, description="Filter by semester year"),
+    campus_id: int | None = Query(None),
+    semester_season: str | None = Query(None),
+    semester_year: int | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    """Retrieve all schedules, optionally filtered by campus or semester."""
-    return schedule_service.get_all(db)
+    return schedule_service.get_all(
+        db, campus_id=campus_id, semester=semester_season, year=semester_year
+    )
 
 
 @router.post("", response_model=ScheduleResponse, status_code=201)

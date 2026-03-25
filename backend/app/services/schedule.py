@@ -7,8 +7,13 @@ from app.repositories import schedule as schedule_repo
 from app.schemas.schedule import ScheduleUpdate
 
 
-def get_all(db: Session):
-    return schedule_repo.get_all(db)
+def get_all(
+    db: Session,
+    campus_id: int | None = None,
+    semester: str | None = None,
+    year: int | None = None,
+):
+    return schedule_repo.get_all(db, campus_id=campus_id, semester=semester, year=year)
 
 
 def get_by_id(db: Session, schedule_id: int):
