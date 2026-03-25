@@ -11,7 +11,9 @@ from app.schemas.section import (
     CoursePreferenceInfo,
     InstructorInfo,
     MeetingPreferenceInfo,
+    SectionCreate,
     SectionRichResponse,
+    SectionUpdate,
     TimeBlockInfo,
 )
 
@@ -90,3 +92,90 @@ def get_rich_sections(db: Session, schedule_id: int) -> list[SectionRichResponse
             )
         )
     return result
+
+
+def _validate_create_refs(db: Session, section: SectionCreate) -> None:
+    if not section_repo.schedule_exists(db, section.schedule_id):
+        raise ValueError("ScheduleID is invalid")
+    if not section_repo.course_exists(db, section.course_id):
+        raise ValueError("CourseID is invalid")
+    if not section_repo.time_block_exists(db, section.time_block_id):
+        raise ValueError("TimeBlockID is invalid")
+
+
+def _validate_update_refs(db: Session, section: SectionUpdate) -> None:
+    fields = section.model_fields_set
+    if section.course_id is not None and not section_repo.course_exists(
+        db, section.course_id
+    ):
+        raise ValueError("CourseID is invalid")
+    if section.time_block_id is not None and not section_repo.time_block_exists(
+        db, section.time_block_id
+    ):
+        raise ValueError("TimeBlockID is invalid")
+    if "course_id" in fields and section.course_id is None:
+        raise ValueError("CourseID is invalid")
+    if "time_block_id" in fields and section.time_block_id is None:
+        raise ValueError("TimeBlockID is invalid")
+    if "capacity" in fields and section.capacity is None:
+        raise ValueError("Capacity is invalid")
+    if "faculty_nuids" in fields:
+        if section.faculty_nuids is None:
+            raise ValueError("FacultyNUIDs is invalid")
+        for nuid in section.faculty_nuids:
+            if not section_repo.faculty_exists(db, nuid):
+                raise ValueError("FacultyNUIDs is invalid")
+
+
+def create_section(db: Session, section: SectionCreate) -> Section:
+    _validate_create_refs(db, section)
+    section_obj = Section(
+        schedule_id=section.schedule_id,
+        time_block_id=section.time_block_id,
+        course_id=section.course_id,
+        capacity=section.capacity,
+        section_number=section.section_number,
+    )
+    return section_repo.create(db, section_obj)
+
+
+def update_section(
+    db: Session, section_id: int, section: SectionUpdate
+) -> Section | None:
+    section_obj = section_repo.get_by_id(db, section_id)
+    if section_obj is None:
+        return None
+    _validate_update_refs(db, section)
+    if "time_block_id" in section.model_fields_set:
+        section_obj.time_block_id = section.time_block_id
+    if "course_id" in section.model_fields_set:
+        section_obj.course_id = section.course_id
+    if "capacity" in section.model_fields_set:
+        section_obj.capacity = section.capacity
+    if "room" in section.model_fields_set:
+        section_obj.room = section.room
+    if "crosslisted_section_id" in section.model_fields_set:
+        if (
+            section.crosslisted_section_id is not None
+            and section.crosslisted_section_id == section_obj.section_id
+        ):
+            raise ValueError("CrosslistedSectionID is invalid")
+        if (
+            section.crosslisted_section_id is not None
+            and section_repo.get_by_id(db, section.crosslisted_section_id) is None
+        ):
+            raise ValueError("CrosslistedSectionID is invalid")
+        section_obj.crosslisted_section_id = section.crosslisted_section_id
+    if "faculty_nuids" in section.model_fields_set:
+        section_repo.replace_faculty_assignments(
+            db, section_obj.section_id, section.faculty_nuids or []
+        )
+    return section_repo.save(db, section_obj)
+
+
+def delete_section(db: Session, section_id: int) -> bool:
+    section_obj = section_repo.get_by_id(db, section_id)
+    if section_obj is None:
+        return False
+    section_repo.delete(db, section_obj)
+    return True

@@ -27,6 +27,9 @@ class SectionUpdate(BaseModel):
     time_block_id: int | None = None
     course_id: int | None = None
     capacity: int | None = None
+    room: str | None = None
+    crosslisted_section_id: int | None = None
+    faculty_nuids: list[int] | None = None
 
 
 # --- Rich / denormalized response for the section row view ---

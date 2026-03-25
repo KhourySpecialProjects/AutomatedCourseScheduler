@@ -30,21 +30,30 @@ def get_sections(schedule_id: int, db: Session = Depends(get_db)):
 @router.post("", response_model=SectionResponse, status_code=201)
 def create_section(section: SectionCreate, db: Session = Depends(get_db)):
     """Create a new section in a schedule."""
-    # TODO: Implement section creation
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    try:
+        return section_service.create_section(db, section)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.put("/{section_id}", response_model=SectionResponse)
+@router.patch("/{section_id}", response_model=SectionResponse)
 def update_section(
     section_id: int, section: SectionUpdate, db: Session = Depends(get_db)
 ):
     """Update an existing section."""
-    # TODO: Implement section update
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    try:
+        updated = section_service.update_section(db, section_id, section)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Section not found")
+    return updated
 
 
 @router.delete("/{section_id}", status_code=204)
 def delete_section(section_id: int, db: Session = Depends(get_db)):
     """Delete a section from a schedule."""
-    # TODO: Implement section deletion
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    deleted = section_service.delete_section(db, section_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Section not found")
+    return None
