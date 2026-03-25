@@ -5,10 +5,11 @@ from datetime import datetime
 from pydantic import BaseModel
 
 class ScheduleLogResponse(BaseModel):
-    schedule_log_id: int | None = None
-    content: str | None = None
-    schedule_id: int | None = None
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
+    schedule_log_id: int 
+    content: str 
+    schedule_id: int 
+    created_at: datetime
+    updated_at: datetime
+    
     model_config = {"from_attributes": True}
 
