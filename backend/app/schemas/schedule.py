@@ -4,23 +4,23 @@ from pydantic import BaseModel
 
 
 class ScheduleResponse(BaseModel):
-    ScheduleID: int
-    ScheduleName: str | None = None
-    SemesterSeason: str | None = None  # "Fall" or "Spring"
-    SemesterYear: int | None = None
-    Campus: int | None = None
-    Complete: bool | None = None
+    schedule_id: int
+    name: str | None = None
+    semester: str | None = None
+    year: int | None = None
+    draft: bool | None = True
+    campus: int | None = None
+    complete: bool | None = False
 
     model_config = {"from_attributes": True}
 
 
 class ScheduleCreate(BaseModel):
-    ScheduleName: str
-    SemesterSeason: str
-    SemesterYear: int
-    Campus: int
-
+    name: str
+    semester: str
+    year: int
+    campus: int
 
 class ScheduleUpdate(BaseModel):
-    ScheduleName: str | None = None
-    Complete: bool | None = None
+    name: str | None = None
+    complete: bool | None = None
