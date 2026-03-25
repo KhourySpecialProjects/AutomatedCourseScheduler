@@ -1,5 +1,5 @@
+from app.core.enums import Campus, Semester
 from app.models import Schedule
-from app.core.enums import Semester
 
 
 def test_get_schedules_empty(client, db_session):
@@ -9,10 +9,22 @@ def test_get_schedules_empty(client, db_session):
 
 
 def test_get_schedules_returns_all(client, db_session):
-    db_session.add_all([
-        Schedule(name="Fall 2024", semester=Semester.FALL, year=2024, campus=1),
-        Schedule(name="Spring 2025", semester=Semester.SPRING, year=2025, campus=1),
-    ])
+    db_session.add_all(
+        [
+            Schedule(
+                name="Fall 2024",
+                semester=Semester.FALL,
+                year=2024,
+                campus=Campus.BOSTON,
+            ),
+            Schedule(
+                name="Spring 2025",
+                semester=Semester.SPRING,
+                year=2025,
+                campus=Campus.OAKLAND,
+            ),
+        ]
+    )
     db_session.commit()
 
     response = client.get("/schedules")
@@ -21,7 +33,9 @@ def test_get_schedules_returns_all(client, db_session):
 
 
 def test_get_schedule_by_id(client, db_session):
-    schedule = Schedule(name="Fall 2024", semester=Semester.FALL, year=2024, campus=1)
+    schedule = Schedule(
+        name="Fall 2024", semester=Semester.FALL, year=2024, campus=Campus.OAKLAND
+    )
     db_session.add(schedule)
     db_session.commit()
 
@@ -36,11 +50,16 @@ def test_get_schedule_not_found(client, db_session):
 
 
 def test_update_schedule(client, db_session):
-    schedule = Schedule(name="Old Name", semester=Semester.FALL, year=2024, campus=1)
+    schedule = Schedule(
+        name="Old Name", semester=Semester.FALL, year=2024, campus=Campus.BOSTON
+    )
     db_session.add(schedule)
     db_session.commit()
 
-    response = client.put(f"/schedules/{schedule.schedule_id}", json={"name": "New Name"})
+    response = client.put(
+        f"/schedules/{schedule.schedule_id}", json={"name": "New Name"}
+    )
+    print(response.json())  # add this
     assert response.status_code == 200
     assert response.json()["name"] == "New Name"
 
@@ -51,7 +70,9 @@ def test_update_schedule_not_found(client, db_session):
 
 
 def test_delete_schedule(client, db_session):
-    schedule = Schedule(name="To Delete", semester=Semester.FALL, year=2024, campus=1)
+    schedule = Schedule(
+        name="To Delete", semester=Semester.FALL, year=2024, campus=Campus.BOSTON
+    )
     db_session.add(schedule)
     db_session.commit()
     schedule_id = schedule.schedule_id
