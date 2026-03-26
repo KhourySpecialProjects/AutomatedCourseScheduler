@@ -1,6 +1,6 @@
 """Faculty Pydantic schemas."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.section import CoursePreferenceInfo, MeetingPreferenceInfo
 
@@ -16,6 +16,27 @@ class FacultyResponse(BaseModel):
     MaxLoad: int | None = None
 
     model_config = {"from_attributes": True}
+
+
+class FacultyCreate(BaseModel):
+    nuid: int = Field(..., gt=0)
+    first_name: str = Field(..., min_length=1)
+    last_name: str = Field(..., min_length=1)
+    email: str = Field(..., min_length=1)
+    campus: str = Field(..., min_length=1)
+    phone_number: str | None = None
+    title: str | None = None
+    active: bool = True
+
+
+class FacultyUpdate(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    email: str | None = None
+    campus: str | None = None
+    phone_number: str | None = None
+    title: str | None = None
+    active: bool | None = None
 
 
 class FacultyProfileResponse(BaseModel):

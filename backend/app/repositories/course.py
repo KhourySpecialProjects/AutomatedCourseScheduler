@@ -32,17 +32,25 @@ def get_section_count(
     return query.scalar() or 0
 
 
-def schedule_exists(db: Session, schedule_id: int) -> bool:
-    return (
-        db.query(Schedule.schedule_id)
-        .filter(Schedule.schedule_id == schedule_id)
-        .first()
-        is not None
-    )
-
-
 def course_exists(db: Session, course_id: int) -> bool:
     return (
         db.query(Course.course_id).filter(Course.course_id == course_id).first()
         is not None
     )
+def create(db: Session, course: Course) -> Course:
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    return course
+
+
+def save(db: Session, course: Course) -> Course:
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    return course
+
+
+def delete(db: Session, course: Course) -> None:
+    db.delete(course)
+    db.commit()

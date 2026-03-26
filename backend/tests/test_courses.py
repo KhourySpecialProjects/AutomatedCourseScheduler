@@ -152,3 +152,121 @@ def test_get_course_not_found(client, db_session):
     response = client.get("/courses/99999")
     assert response.status_code == 404
     assert response.json()["detail"] == "Course not found"
+
+
+def test_create_course_success(client, db_session):
+    response = client.post(
+        "/courses",
+        json={
+            "name": "CS 1800",
+            "description": "Discrete structures",
+            "credits": 4,
+            "priority": True,
+        },
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["CourseName"] == "CS 1800"
+    assert data["CourseDescription"] == "Discrete structures"
+    assert data["Priority"] is True
+    assert data["SectionCount"] == 0
+    assert "CourseID" in data
+
+
+def test_patch_course_success(client, db_session):
+    course = Course(name="CS 2500", description="Was old", credits=4, priority=True)
+    db_session.add(course)
+    db_session.commit()
+
+    response = client.patch(
+        f"/courses/{course.course_id}",
+        json={"name": "CS 2510", "credits": 3, "priority": False},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["CourseName"] == "CS 2510"
+    assert data["CourseDescription"] == "Was old"
+    assert data["CourseID"] == course.course_id
+    db_session.expire_all()
+    reloaded = db_session.get(Course, course.course_id)
+    assert reloaded is not None
+    assert reloaded.credits == 3
+    assert reloaded.priority is False
+
+
+def test_patch_course_priority_null_returns_400(client, db_session):
+    course = Course(name="CS 2600", description="X", credits=4, priority=False)
+    db_session.add(course)
+    db_session.commit()
+
+    response = client.patch(
+        f"/courses/{course.course_id}",
+        json={"priority": None},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Priority is invalid"
+
+
+def test_patch_course_not_found_returns_404(client, db_session):
+    response = client.patch("/courses/99999", json={"name": "X"})
+    assert response.status_code == 404
+
+
+def test_patch_course_invalid_credits_returns_400(client, db_session):
+    course = Course(name="X", description="Y", credits=4)
+    db_session.add(course)
+    db_session.commit()
+
+    response = client.patch(
+        f"/courses/{course.course_id}",
+        json={"credits": -1},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Credits is invalid"
+
+
+def test_delete_course_success(client, db_session):
+    course = Course(name="To go", description="Bye", credits=1)
+    db_session.add(course)
+    db_session.commit()
+
+    response = client.delete(f"/courses/{course.course_id}")
+    assert response.status_code == 204
+    assert db_session.get(Course, course.course_id) is None
+
+
+def test_delete_course_not_found_returns_404(client, db_session):
+    response = client.delete("/courses/99999")
+    assert response.status_code == 404
+
+
+def test_delete_course_with_sections_returns_400(client, db_session):
+    course = Course(name="Busy", description="Has sections", credits=4)
+    db_session.add(course)
+    db_session.flush()
+    schedule = Schedule(name="F24", semester=Semester.FALL, year=2024)
+    db_session.add(schedule)
+    db_session.flush()
+    tb = TimeBlock(
+        meetingDays="MW",
+        start_time=time(10, 0),
+        end_time=time(11, 0),
+        timezone="EST",
+        campus=Campus.BOSTON,
+    )
+    db_session.add(tb)
+    db_session.flush()
+    db_session.add(
+        Section(
+            schedule_id=schedule.schedule_id,
+            time_block_id=tb.time_block_id,
+            course_id=course.course_id,
+            section_number=1,
+            capacity=30,
+        )
+    )
+    db_session.commit()
+
+    response = client.delete(f"/courses/{course.course_id}")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Course has sections and cannot be deleted"
