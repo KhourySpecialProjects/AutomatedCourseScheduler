@@ -19,7 +19,7 @@ def get_comments(
     raise HTTPException(status_code=501, detail="Not implemented yet")
 
 
-@router.post("", response_model=Comment, status_code=201)
+@router.post("", response_model=CommentCreate, status_code=201)
 def create_comment(comment: CommentCreate, db: Session = Depends(get_db)):
     """Create a new comment on a schedule component."""
     # TODO: Implement comment creation
