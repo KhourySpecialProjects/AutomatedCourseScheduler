@@ -1,10 +1,10 @@
 """Campus repository — raw DB access."""
- 
+
 from sqlalchemy.orm import Session
- 
+
 # from app.models.campus import Campus
- 
- 
+
+
 def get_all(
     db: Session,
     campus_id: int | None = None,
@@ -18,4 +18,3 @@ def get_all(
     #     query = query.filter(Campus.CampusName == campus_name)
     # return query.all()
     return []
- 

@@ -1,8 +1,7 @@
 """Tests for campus endpoints and service layer."""
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -157,9 +156,7 @@ def test_service_returns_repo_result():
     from app.services import campus as campus_service
 
     mock_db = MagicMock()
-    with patch(
-        "app.services.campus.campus_repo.get_all", return_value=MOCK_CAMPUSES
-    ):
+    with patch("app.services.campus.campus_repo.get_all", return_value=MOCK_CAMPUSES):
         result = campus_service.get_all(mock_db)
     assert result == MOCK_CAMPUSES
 

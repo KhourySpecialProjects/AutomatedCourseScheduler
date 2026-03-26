@@ -1,10 +1,10 @@
 """Campus service — business logic."""
- 
+
 from sqlalchemy.orm import Session
- 
+
 from app.repositories import campus as campus_repo
- 
- 
+
+
 def get_all(
     db: Session,
     campus_id: int | None = None,
