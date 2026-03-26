@@ -117,7 +117,8 @@ def upload_faculty_preferences(
                 db.execute(update(CoursePreference), to_update)
             db.commit()
         except HTTPException as e:
-            logger.error(f"Upload error in upload_faculty_preferences: {str(e)}")
+            logger.error(
+                f"Upload error in upload_faculty_preferences: {str(e)}")
             raise
 
         return UploadResponse(
@@ -222,13 +223,13 @@ def parse_file(file, schema, db):
         return
 
 
-def format_time_block(meetingDays, start_time, end_time):
+def format_time_block(meeting_days, start_time, end_time):
     def fmt(t: time) -> str:
         period = "a" if t.hour < 12 else "p"
         hour = t.hour % 12 or 12
         return f"{hour}:{t.minute:02d}{period}"
 
-    return f"{meetingDays} {fmt(start_time)}-{fmt(end_time)}"
+    return f"{meeting_days} {fmt(start_time)}-{fmt(end_time)}"
 
 
 """
@@ -264,7 +265,7 @@ def parse_time_preferences(db, reader):
                 time_block = (
                     db.query(TimeBlock)
                     .filter(
-                        TimeBlock.meetingDays == days,
+                        TimeBlock.meeting_days == days,
                         TimeBlock.start_time == start_time,
                         TimeBlock.end_time == end_time,
                     )
@@ -279,7 +280,7 @@ def parse_time_preferences(db, reader):
 
                 if not time_block:
                     time_block = TimeBlock(
-                        meetingDays=days,
+                        meeting_days=days,
                         start_time=start_time,
                         end_time=end_time,
                         campus=Campus.BOSTON,
@@ -348,7 +349,8 @@ def parse_course_offerings(db, reader):
             normalized = normalize_headers(row, COURSE_OFFERINGS)
             validated = CourseOfferingsSchema(**normalized)
             existing = (
-                db.query(Course).filter(Course.name == validated.courseName).first()
+                db.query(Course).filter(Course.name ==
+                                        validated.courseName).first()
             )
             if existing:
                 logger.info(
@@ -388,12 +390,15 @@ def parse_course_preferences(db, reader):
         try:
             normalized = normalize_headers(row, COURSE_PREFERENCES)
             validated = CoursePreferencesSchema(**normalized)
-            course = db.query(Course).filter(Course.name == validated.course).first()
+            course = db.query(Course).filter(
+                Course.name == validated.course).first()
             faculty = (
-                db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
+                db.query(Faculty).filter(
+                    Faculty.nuid == validated.facultyId).first()
             )
             if not course:
-                errors.append(f"Row {i}: course '{validated.course}' not found")
+                errors.append(
+                    f"Row {i}: course '{validated.course}' not found")
             elif not faculty:
                 errors.append(
                     f"Row {i}: faculty '{validated.facultyName}' "
