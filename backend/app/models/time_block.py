@@ -20,11 +20,11 @@ class TimeBlock(Base):
     __tablename__ = "time_block"
 
     time_block_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    meetingDays: Mapped[str] = mapped_column(String)
+    meeting_days: Mapped[str] = mapped_column(String)
     start_time: Mapped[time] = mapped_column(Time, nullable=False)
     end_time: Mapped[time] = mapped_column(Time, nullable=False)
-    timezone: Mapped[str | None] = mapped_column(String(4))
     campus: Mapped[Campus] = mapped_column(Enum(Campus), nullable=False)
+    block_group: Mapped[str | None] = mapped_column(String(1))
 
     # Relationships
     sections: Mapped[list["Section"]] = relationship(
