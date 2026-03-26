@@ -145,10 +145,9 @@ def test_get_faculty_profile_with_preferences(client, db_session):
     db_session.flush()
 
     tb = TimeBlock(
-        meetingDays="MW",
+        meeting_days="MW",
         start_time=time(10, 0),
         end_time=time(11, 0),
-        timezone="EST",
         campus=Campus.BOSTON,
     )
     db_session.add(tb)
