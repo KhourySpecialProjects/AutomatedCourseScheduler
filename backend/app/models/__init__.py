@@ -1,3 +1,4 @@
+from app.models.campus import Campus
 from app.models.comment import Comment
 from app.models.course import Course
 from app.models.course_preference import CoursePreference
@@ -24,4 +25,5 @@ __all__ = [
     "FacultyAssignment",
     "SectionLock",
     "Comment",
+    "Campus"
 ]

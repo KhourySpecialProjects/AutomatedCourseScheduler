@@ -7,7 +7,6 @@ from pydantic import BaseModel
 
 class CommentSchema(BaseModel):
     section_id: int
-    parent_id: int | None
     user_id: int
     content: str
 

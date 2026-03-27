@@ -15,8 +15,6 @@ if TYPE_CHECKING:
     from app.models.schedule import Schedule
     from app.models.section_lock import SectionLock
     from app.models.time_block import TimeBlock
-
-if TYPE_CHECKING:
     from app.models.comment import Comment
     from app.models.section_lock import SectionLock
 
