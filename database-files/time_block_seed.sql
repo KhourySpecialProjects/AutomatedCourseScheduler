@@ -1,4 +1,4 @@
-INSERT INTO time_block (meetingDays, start_time, end_time, timezone, campus) VALUES
+INSERT INTO time_block (meeting_days, start_time, end_time, timezone, campus) VALUES
 ('MR',  '11:45:00', '13:25:00', 'Boston'),
 ('MW',  '14:50:00', '16:30:00', 'Boston'),
 ('TF',  '13:35:00', '15:15:00', 'Boston'),
