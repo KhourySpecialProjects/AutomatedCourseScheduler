@@ -251,7 +251,6 @@ def test_delete_course_with_sections_returns_400(client, db_session):
         meeting_days="MW",
         start_time=time(10, 0),
         end_time=time(11, 0),
-        timezone="EST",
         campus=Campus.BOSTON,
     )
     db_session.add(tb)

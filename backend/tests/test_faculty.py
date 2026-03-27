@@ -345,7 +345,6 @@ def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
         meeting_days="MW",
         start_time=time(10, 0),
         end_time=time(11, 0),
-        timezone="EST",
         campus=Campus.BOSTON,
     )
     faculty = Faculty(
