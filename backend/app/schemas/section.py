@@ -47,7 +47,6 @@ class TimeBlockInfo(BaseModel):
     days: str
     start_time: str
     end_time: str
-    timezone: str
 
 
 class CoursePreferenceInfo(BaseModel):

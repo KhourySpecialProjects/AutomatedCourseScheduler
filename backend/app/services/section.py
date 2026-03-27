@@ -60,10 +60,9 @@ def get_rich_sections(db: Session, schedule_id: int) -> list[SectionRichResponse
                 ),
                 time_block=TimeBlockInfo(
                     time_block_id=s.time_block.time_block_id,
-                    days=s.time_block.meetingDays,
+                    days=s.time_block.meeting_days,
                     start_time=_fmt_time(s.time_block.start_time),
                     end_time=_fmt_time(s.time_block.end_time),
-                    timezone=s.time_block.timezone or "",
                 ),
                 instructors=[
                     InstructorInfo(

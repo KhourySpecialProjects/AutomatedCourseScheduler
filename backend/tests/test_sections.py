@@ -161,10 +161,9 @@ def test_get_rich_sections_nested_shape(client, db_session):
     schedule = Schedule(name="Sched", semester=Semester.FALL, year=2025)
     course = Course(name="Intro CS", description="Fun", credits=4)
     tb = TimeBlock(
-        meetingDays="MW",
+        meeting_days="MW",
         start_time=time(10, 30),
         end_time=time(11, 45),
-        timezone="ET",
         campus=Campus.BOSTON,
     )
     faculty = Faculty(
@@ -217,7 +216,6 @@ def test_get_rich_sections_nested_shape(client, db_session):
     assert row["course"]["name"] == "Intro CS"
     assert row["time_block"]["days"] == "MW"
     assert row["time_block"]["start_time"] != ""
-    assert row["time_block"]["timezone"] == "ET"
     assert len(row["instructors"]) == 1
     inst = row["instructors"][0]
     assert inst["nuid"] == 1001
@@ -232,10 +230,9 @@ def _seed_schedule_course_timeblock(db_session):
     schedule = Schedule(name="F24", semester=Semester.FALL, year=2024)
     course = Course(name="CS 2500", description="Fundamentals", credits=4)
     time_block = TimeBlock(
-        meetingDays="MW",
+        meeting_days="MW",
         start_time=time(10, 0),
         end_time=time(11, 0),
-        timezone="EST",
         campus=Campus.BOSTON,
     )
     db_session.add_all([schedule, course, time_block])
@@ -306,10 +303,9 @@ def test_patch_section_success(client, db_session):
     schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
     new_course = Course(name="CS 3200", description="Databases", credits=4)
     new_time_block = TimeBlock(
-        meetingDays="TR",
+        meeting_days="TR",
         start_time=time(12, 0),
         end_time=time(13, 0),
-        timezone="EST",
         campus=Campus.BOSTON,
     )
     crosslisted_target = Section(
