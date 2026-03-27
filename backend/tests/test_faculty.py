@@ -342,7 +342,7 @@ def test_delete_faculty_success(client, db_session):
 def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
     course = Course(name="PL", description="PL", credits=4)
     tb = TimeBlock(
-        meetingDays="MW",
+        meeting_days="MW",
         start_time=time(10, 0),
         end_time=time(11, 0),
         timezone="EST",
