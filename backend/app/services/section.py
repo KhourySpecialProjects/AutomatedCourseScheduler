@@ -5,7 +5,11 @@ from datetime import time
 from sqlalchemy.orm import Session
 
 from app.models.section import Section
+from app.repositories import course as course_repo
+from app.repositories import faculty as faculty_repo
+from app.repositories import schedule as schedule_repo
 from app.repositories import section as section_repo
+from app.repositories import time_block as time_block_repo
 from app.schemas.section import (
     CourseInfo,
     CoursePreferenceInfo,
@@ -24,7 +28,7 @@ class ScheduleNotFoundError(Exception):
 
 def require_schedule(db: Session, schedule_id: int) -> None:
     """Ensure the schedule exists (for section API routes only)."""
-    if not section_repo.schedule_exists(db, schedule_id):
+    if not schedule_repo.schedule_exists(db, schedule_id):
         raise ScheduleNotFoundError
 
 
@@ -92,21 +96,21 @@ def get_rich_sections(db: Session, schedule_id: int) -> list[SectionRichResponse
 
 
 def _validate_create_refs(db: Session, section: SectionCreate) -> None:
-    if not section_repo.schedule_exists(db, section.schedule_id):
+    if not schedule_repo.schedule_exists(db, section.schedule_id):
         raise ValueError("ScheduleID is invalid")
-    if not section_repo.course_exists(db, section.course_id):
+    if not course_repo.course_exists(db, section.course_id):
         raise ValueError("CourseID is invalid")
-    if not section_repo.time_block_exists(db, section.time_block_id):
+    if not time_block_repo.time_block_exists(db, section.time_block_id):
         raise ValueError("TimeBlockID is invalid")
 
 
 def _validate_update_refs(db: Session, section: SectionUpdate) -> None:
     fields = section.model_fields_set
-    if section.course_id is not None and not section_repo.course_exists(
+    if section.course_id is not None and not course_repo.course_exists(
         db, section.course_id
     ):
         raise ValueError("CourseID is invalid")
-    if section.time_block_id is not None and not section_repo.time_block_exists(
+    if section.time_block_id is not None and not time_block_repo.time_block_exists(
         db, section.time_block_id
     ):
         raise ValueError("TimeBlockID is invalid")
@@ -120,7 +124,7 @@ def _validate_update_refs(db: Session, section: SectionUpdate) -> None:
         if section.faculty_nuids is None:
             raise ValueError("FacultyNUIDs is invalid")
         for nuid in section.faculty_nuids:
-            if not section_repo.faculty_exists(db, nuid):
+            if not faculty_repo.faculty_exists(db, nuid):
                 raise ValueError("FacultyNUIDs is invalid")
 
 

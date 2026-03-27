@@ -2,13 +2,10 @@
 
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.course import Course
 from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
 from app.models.faculty_assignment import FacultyAssignment
-from app.models.schedule import Schedule
 from app.models.section import Section
-from app.models.time_block import TimeBlock
 
 
 def get_all(db: Session) -> list[Section]:
@@ -61,37 +58,6 @@ def save(db: Session, section: Section) -> Section:
 def delete(db: Session, section: Section) -> None:
     db.delete(section)
     db.commit()
-
-
-def schedule_exists(db: Session, schedule_id: int) -> bool:
-    return (
-        db.query(Schedule.schedule_id)
-        .filter(Schedule.schedule_id == schedule_id)
-        .first()
-        is not None
-    )
-
-
-def course_exists(db: Session, course_id: int) -> bool:
-    return (
-        db.query(Course.course_id).filter(Course.course_id == course_id).first()
-        is not None
-    )
-
-
-def time_block_exists(db: Session, time_block_id: int) -> bool:
-    return (
-        db.query(TimeBlock.time_block_id)
-        .filter(TimeBlock.time_block_id == time_block_id)
-        .first()
-        is not None
-    )
-
-
-def faculty_exists(db: Session, faculty_nuid: int) -> bool:
-    return (
-        db.query(Faculty.nuid).filter(Faculty.nuid == faculty_nuid).first() is not None
-    )
 
 
 def replace_faculty_assignments(
