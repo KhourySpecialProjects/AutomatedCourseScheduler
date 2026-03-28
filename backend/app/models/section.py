@@ -10,13 +10,12 @@ from sqlalchemy.sql import func
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.comment import Comment
     from app.models.course import Course
     from app.models.faculty_assignment import FacultyAssignment
     from app.models.schedule import Schedule
     from app.models.section_lock import SectionLock
     from app.models.time_block import TimeBlock
-    from app.models.comment import Comment
-    from app.models.section_lock import SectionLock
 
 
 class Section(Base):
@@ -37,17 +36,14 @@ class Section(Base):
     time_block_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("time_block.time_block_id")
     )
-    course_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("course.course_id"))
+    course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
     crosslisted_section_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("section.section_id"), unique=True
     )
 
     # Relationships
-    schedule: Mapped[Schedule] = relationship(
-        "Schedule", back_populates="sections")
-    time_block: Mapped[TimeBlock] = relationship(
-        "TimeBlock", back_populates="sections")
+    schedule: Mapped[Schedule] = relationship("Schedule", back_populates="sections")
+    time_block: Mapped[TimeBlock] = relationship("TimeBlock", back_populates="sections")
     course: Mapped[Course] = relationship("Course", back_populates="sections")
     crosslisted_section: Mapped[Section | None] = relationship(
         foreign_keys=[crosslisted_section_id],
@@ -60,12 +56,10 @@ class Section(Base):
     section_lock: Mapped[SectionLock] = relationship(
         "SectionLock", back_populates="section", uselist=False
     )
-    comments: Mapped[list[Comment]] = relationship(
-        "Comment", back_populates="section")
+    comments: Mapped[list[Comment]] = relationship("Comment", back_populates="section")
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )

@@ -8,22 +8,24 @@ Usage:
         DATABASE_URL=postgresql://... python seed.py
 """
 
-from app.models.time_block import TimeBlock
-from app.models.section import Section
-from app.models.schedule_log import ScheduleLog
-from app.models.schedule import Schedule
-from app.models.meeting_preference import MeetingPreference
-from app.models.faculty_assignment import FacultyAssignment
-from app.models.faculty import Faculty
-from app.models.course_preference import CoursePreference
-from app.models.course import Course
-from app.models.campus import Campus
-from app.core.enums import PreferenceLevel, Semester
-from app.core.database import Base, SessionLocal, engine
-from sqlalchemy.orm import Session
-from datetime import datetime, time
 import os
 import sys
+from datetime import time
+
+from sqlalchemy.orm import Session
+
+from app.core.database import Base, SessionLocal, engine
+from app.core.enums import PreferenceLevel, Semester
+from app.models.campus import Campus
+from app.models.course import Course
+from app.models.course_preference import CoursePreference
+from app.models.faculty import Faculty
+from app.models.faculty_assignment import FacultyAssignment
+from app.models.meeting_preference import MeetingPreference
+from app.models.schedule import Schedule
+from app.models.schedule_log import ScheduleLog
+from app.models.section import Section
+from app.models.time_block import TimeBlock
 
 # Allow running from the backend/ directory without installing the package.
 sys.path.insert(0, os.path.dirname(__file__))

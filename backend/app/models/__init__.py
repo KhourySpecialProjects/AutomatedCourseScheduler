@@ -25,5 +25,5 @@ __all__ = [
     "FacultyAssignment",
     "SectionLock",
     "Comment",
-    "Campus"
+    "Campus",
 ]

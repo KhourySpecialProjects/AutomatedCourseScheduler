@@ -1,4 +1,5 @@
 """Comments router."""
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,12 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("", response_model=CommentResponse, status_code=201)
-def post_comment(commentIn: CommentSchema, db: Session = Depends(get_db)
-                 ):
+def post_comment(commentIn: CommentSchema, db: Session = Depends(get_db)):
     errors = []
     user = db.query(User).filter(User.nuid == commentIn.user_id).first()
-    section = db.query(Section).filter(
-        Section.section_id == commentIn.section_id).first()
+    section = (
+        db.query(Section).filter(Section.section_id == commentIn.section_id).first()
+    )
     if not user:
         errors.append(f"User with id '{commentIn.user_id}' not found")
     if not section:
@@ -34,8 +35,11 @@ def post_comment(commentIn: CommentSchema, db: Session = Depends(get_db)
     if errors:
         raise HTTPException(status_code=422, detail=errors)
 
-    comment = Comment(user_id=commentIn.user_id,
-                      content=commentIn.content, section_id=commentIn.section_id)
+    comment = Comment(
+        user_id=commentIn.user_id,
+        content=commentIn.content,
+        section_id=commentIn.section_id,
+    )
 
     db.add(comment)
     db.commit()
@@ -51,25 +55,24 @@ def post_comment(commentIn: CommentSchema, db: Session = Depends(get_db)
 def post_reply(parent_id: int, replyIn: CommentSchema, db: Session = Depends(get_db)):
     errors = []
     user = db.query(User).filter(User.nuid == replyIn.user_id).first()
-    section = db.query(Section).filter(
-        Section.section_id == replyIn.section_id).first()
-    parent_comment = db.query(Comment).filter(
-        Comment.comment_id == parent_id).first()
+    section = db.query(Section).filter(Section.section_id == replyIn.section_id).first()
+    parent_comment = db.query(Comment).filter(Comment.comment_id == parent_id).first()
     if not user:
         errors.append(f"User with id '{replyIn.user_id}' not found")
     if not section:
         errors.append(f"Section with id '{replyIn.section_id}' not found")
     if not parent_comment:
-        errors.append(
-            f"Parent comment with id '{parent_id}' not found")
+        errors.append(f"Parent comment with id '{parent_id}' not found")
 
     if errors:
         raise HTTPException(status_code=422, detail=errors)
 
-    reply = Comment(user_id=replyIn.user_id,
-                    content=replyIn.content,
-                    section_id=replyIn.section_id,
-                    parent_id=parent_id)
+    reply = Comment(
+        user_id=replyIn.user_id,
+        content=replyIn.content,
+        section_id=replyIn.section_id,
+        parent_id=parent_id,
+    )
 
     db.add(reply)
     db.commit()
@@ -83,13 +86,14 @@ def post_reply(parent_id: int, replyIn: CommentSchema, db: Session = Depends(get
 
 @router.get("/{section_id}", response_model=list[CommentResponse])
 def get_comments(section_id: int, db: Session = Depends(get_db)):
-    section = db.query(Section).filter(
-        Section.section_id == section_id).first()
+    section = db.query(Section).filter(Section.section_id == section_id).first()
     if not section:
         raise HTTPException(
-            status_code=404, detail=f"Section with id {section_id} not found")
-    stmt = select(Comment).join(Section.comments).where(
-        Comment.section_id == section_id)
+            status_code=404, detail=f"Section with id {section_id} not found"
+        )
+    stmt = (
+        select(Comment).join(Section.comments).where(Comment.section_id == section_id)
+    )
     results = db.scalars(stmt).all()
     logger.error(results)
     print(results)
@@ -107,7 +111,8 @@ def delete_comment(comment_id: int, db: Section = Depends(get_db)):
         comment.active = False
     else:
         raise HTTPException(
-            status_code=404, detail=f"Comment with id '{comment_id} not found")
+            status_code=404, detail=f"Comment with id '{comment_id} not found"
+        )
 
     replies = comment.replies
 
@@ -138,7 +143,8 @@ def resolve_comment(comment_id: int, db: Session = Depends(get_db)):
         db.refresh(comment)
     else:
         raise HTTPException(
-            status_code=404, detail=f"Comment with id '{comment_id} not found")
+            status_code=404, detail=f"Comment with id '{comment_id} not found"
+        )
 
     replies = comment.replies
 
