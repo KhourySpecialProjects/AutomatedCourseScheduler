@@ -1,9 +1,11 @@
-from app.core.enums import Semester
+from app.core.enums import Campus, Semester
 from app.models import Schedule, Section
 
 
 def test_get_schedule_sections_empty(client, db_session):
-    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
+    schedule = Schedule(
+        name="Test", semester=Semester.FALL, year=2024, campus=Campus.BOSTON
+    )
     db_session.add(schedule)
     db_session.commit()
 
@@ -13,7 +15,9 @@ def test_get_schedule_sections_empty(client, db_session):
 
 
 def test_get_schedule_sections_returns_all(client, db_session):
-    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
+    schedule = Schedule(
+        name="Test", semester=Semester.FALL, year=2024, campus=Campus.BOSTON
+    )
     db_session.add(schedule)
     db_session.commit()
 
@@ -43,7 +47,9 @@ def test_get_schedule_sections_returns_all(client, db_session):
 
 
 def test_get_schedule_sections_response_shape(client, db_session):
-    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
+    schedule = Schedule(
+        name="Test", semester=Semester.FALL, year=2024, campus=Campus.BOSTON
+    )
     db_session.add(schedule)
     db_session.commit()
 
@@ -74,7 +80,9 @@ def test_get_schedule_sections_response_shape(client, db_session):
 
 
 def test_get_schedule_sections_field_values(client, db_session):
-    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
+    schedule = Schedule(
+        name="Test", semester=Semester.FALL, year=2024, campus=Campus.BOSTON
+    )
     db_session.add(schedule)
     db_session.commit()
 
