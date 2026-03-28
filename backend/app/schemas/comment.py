@@ -17,8 +17,10 @@ class CommentResponse(BaseModel):
     comment_id: int
     user_id: int
     section_id: int
+    parent_id: int | None
     content: str
     resolved: bool
+    active: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

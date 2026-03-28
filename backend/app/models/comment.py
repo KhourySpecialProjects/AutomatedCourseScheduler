@@ -34,7 +34,7 @@ class Comment(Base):
         "Section", back_populates="comments")
     replies: Mapped[list["Comment"]] = relationship(
         foreign_keys=[parent_id],
-        remote_side="Comment.comment_id",
+        primaryjoin="Comment.comment_id == foreign(Comment.parent_id)",
         post_update=True,
     )
 

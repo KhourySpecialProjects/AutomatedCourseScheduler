@@ -170,11 +170,6 @@ def test_post_comment_user_and_section_not_found(client):
 
 # ---------------------------------------------------------------------------
 # POST /comments  — replies
-#
-# BUG: post_reply is registered on the same path as post_comment
-# (@router.post("")). FastAPI resolves the first matching route, so
-# post_reply is never called. The tests below describe correct behavior
-# and will currently fail.
 # ---------------------------------------------------------------------------
 
 
@@ -248,10 +243,7 @@ def test_get_comments_section_with_no_comments_returns_empty_list(client, db_ses
 
 
 def test_get_comments_returns_comments_for_section(client, db_session):
-    """
-    BUG: currently returns Section objects instead of Comment objects,
-    causing a serialization error (500) when comments exist.
-    """
+    
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
     _make_comment(db_session, user.nuid, section.section_id, "First comment")
@@ -292,9 +284,6 @@ def test_get_comments_only_returns_comments_for_requested_section(client, db_ses
 
 # ---------------------------------------------------------------------------
 # DELETE /comments/{comment_id}
-#
-# BUG: the handler unconditionally raises 501 after setting active=False,
-# so a successful soft-delete still returns an error to the caller.
 # ---------------------------------------------------------------------------
 
 
@@ -313,7 +302,6 @@ def test_delete_comment_success(client, db_session):
 
 
 def test_delete_comment_not_found_returns_404(client):
-    """Deleting a non-existent comment should return 404, not 501."""
     response = client.delete("/comments/9999")
 
     assert response.status_code == 404
@@ -325,10 +313,6 @@ def test_delete_comment_not_found_returns_404(client):
 
 
 def test_resolve_comment_success(client, db_session):
-    """
-    BUG: resolve_comment always raises 501 even when the comment exists
-    and has been marked resolved.
-    """
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
     comment = _make_comment(db_session, user.nuid, section.section_id)

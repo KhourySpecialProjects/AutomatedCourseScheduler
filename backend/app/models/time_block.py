@@ -1,16 +1,14 @@
 from datetime import datetime, time
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, Integer, String, Time, ForeignKey
+from sqlalchemy import DateTime, Integer, String, Time, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
-from app.core.enums import Campus
 
 if TYPE_CHECKING:
     from app.models.section import Section
-    from app.models.campus import Campus
 
 
 class TimeBlock(Base):

@@ -100,30 +100,56 @@ def get_comments(section_id: int, db: Session = Depends(get_db)):
 """Delete the given comment"""
 
 
-@router.delete("/{comment_id}", response_model=CommentResponse)
+@router.delete("/{comment_id}", response_model=list[CommentResponse])
 def delete_comment(comment_id: int, db: Section = Depends(get_db)):
     comment = db.get(Comment, comment_id)
     if comment:
         comment.active = False
-        db.commit()
-        db.refresh(comment)
-        return comment
+    else:
+        raise HTTPException(
+            status_code=404, detail=f"Comment with id '{comment_id} not found")
 
-    raise HTTPException(
-        status_code=404, detail=f"Comment with id '{comment_id} not found")
+    replies = comment.replies
+
+    for reply in replies:
+        reply.active = False
+
+    all = [comment] + replies
+    # logger.error(all)
+    # logger.error("hello?")
+    # print("BREIOPufopiu")
+    db.commit()
+
+    for comment in all:
+        db.refresh(comment)
+
+    return all
 
 
 """Resolve the given comment"""
 
 
-@router.put("/{comment_id}", response_model=CommentResponse)
+@router.put("/{comment_id}", response_model=list[CommentResponse])
 def resolve_comment(comment_id: int, db: Session = Depends(get_db)):
     comment = db.get(Comment, comment_id)
     if comment:
         comment.resolved = True
         db.commit()
         db.refresh(comment)
-        return comment
+    else:
+        raise HTTPException(
+            status_code=404, detail=f"Comment with id '{comment_id} not found")
 
-    raise HTTPException(
-        status_code=404, detail=f"Comment with id '{comment_id} not found")
+    replies = comment.replies
+
+    for reply in replies:
+        reply.resolved = True
+        logger.error(reply)
+
+    all = [comment] + replies
+    db.commit()
+
+    for comment in all:
+        db.refresh(comment)
+
+    return all

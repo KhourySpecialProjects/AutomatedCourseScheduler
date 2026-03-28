@@ -8,27 +8,25 @@ Usage:
         DATABASE_URL=postgresql://... python seed.py
 """
 
+from app.models.time_block import TimeBlock
+from app.models.section import Section
+from app.models.schedule_log import ScheduleLog
+from app.models.schedule import Schedule
+from app.models.meeting_preference import MeetingPreference
+from app.models.faculty_assignment import FacultyAssignment
+from app.models.faculty import Faculty
+from app.models.course_preference import CoursePreference
+from app.models.course import Course
+from app.models.campus import Campus
+from app.core.enums import PreferenceLevel, Semester
+from app.core.database import Base, SessionLocal, engine
+from sqlalchemy.orm import Session
+from datetime import datetime, time
 import os
 import sys
 
 # Allow running from the backend/ directory without installing the package.
 sys.path.insert(0, os.path.dirname(__file__))
-
-from datetime import datetime
-
-from sqlalchemy.orm import Session
-
-from app.core.database import Base, SessionLocal, engine
-from app.core.enums import PreferenceLevel, Semester
-from app.models.course import Course
-from app.models.course_preference import CoursePreference
-from app.models.faculty import Faculty
-from app.models.faculty_assignment import FacultyAssignment
-from app.models.meeting_preference import MeetingPreference
-from app.models.schedule import Schedule
-from app.models.schedule_log import ScheduleLog
-from app.models.section import Section
-from app.models.time_block import TimeBlock
 
 
 def seed(db: Session) -> None:
@@ -38,6 +36,13 @@ def seed(db: Session) -> None:
     if db.query(Schedule).count() > 0:
         print("Database already contains data — skipping seed.")
         return
+
+    # ------------------------------------------------------------------
+    # Campus
+    # ------------------------------------------------------------------
+    boston = Campus(name="Boston")
+    db.add(boston)
+    db.flush()
 
     # ------------------------------------------------------------------
     # Courses
@@ -196,67 +201,59 @@ def seed(db: Session) -> None:
     db.flush()
 
     # ------------------------------------------------------------------
-    # Time blocks  (Fall 2026 semester start date used for day encoding;
-    # start/end datetime objects store the wall-clock time on a Monday
-    # or Tuesday anchor so the day-of-week is meaningful.)
+    # Time blocks
     # ------------------------------------------------------------------
-    # Monday = 2026-09-07, Tuesday = 2026-09-08, Wednesday = 2026-09-09
-    # Thursday = 2026-09-10, Friday = 2026-09-11
-    def dt(day: int, hour: int, minute: int = 0) -> datetime:
-        """Return a datetime for the given day-of-month in Sep 2026."""
-        return datetime(2026, 9, day, hour, minute)
-
-    # MWR blocks (anchor to Mon Sep 7  — weekday 0 → "MWR")
-    # MR  blocks (anchor to Thu Sep 10 — weekday 3 → "MR")
-    # WF  blocks (anchor to Wed Sep 9  — weekday 2 → "WF")
+    # time_block indices: 0=MWR 8:00, 1=MWR 9:15, 2=MWR 10:30,
+    #                     3=MR 11:45, 4=MR 1:35,
+    #                     5=WF 11:45, 6=WF 1:35, 7=WF 2:50
     time_blocks = [
         TimeBlock(
-            start_time=dt(7, 8, 0),
-            end_time=dt(7, 9, 5),
-            timezone="EST",
-            campus="Boston",
+            meeting_days="MWR",
+            start_time=time(8, 0),
+            end_time=time(9, 5),
+            campus=boston.campus_id,
         ),  # idx 0  MWR 8:00–9:05
         TimeBlock(
-            start_time=dt(7, 9, 15),
-            end_time=dt(7, 10, 20),
-            timezone="EST",
-            campus="Boston",
+            meeting_days="MWR",
+            start_time=time(9, 15),
+            end_time=time(10, 20),
+            campus=boston.campus_id,
         ),  # idx 1  MWR 9:15–10:20
         TimeBlock(
-            start_time=dt(7, 10, 30),
-            end_time=dt(7, 11, 35),
-            timezone="EST",
-            campus="Boston",
+            meeting_days="MWR",
+            start_time=time(10, 30),
+            end_time=time(11, 35),
+            campus=boston.campus_id,
         ),  # idx 2  MWR 10:30–11:35
         TimeBlock(
-            start_time=dt(10, 11, 45),
-            end_time=dt(10, 13, 25),
-            timezone="EST",
-            campus="Boston",
+            meeting_days="MR",
+            start_time=time(11, 45),
+            end_time=time(13, 25),
+            campus=boston.campus_id,
         ),  # idx 3  MR 11:45–1:25
         TimeBlock(
-            start_time=dt(10, 13, 35),
-            end_time=dt(10, 15, 15),
-            timezone="EST",
-            campus="Boston",
+            meeting_days="MR",
+            start_time=time(13, 35),
+            end_time=time(15, 15),
+            campus=boston.campus_id,
         ),  # idx 4  MR 1:35–3:15
         TimeBlock(
-            start_time=dt(9, 11, 45),
-            end_time=dt(9, 13, 25),
-            timezone="EST",
-            campus="Boston",
+            meeting_days="WF",
+            start_time=time(11, 45),
+            end_time=time(13, 25),
+            campus=boston.campus_id,
         ),  # idx 5  WF 11:45–1:25
         TimeBlock(
-            start_time=dt(9, 13, 35),
-            end_time=dt(9, 15, 15),
-            timezone="EST",
-            campus="Boston",
+            meeting_days="WF",
+            start_time=time(13, 35),
+            end_time=time(15, 15),
+            campus=boston.campus_id,
         ),  # idx 6  WF 1:35–3:15
         TimeBlock(
-            start_time=dt(9, 14, 50),
-            end_time=dt(9, 16, 30),
-            timezone="EST",
-            campus="Boston",
+            meeting_days="WF",
+            start_time=time(14, 50),
+            end_time=time(16, 30),
+            campus=boston.campus_id,
         ),  # idx 7  WF 2:50–4:30
     ]
     db.add_all(time_blocks)
@@ -504,70 +501,73 @@ def seed(db: Session) -> None:
     # ------------------------------------------------------------------
     # Meeting preferences
     # ------------------------------------------------------------------
+    # time_blocks: 0=MWR 8:00, 1=MWR 9:15, 2=MWR 10:30,
+    #              3=MR 11:45,  4=MR 13:35,
+    #              5=WF 11:45,  6=WF 13:35,  7=WF 14:50
     meeting_prefs = [
         MeetingPreference(
             faculty_nuid=100001,
-            meeting_time="MWR Morning",
+            meeting_time=time_blocks[1].time_block_id,  # MWR 9:15
             preference=PreferenceLevel.EAGER,
         ),
         MeetingPreference(
             faculty_nuid=100001,
-            meeting_time="MR Afternoon",
+            meeting_time=time_blocks[4].time_block_id,  # MR 13:35
             preference=PreferenceLevel.WILLING,
         ),
         MeetingPreference(
             faculty_nuid=100002,
-            meeting_time="MR Morning",
+            meeting_time=time_blocks[3].time_block_id,  # MR 11:45
             preference=PreferenceLevel.EAGER,
         ),
         MeetingPreference(
             faculty_nuid=100002,
-            meeting_time="WF Afternoon",
+            meeting_time=time_blocks[6].time_block_id,  # WF 13:35
             preference=PreferenceLevel.NOT_INTERESTED,
         ),
         MeetingPreference(
             faculty_nuid=100003,
-            meeting_time="WF Afternoon",
+            meeting_time=time_blocks[6].time_block_id,  # WF 13:35
             preference=PreferenceLevel.EAGER,
         ),
         MeetingPreference(
             faculty_nuid=100004,
-            meeting_time="MR Morning",
+            meeting_time=time_blocks[3].time_block_id,  # MR 11:45
             preference=PreferenceLevel.WILLING,
         ),
         MeetingPreference(
             faculty_nuid=100004,
-            meeting_time="WF Afternoon",
+            meeting_time=time_blocks[6].time_block_id,  # WF 13:35
             preference=PreferenceLevel.NOT_INTERESTED,
         ),
         MeetingPreference(
             faculty_nuid=100005,
-            meeting_time="MWR Morning",
+            meeting_time=time_blocks[1].time_block_id,  # MWR 9:15
             preference=PreferenceLevel.EAGER,
         ),
         MeetingPreference(
             faculty_nuid=100005,
-            meeting_time="WF Morning",
+            meeting_time=time_blocks[5].time_block_id,  # WF 11:45
             preference=PreferenceLevel.WILLING,
         ),
         MeetingPreference(
             faculty_nuid=100006,
-            meeting_time="MR Afternoon",
+            meeting_time=time_blocks[4].time_block_id,  # MR 13:35
             preference=PreferenceLevel.EAGER,
         ),
         MeetingPreference(
             faculty_nuid=100007,
-            meeting_time="WF Afternoon",
+            meeting_time=time_blocks[6].time_block_id,  # WF 13:35
             preference=PreferenceLevel.WILLING,
         ),
         MeetingPreference(
             faculty_nuid=100008,
-            meeting_time="MWR Morning",
+            meeting_time=time_blocks[1].time_block_id,  # MWR 9:15
             preference=PreferenceLevel.WILLING,
         ),
         MeetingPreference(
             faculty_nuid=100008,
-            meeting_time="WF Afternoon",
+            meeting_time=time_blocks[7].time_block_id,  # WF 14:50
             preference=PreferenceLevel.EAGER,
         ),
     ]
@@ -575,6 +575,7 @@ def seed(db: Session) -> None:
 
     db.commit()
     print("Seed complete.")
+    print(f"  1 campus ('{boston.name}')")
     print(f"  {len(courses)} courses")
     print(f"  {len(faculty_list)} faculty")
     print(f"  {len(time_blocks)} time blocks")

@@ -1,5 +1,5 @@
 INSERT INTO time_block
-("meetingDays", start_time, end_time, timezone, campus, block_group)
+(meeting_days, start_time, end_time, timezone, campus, block_group)
 VALUES
 
 -- Split H block

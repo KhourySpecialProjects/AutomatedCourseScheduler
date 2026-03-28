@@ -1,0 +1,10 @@
+insert into schedule (schedule_id, name, semester, year) values (1, 'Boston F26', 'FALL', 1996);
+insert into schedule (schedule_id, name, semester, year) values (2, 'London S25', 'SPRING', 1998);
+insert into schedule (schedule_id, name, semester, year) values (3, 'Oakland S1_25', 'SUMMER_1', 1994);
+insert into schedule (schedule_id, name, semester, year) values (4, 'Boston S2_26', 'SUMMER_2', 1988);
+insert into schedule (schedule_id, name, semester, year) values (5, 'Boston F26', 'FALL', 1974);
+insert into schedule (schedule_id, name, semester, year) values (6, 'London S25', 'SPRING', 1993);
+insert into schedule (schedule_id, name, semester, year) values (7, 'Oakland S1_25', 'SUMMER_1', 1994);
+insert into schedule (schedule_id, name, semester, year) values (8, 'Boston S2_26', 'SUMMER_2', 2012);
+insert into schedule (schedule_id, name, semester, year) values (9, 'Boston F26', 'FALL', 2009);
+insert into schedule (schedule_id, name, semester, year) values (10, 'London S25', 'SPRING', 1985);
