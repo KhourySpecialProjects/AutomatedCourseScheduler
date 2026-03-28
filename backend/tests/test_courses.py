@@ -86,9 +86,7 @@ def test_get_courses_filter_by_schedule_id(client, db_session):
     db_session.flush()
 
     s1 = Schedule(name="F24", semester=Semester.FALL, year=2024, campus=Campus.BOSTON)
-    s2 = Schedule(
-        name="S25", semester=Semester.SPRING, year=2025, campus=Campus.BOSTON
-    )
+    s2 = Schedule(name="S25", semester=Semester.SPRING, year=2025, campus=Campus.BOSTON)
     db_session.add_all([s1, s2])
     db_session.flush()
 
