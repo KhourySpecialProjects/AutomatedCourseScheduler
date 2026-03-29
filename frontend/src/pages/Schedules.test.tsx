@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach, type MockInstance } from 'vitest';
 import Schedules from './Schedules';
 import * as useScheduleSectionsModule from '../hooks/useScheduleSections';
 import type { SectionRichResponse } from '../api/generated';
@@ -46,7 +46,11 @@ function renderAtRoute(path: string) {
 }
 
 describe('Schedules page', () => {
+<<<<<<< HEAD
     let hookSpy: ReturnType<typeof vi.spyOn>;
+=======
+  let hookSpy: MockInstance<(scheduleId: number) => ReturnType<typeof useScheduleSectionsModule.useScheduleSections>>;
+>>>>>>> e97ab785af235285ffb507d0c1a3180d8113054f
 
     beforeEach(() => {
         hookSpy = vi.spyOn(useScheduleSectionsModule, 'useScheduleSections');

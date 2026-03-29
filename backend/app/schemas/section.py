@@ -10,6 +10,7 @@ class SectionResponse(BaseModel):
     course_id: int
     capacity: int
     section_number: int
+    room: str | None = None
     assignment_score: float | None = None
 
     model_config = {"from_attributes": True}
@@ -27,6 +28,9 @@ class SectionUpdate(BaseModel):
     time_block_id: int | None = None
     course_id: int | None = None
     capacity: int | None = None
+    room: str | None = None
+    crosslisted_section_id: int | None = None
+    faculty_nuids: list[int] | None = None
 
 
 # --- Rich / denormalized response for the section row view ---
@@ -44,7 +48,6 @@ class TimeBlockInfo(BaseModel):
     days: str
     start_time: str
     end_time: str
-    timezone: str
 
 
 class CoursePreferenceInfo(BaseModel):
@@ -72,6 +75,7 @@ class SectionRichResponse(BaseModel):
     section_id: int
     section_number: int
     capacity: int
+    room: str | None = None
     schedule_id: int
     course: CourseInfo
     time_block: TimeBlockInfo

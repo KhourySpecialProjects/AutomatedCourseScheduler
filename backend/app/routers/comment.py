@@ -105,7 +105,7 @@ def get_comments(section_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{comment_id}", response_model=list[CommentResponse])
-def delete_comment(comment_id: int, db: Section = Depends(get_db)):
+def delete_comment(comment_id: int, db: Session = Depends(get_db)):
     comment = db.get(Comment, comment_id)
     if comment:
         comment.active = False
@@ -120,9 +120,6 @@ def delete_comment(comment_id: int, db: Section = Depends(get_db)):
         reply.active = False
 
     all = [comment] + replies
-    # logger.error(all)
-    # logger.error("hello?")
-    # print("BREIOPufopiu")
     db.commit()
 
     for comment in all:
@@ -134,16 +131,14 @@ def delete_comment(comment_id: int, db: Section = Depends(get_db)):
 """Resolve the given comment"""
 
 
-@router.put("/{comment_id}", response_model=list[CommentResponse])
+@router.put("/{comment_id}", status_code=204)
 def resolve_comment(comment_id: int, db: Session = Depends(get_db)):
     comment = db.get(Comment, comment_id)
     if comment:
         comment.resolved = True
-        db.commit()
-        db.refresh(comment)
     else:
         raise HTTPException(
-            status_code=404, detail=f"Comment with id '{comment_id} not found"
+            status_code=404, detail=f"Comment with id '{comment_id}' not found"
         )
 
     replies = comment.replies
@@ -158,4 +153,4 @@ def resolve_comment(comment_id: int, db: Session = Depends(get_db)):
     for comment in all:
         db.refresh(comment)
 
-    return all
+    return
