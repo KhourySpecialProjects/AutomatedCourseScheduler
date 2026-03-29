@@ -2,7 +2,7 @@
 
 import os
 
-# Must be set before any app imports — auth.py and database.py read these at module load time.
+# Must be set before any app imports — auth.py and database.py
 os.environ.setdefault("DATABASE_URL", "sqlite://")
 os.environ.setdefault("AUTH0_DOMAIN", "test.auth0.com")
 os.environ.setdefault("AUTH0_AUDIENCE", "https://test.api")
