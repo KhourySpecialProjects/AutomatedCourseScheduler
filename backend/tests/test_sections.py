@@ -157,8 +157,7 @@ def test_get_rich_sections_nested_shape(client, db_session):
     db_session.flush()
 
     db_session.add(
-        FacultyAssignment(faculty_nuid=faculty.nuid,
-                          section_id=section.section_id)
+        FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id)
     )
     db_session.add(
         CoursePreference(
@@ -193,8 +192,7 @@ def test_get_rich_sections_nested_shape(client, db_session):
     assert len(inst["course_preferences"]) == 1
     assert inst["course_preferences"][0]["course_name"] == "Intro CS"
     assert len(inst["meeting_preferences"]) == 1
-    assert inst["meeting_preferences"][0]["meeting_time"] == str(
-        tb.time_block_id)
+    assert inst["meeting_preferences"][0]["meeting_time"] == str(tb.time_block_id)
 
 
 def _seed_schedule_course_timeblock(db_session):
