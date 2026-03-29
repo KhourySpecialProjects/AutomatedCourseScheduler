@@ -46,11 +46,7 @@ function renderAtRoute(path: string) {
 }
 
 describe('Schedules page', () => {
-<<<<<<< HEAD
-    let hookSpy: ReturnType<typeof vi.spyOn>;
-=======
   let hookSpy: MockInstance<(scheduleId: number) => ReturnType<typeof useScheduleSectionsModule.useScheduleSections>>;
->>>>>>> e97ab785af235285ffb507d0c1a3180d8113054f
 
     beforeEach(() => {
         hookSpy = vi.spyOn(useScheduleSectionsModule, 'useScheduleSections');
