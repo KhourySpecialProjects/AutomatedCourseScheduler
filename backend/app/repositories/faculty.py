@@ -25,3 +25,9 @@ def get_by_nuid_with_preferences(db: Session, nuid: int) -> Faculty | None:
         .filter(Faculty.nuid == nuid)
         .first()
     )
+
+
+def faculty_exists(db: Session, faculty_nuid: int) -> bool:
+    return (
+        db.query(Faculty.nuid).filter(Faculty.nuid == faculty_nuid).first() is not None
+    )

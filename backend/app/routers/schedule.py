@@ -9,8 +9,9 @@ from app.schemas.schedule import (
     ScheduleResponse,
     ScheduleUpdate,
 )
-from app.schemas.section import SectionResponse
+from app.schemas.section import SectionResponse, SectionRichResponse
 from app.services import section as section_service
+from app.services.section import ScheduleNotFoundError
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
@@ -44,7 +45,21 @@ def get_schedule(schedule_id: int, db: Session = Depends(get_db)):
 @router.get("/{schedule_id}/sections", response_model=list[SectionResponse])
 def get_schedule_sections(schedule_id: int, db: Session = Depends(get_db)):
     """Get all sections for a specific schedule."""
-    return section_service.get_all_sections(db, schedule_id=schedule_id)
+    try:
+        section_service.require_schedule(db, schedule_id)
+        return section_service.get_all_sections(db, schedule_id)
+    except ScheduleNotFoundError:
+        raise HTTPException(status_code=404, detail="Schedule not found") from None
+
+
+@router.get("/{schedule_id}/sections/rich", response_model=list[SectionRichResponse])
+def get_schedule_sections_rich(schedule_id: int, db: Session = Depends(get_db)):
+    """Get all sections with denormalized course, time block, and instructor data."""
+    try:
+        section_service.require_schedule(db, schedule_id)
+        return section_service.get_rich_sections(db, schedule_id)
+    except ScheduleNotFoundError:
+        raise HTTPException(status_code=404, detail="Schedule not found") from None
 
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse)
