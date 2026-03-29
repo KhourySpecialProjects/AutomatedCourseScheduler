@@ -121,7 +121,7 @@ def _validate_update_refs(db: Session, section: SectionUpdate) -> None:
     if "capacity" in fields and section.capacity is None:
         raise ValueError("Capacity is invalid")
     if "faculty_nuids" in fields:
-        for nuid in (section.faculty_nuids or []):
+        for nuid in section.faculty_nuids or []:
             if not faculty_repo.faculty_exists(db, nuid):
                 raise ValueError("FacultyNUIDs is invalid")
 
