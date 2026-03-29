@@ -26,8 +26,7 @@ def _make_user(db, nuid=1):
 
 
 def _make_schedule(db):
-    schedule = Schedule(name="Test Schedule",
-                        semester=Semester.FALL, year=2024)
+    schedule = Schedule(name="Test Schedule", semester=Semester.FALL, year=2024)
     db.add(schedule)
     db.commit()
     return schedule
@@ -177,8 +176,7 @@ def test_post_reply_success(client, db_session):
     """A reply should be created and stored with parent_id set."""
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
-    parent = _make_comment(db_session, user.nuid,
-                           section.section_id, "Parent comment")
+    parent = _make_comment(db_session, user.nuid, section.section_id, "Parent comment")
 
     response = client.post(
         f"/comments/{parent.comment_id}",
@@ -194,8 +192,7 @@ def test_post_reply_success(client, db_session):
     # Verify parent_id was persisted
     db_session.expire_all()
     reply = (
-        db_session.query(Comment).filter(
-            Comment.content == "This is a reply").first()
+        db_session.query(Comment).filter(Comment.content == "This is a reply").first()
     )
     assert reply is not None
     assert reply.parent_id == parent.comment_id
