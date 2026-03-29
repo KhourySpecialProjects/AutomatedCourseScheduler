@@ -2,7 +2,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.course import Course
-from app.models.schedule import Schedule
 from app.models.section import Section
 
 
@@ -37,6 +36,8 @@ def course_exists(db: Session, course_id: int) -> bool:
         db.query(Course.course_id).filter(Course.course_id == course_id).first()
         is not None
     )
+
+
 def create(db: Session, course: Course) -> Course:
     db.add(course)
     db.commit()

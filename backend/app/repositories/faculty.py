@@ -44,6 +44,8 @@ def faculty_exists(db: Session, faculty_nuid: int) -> bool:
     return (
         db.query(Faculty.nuid).filter(Faculty.nuid == faculty_nuid).first() is not None
     )
+
+
 def create(db: Session, faculty: Faculty) -> Faculty:
     db.add(faculty)
     db.commit()
