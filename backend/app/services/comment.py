@@ -1,12 +1,10 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.comment import Comment
 from app.repositories import comment as comment_repo
 from app.repositories import section as section_repo
 from app.repositories import user as user_repo
 from app.schemas.comment import CommentResponse, CommentSchema
-
 
 # def _comment_to_response(comment: Comment, section_count: int) -> CommentResponse:
 #     return CourseResponse(

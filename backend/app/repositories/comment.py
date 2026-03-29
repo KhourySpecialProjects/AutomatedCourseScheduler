@@ -1,9 +1,9 @@
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.comment import Comment
 from app.models.section import Section
-from app.schemas.comment import CommentSchema, CommentResponse
+from app.schemas.comment import CommentResponse, CommentSchema
 
 
 def get_all(db: Session) -> list[Comment]:
@@ -12,8 +12,7 @@ def get_all(db: Session) -> list[Comment]:
 
 def get_by_section(db: Session, section_id: int) -> list[Comment]:
     stmt = (
-        select(Comment).join(Section.comments).where(
-            Comment.section_id == section_id)
+        select(Comment).join(Section.comments).where(Comment.section_id == section_id)
     )
     results = db.scalars(stmt).all()
     return results
@@ -80,7 +79,6 @@ def resolve_comment(db: Session, comment: CommentSchema) -> list[CommentResponse
 
     for reply in replies:
         reply.resolved = True
-        logger.error(reply)
 
     all = [comment] + replies
     db.commit()
