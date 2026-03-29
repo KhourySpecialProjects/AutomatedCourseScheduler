@@ -24,23 +24,21 @@ def test_get_schedule_sections_empty(client, db_session):
 
 
 def test_get_schedule_sections_returns_all(client, db_session):
-    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
-    db_session.add(schedule)
-    db_session.commit()
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
 
     db_session.add_all(
         [
             Section(
                 schedule_id=schedule.schedule_id,
-                time_block_id=1,
-                course_id=1,
+                time_block_id=time_block.time_block_id,
+                course_id=course.course_id,
                 section_number=1,
                 capacity=30,
             ),
             Section(
                 schedule_id=schedule.schedule_id,
-                time_block_id=2,
-                course_id=2,
+                time_block_id=time_block.time_block_id,
+                course_id=course.course_id,
                 section_number=2,
                 capacity=25,
             ),
@@ -54,15 +52,13 @@ def test_get_schedule_sections_returns_all(client, db_session):
 
 
 def test_get_schedule_sections_response_shape(client, db_session):
-    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
-    db_session.add(schedule)
-    db_session.commit()
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
 
     db_session.add(
         Section(
             schedule_id=schedule.schedule_id,
-            time_block_id=1,
-            course_id=101,
+            time_block_id=time_block.time_block_id,
+            course_id=course.course_id,
             section_number=1,
             capacity=20,
         )
@@ -79,21 +75,20 @@ def test_get_schedule_sections_response_shape(client, db_session):
         "course_id",
         "capacity",
         "section_number",
+        "room",
         "assignment_score",
     }
     assert set(section.keys()) == expected_keys
 
 
 def test_get_schedule_sections_field_values(client, db_session):
-    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
-    db_session.add(schedule)
-    db_session.commit()
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
 
     db_session.add(
         Section(
             schedule_id=schedule.schedule_id,
-            time_block_id=5,
-            course_id=101,
+            time_block_id=time_block.time_block_id,
+            course_id=course.course_id,
             section_number=3,
             capacity=15,
         )
@@ -104,43 +99,13 @@ def test_get_schedule_sections_field_values(client, db_session):
     section = response.json()[0]
     assert section["capacity"] == 15
     assert section["schedule_id"] == schedule.schedule_id
-    assert section["time_block_id"] == 5
-    assert section["course_id"] == 101
+    assert section["time_block_id"] == time_block.time_block_id
+    assert section["course_id"] == course.course_id
     assert section["section_number"] == 3
 
 
-def test_get_schedule_sections_unknown_schedule_returns_empty(client, db_session):
-    """Schedule route returns [] for unknown ids (no schedule validation there)."""
-    response = client.get("/schedules/99999/sections")
-    assert response.status_code == 200
-    assert response.json() == []
-
-
-def test_get_sections_same_as_schedule_sections(client, db_session):
-    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
-    db_session.add(schedule)
-    db_session.commit()
-
-    db_session.add(
-        Section(
-            schedule_id=schedule.schedule_id,
-            time_block_id=1,
-            course_id=1,
-            section_number=1,
-            capacity=10,
-        )
-    )
-    db_session.commit()
-
-    from_schedule = client.get(f"/schedules/{schedule.schedule_id}/sections")
-    from_sections = client.get(f"/sections/{schedule.schedule_id}")
-    assert from_schedule.status_code == 200
-    assert from_sections.status_code == 200
-    assert from_schedule.json() == from_sections.json()
-
-
-def test_get_sections_unknown_schedule_returns_404(client, db_session):
-    assert client.get("/sections/99999").status_code == 404
+def test_get_schedule_sections_unknown_schedule_returns_404(client, db_session):
+    assert client.get("/schedules/99999/sections").status_code == 404
 
 
 def test_get_rich_sections_empty(client, db_session):
@@ -148,13 +113,13 @@ def test_get_rich_sections_empty(client, db_session):
     db_session.add(schedule)
     db_session.commit()
 
-    response = client.get(f"/sections/{schedule.schedule_id}/rich")
+    response = client.get(f"/schedules/{schedule.schedule_id}/sections/rich")
     assert response.status_code == 200
     assert response.json() == []
 
 
 def test_get_rich_sections_unknown_schedule_returns_404(client, db_session):
-    assert client.get("/sections/99999/rich").status_code == 404
+    assert client.get("/schedules/99999/sections/rich").status_code == 404
 
 
 def test_get_rich_sections_nested_shape(client, db_session):
@@ -206,7 +171,7 @@ def test_get_rich_sections_nested_shape(client, db_session):
     )
     db_session.commit()
 
-    response = client.get(f"/sections/{schedule.schedule_id}/rich")
+    response = client.get(f"/schedules/{schedule.schedule_id}/sections/rich")
     assert response.status_code == 200
     payload = response.json()
     assert len(payload) == 1

@@ -46,7 +46,7 @@ function renderAtRoute(path: string) {
 }
 
 describe('Schedules page', () => {
-  let hookSpy: ReturnType<typeof vi.spyOn>;
+  let hookSpy: any;
 
   beforeEach(() => {
     hookSpy = vi.spyOn(useScheduleSectionsModule, 'useScheduleSections');

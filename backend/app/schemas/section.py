@@ -10,6 +10,7 @@ class SectionResponse(BaseModel):
     course_id: int
     capacity: int
     section_number: int
+    room: str | None = None
     assignment_score: float | None = None
 
     model_config = {"from_attributes": True}
@@ -74,6 +75,7 @@ class SectionRichResponse(BaseModel):
     section_id: int
     section_number: int
     capacity: int
+    room: str | None = None
     schedule_id: int
     course: CourseInfo
     time_block: TimeBlockInfo

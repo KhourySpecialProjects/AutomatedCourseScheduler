@@ -51,6 +51,7 @@ def get_rich_sections(db: Session, schedule_id: int) -> list[SectionRichResponse
                 section_id=s.section_id,
                 section_number=s.section_number,
                 capacity=s.capacity,
+                room=s.room,
                 schedule_id=s.schedule_id,
                 course=CourseInfo(
                     course_id=s.course.course_id,
@@ -120,9 +121,7 @@ def _validate_update_refs(db: Session, section: SectionUpdate) -> None:
     if "capacity" in fields and section.capacity is None:
         raise ValueError("Capacity is invalid")
     if "faculty_nuids" in fields:
-        if section.faculty_nuids is None:
-            raise ValueError("FacultyNUIDs is invalid")
-        for nuid in section.faculty_nuids:
+        for nuid in (section.faculty_nuids or []):
             if not faculty_repo.faculty_exists(db, nuid):
                 raise ValueError("FacultyNUIDs is invalid")
 
