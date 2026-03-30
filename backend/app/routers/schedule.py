@@ -10,6 +10,7 @@ from app.schemas.schedule import (
     ScheduleUpdate,
 )
 from app.schemas.section import SectionResponse, SectionRichResponse
+from app.services import schedule as schedule_service
 from app.services import section as section_service
 from app.services.section import ScheduleNotFoundError
 

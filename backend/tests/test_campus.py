@@ -3,12 +3,8 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
 
-from app.main import app
 from app.models.campus import Campus
-
-client = TestClient(app)
 
 MOCK_CAMPUSES = [
     {"campus_id": 1, "name": "Boston"},
@@ -25,25 +21,25 @@ PATCH_GET_BY_ID = "app.routers.campus.campus_service.get_by_id"
 # ---------------------------------------------------------------------------
 
 
-def test_get_campuses_returns_200():
+def test_get_campuses_returns_200(client):
     with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES):
         response = client.get("/campuses")
     assert response.status_code == 200
 
 
-def test_get_campuses_returns_list():
+def test_get_campuses_returns_list(client):
     with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES):
         response = client.get("/campuses")
     assert isinstance(response.json(), list)
 
 
-def test_get_campuses_returns_all_records():
+def test_get_campuses_returns_all_records(client):
     with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES):
         response = client.get("/campuses")
     assert len(response.json()) == 3
 
 
-def test_get_campuses_response_shape():
+def test_get_campuses_response_shape(client):
     """Each campus object has campus_id and name fields."""
     with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES):
         response = client.get("/campuses")
@@ -52,7 +48,7 @@ def test_get_campuses_response_shape():
         assert "name" in campus
 
 
-def test_get_campuses_correct_values():
+def test_get_campuses_correct_values(client):
     with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES):
         response = client.get("/campuses")
     data = response.json()
@@ -64,20 +60,20 @@ def test_get_campuses_correct_values():
     assert data[2]["name"] == "London"
 
 
-def test_get_campuses_empty():
+def test_get_campuses_empty(client):
     with patch(PATCH_GET_ALL, return_value=[]):
         response = client.get("/campuses")
     assert response.status_code == 200
     assert response.json() == []
 
 
-def test_get_campuses_calls_service_once():
+def test_get_campuses_calls_service_once(client):
     with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES) as mock_service:
         client.get("/campuses")
     mock_service.assert_called_once()
 
 
-def test_get_campuses_passes_no_filter_by_default():
+def test_get_campuses_passes_no_filter_by_default(client):
     """GET /campuses passes name=None when no query params given."""
     with patch(PATCH_GET_ALL, return_value=[]) as mock_service:
         client.get("/campuses")
@@ -85,7 +81,7 @@ def test_get_campuses_passes_no_filter_by_default():
     assert kwargs.get("name") is None
 
 
-def test_get_campuses_filter_by_name():
+def test_get_campuses_filter_by_name(client):
     """GET /campuses?name=Boston passes name to service."""
     with patch(PATCH_GET_ALL, return_value=[MOCK_CAMPUSES[0]]) as mock_service:
         response = client.get("/campuses?name=Boston")
@@ -94,7 +90,7 @@ def test_get_campuses_filter_by_name():
     assert kwargs.get("name") == "Boston"
 
 
-def test_get_campuses_single_record():
+def test_get_campuses_single_record(client):
     single = [{"campus_id": 1, "name": "Boston"}]
     with patch(PATCH_GET_ALL, return_value=single):
         response = client.get("/campuses")
@@ -107,13 +103,13 @@ def test_get_campuses_single_record():
 # ---------------------------------------------------------------------------
 
 
-def test_get_campus_by_id_returns_200():
+def test_get_campus_by_id_returns_200(client):
     with patch(PATCH_GET_BY_ID, return_value=MOCK_CAMPUSES[0]):
         response = client.get("/campuses/1")
     assert response.status_code == 200
 
 
-def test_get_campus_by_id_correct_values():
+def test_get_campus_by_id_correct_values(client):
     with patch(PATCH_GET_BY_ID, return_value=MOCK_CAMPUSES[0]):
         response = client.get("/campuses/1")
     data = response.json()
@@ -121,7 +117,7 @@ def test_get_campus_by_id_correct_values():
     assert data["name"] == "Boston"
 
 
-def test_get_campus_by_id_response_shape():
+def test_get_campus_by_id_response_shape(client):
     with patch(PATCH_GET_BY_ID, return_value=MOCK_CAMPUSES[1]):
         response = client.get("/campuses/2")
     data = response.json()
@@ -129,7 +125,7 @@ def test_get_campus_by_id_response_shape():
     assert "name" in data
 
 
-def test_get_campus_by_id_not_found():
+def test_get_campus_by_id_not_found(client):
     from fastapi import HTTPException
 
     with patch(
@@ -141,7 +137,7 @@ def test_get_campus_by_id_not_found():
     assert response.json()["detail"] == "Campus not found"
 
 
-def test_get_campus_by_id_calls_service_with_correct_id():
+def test_get_campus_by_id_calls_service_with_correct_id(client):
     with patch(PATCH_GET_BY_ID, return_value=MOCK_CAMPUSES[2]) as mock_service:
         client.get("/campuses/3")
     mock_service.assert_called_once()
