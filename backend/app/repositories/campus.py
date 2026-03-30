@@ -2,19 +2,15 @@
 
 from sqlalchemy.orm import Session
 
-# from app.models.campus import Campus
+from app.models.campus import Campus
 
 
-def get_all(
-    db: Session,
-    campus_id: int | None = None,
-    campus_name: str | None = None,
-) -> list:
-    # TODO: replace with real query once Campus model exists
-    # query = db.query(Campus)
-    # if campus_id is not None:
-    #     query = query.filter(Campus.CampusID == campus_id)
-    # if campus_name is not None:
-    #     query = query.filter(Campus.CampusName == campus_name)
-    # return query.all()
-    return []
+def get_all(db: Session, name: str | None = None) -> list[Campus]:
+    query = db.query(Campus)
+    if name is not None:
+        query = query.filter(Campus.name == name)
+    return query.all()
+
+
+def get_by_id(db: Session, campus_id: int) -> Campus | None:
+    return db.query(Campus).filter(Campus.campus_id == campus_id).first()

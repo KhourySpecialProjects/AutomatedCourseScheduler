@@ -2,6 +2,7 @@
 
 from sqlalchemy.orm import Session
 
+from app.core.enums import Semester
 from app.models.schedule import Schedule
 
 
@@ -12,10 +13,10 @@ def get_all(
     year: int | None = None,
 ) -> list[Schedule]:
     query = db.query(Schedule)
-    if campus_id:
+    if campus_id is not None:
         query = query.filter(Schedule.campus == campus_id)
     if semester:
-        query = query.filter(Schedule.semester == semester)
+        query = query.filter(Schedule.semester == Semester(semester))
     if year:
         query = query.filter(Schedule.year == year)
     return query.all()
@@ -25,7 +26,19 @@ def get_by_id(db: Session, schedule_id: int) -> Schedule | None:
     return db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
 
 
+def create(db: Session, data: dict) -> Schedule:
+    """Create a new schedule from a dict of data. Returns the
+    created Schedule object."""
+    schedule = Schedule(**data)
+    db.add(schedule)
+    db.commit()
+    db.refresh(schedule)
+    return schedule
+
+
 def update(db: Session, schedule_id: int, data: dict) -> Schedule | None:
+    """Update an existing schedule by ID with a dict of data. Returns the updated
+    Schedule object, or None if not found."""
     rows_updated = (
         db.query(Schedule).filter(Schedule.schedule_id == schedule_id).update(data)
     )

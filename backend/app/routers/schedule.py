@@ -31,8 +31,7 @@ def get_schedules(
 @router.post("", response_model=ScheduleResponse, status_code=201)
 def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
     """Create a new schedule draft."""
-    # TODO: Implement schedule creation
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    return schedule_service.create(db, schedule)
 
 
 @router.get("/{schedule_id}", response_model=ScheduleResponse)

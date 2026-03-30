@@ -13,8 +13,13 @@ router = APIRouter(prefix="/campuses", tags=["campuses"])
 @router.get("", response_model=list[CampusResponse])
 def get_campuses(
     db: Session = Depends(get_db),
-    campus_id: int | None = None,
-    campus_name: str | None = None,
+    name: str | None = None,
 ):
-    """Retrieve all campuses, with optional filters."""
-    return campus_service.get_all(db, campus_id=campus_id, campus_name=campus_name)
+    """Retrieve all campuses, optionally filtered by name."""
+    return campus_service.get_all(db, name=name)
+
+
+@router.get("/{campus_id}", response_model=CampusResponse)
+def get_campus(campus_id: int, db: Session = Depends(get_db)):
+    """Retrieve a specific campus by ID."""
+    return campus_service.get_by_id(db, campus_id)

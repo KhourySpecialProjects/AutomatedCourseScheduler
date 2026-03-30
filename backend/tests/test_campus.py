@@ -2,128 +2,149 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.models.campus import Campus
 
 client = TestClient(app)
 
-# Use real enum values from Campus enum
 MOCK_CAMPUSES = [
-    {"CampusID": 1, "CampusName": "Boston"},
-    {"CampusID": 2, "CampusName": "Oakland"},
-    {"CampusID": 3, "CampusName": "London"},
+    {"campus_id": 1, "name": "Boston"},
+    {"campus_id": 2, "name": "Oakland"},
+    {"campus_id": 3, "name": "London"},
 ]
 
-PATCH_TARGET = "app.routers.campus.campus_service.get_all"
+PATCH_GET_ALL = "app.routers.campus.campus_service.get_all"
+PATCH_GET_BY_ID = "app.routers.campus.campus_service.get_by_id"
 
 
 # ---------------------------------------------------------------------------
-# Router tests — GET /campuses
+# GET /campuses
 # ---------------------------------------------------------------------------
 
 
 def test_get_campuses_returns_200():
-    """GET /campuses returns HTTP 200."""
-    with patch(PATCH_TARGET, return_value=MOCK_CAMPUSES):
+    with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES):
         response = client.get("/campuses")
     assert response.status_code == 200
 
 
 def test_get_campuses_returns_list():
-    """GET /campuses returns a list."""
-    with patch(PATCH_TARGET, return_value=MOCK_CAMPUSES):
+    with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES):
         response = client.get("/campuses")
     assert isinstance(response.json(), list)
 
 
 def test_get_campuses_returns_all_records():
-    """GET /campuses returns all campuses."""
-    with patch(PATCH_TARGET, return_value=MOCK_CAMPUSES):
+    with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES):
         response = client.get("/campuses")
     assert len(response.json()) == 3
 
 
 def test_get_campuses_response_shape():
-    """Each campus object has CampusID and CampusName fields."""
-    with patch(PATCH_TARGET, return_value=MOCK_CAMPUSES):
+    """Each campus object has campus_id and name fields."""
+    with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES):
         response = client.get("/campuses")
     for campus in response.json():
-        assert "CampusID" in campus
-        assert "CampusName" in campus
+        assert "campus_id" in campus
+        assert "name" in campus
 
 
 def test_get_campuses_correct_values():
-    """GET /campuses returns correct campus data."""
-    with patch(PATCH_TARGET, return_value=MOCK_CAMPUSES):
+    with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES):
         response = client.get("/campuses")
     data = response.json()
-    assert data[0]["CampusID"] == 1
-    assert data[0]["CampusName"] == "Boston"
-    assert data[1]["CampusID"] == 2
-    assert data[1]["CampusName"] == "Oakland"
-    assert data[2]["CampusID"] == 3
-    assert data[2]["CampusName"] == "London"
+    assert data[0]["campus_id"] == 1
+    assert data[0]["name"] == "Boston"
+    assert data[1]["campus_id"] == 2
+    assert data[1]["name"] == "Oakland"
+    assert data[2]["campus_id"] == 3
+    assert data[2]["name"] == "London"
 
 
 def test_get_campuses_empty():
-    """GET /campuses returns empty list when no campuses exist."""
-    with patch(PATCH_TARGET, return_value=[]):
+    with patch(PATCH_GET_ALL, return_value=[]):
         response = client.get("/campuses")
     assert response.status_code == 200
     assert response.json() == []
 
 
 def test_get_campuses_calls_service_once():
-    """GET /campuses calls the service exactly once."""
-    with patch(PATCH_TARGET, return_value=MOCK_CAMPUSES) as mock_service:
+    with patch(PATCH_GET_ALL, return_value=MOCK_CAMPUSES) as mock_service:
         client.get("/campuses")
     mock_service.assert_called_once()
 
 
-def test_get_campuses_passes_no_filters_by_default():
-    """GET /campuses passes None for both filters when no query params given."""
-    with patch(PATCH_TARGET, return_value=[]) as mock_service:
+def test_get_campuses_passes_no_filter_by_default():
+    """GET /campuses passes name=None when no query params given."""
+    with patch(PATCH_GET_ALL, return_value=[]) as mock_service:
         client.get("/campuses")
     _, kwargs = mock_service.call_args
-    assert kwargs.get("campus_id") is None
-    assert kwargs.get("campus_name") is None
+    assert kwargs.get("name") is None
 
 
-def test_get_campuses_filter_by_campus_id():
-    """GET /campuses?campus_id=1 passes campus_id to service."""
-    with patch(PATCH_TARGET, return_value=[MOCK_CAMPUSES[0]]) as mock_service:
-        response = client.get("/campuses?campus_id=1")
+def test_get_campuses_filter_by_name():
+    """GET /campuses?name=Boston passes name to service."""
+    with patch(PATCH_GET_ALL, return_value=[MOCK_CAMPUSES[0]]) as mock_service:
+        response = client.get("/campuses?name=Boston")
     assert response.status_code == 200
     _, kwargs = mock_service.call_args
-    assert kwargs.get("campus_id") == 1
-
-
-def test_get_campuses_filter_by_campus_name():
-    """GET /campuses?campus_name=Boston passes campus_name to service."""
-    with patch(PATCH_TARGET, return_value=[MOCK_CAMPUSES[0]]) as mock_service:
-        response = client.get("/campuses?campus_name=Boston")
-    assert response.status_code == 200
-    _, kwargs = mock_service.call_args
-    assert kwargs.get("campus_name") == "Boston"
-
-
-def test_get_campuses_filter_both_params():
-    """GET /campuses passes both filter params to service when provided."""
-    with patch(PATCH_TARGET, return_value=[MOCK_CAMPUSES[0]]) as mock_service:
-        client.get("/campuses?campus_id=1&campus_name=Boston")
-    _, kwargs = mock_service.call_args
-    assert kwargs.get("campus_id") == 1
-    assert kwargs.get("campus_name") == "Boston"
+    assert kwargs.get("name") == "Boston"
 
 
 def test_get_campuses_single_record():
-    """GET /campuses handles a single result correctly."""
-    single = [{"CampusID": 1, "CampusName": "Boston"}]
-    with patch(PATCH_TARGET, return_value=single):
+    single = [{"campus_id": 1, "name": "Boston"}]
+    with patch(PATCH_GET_ALL, return_value=single):
         response = client.get("/campuses")
     assert len(response.json()) == 1
-    assert response.json()[0]["CampusName"] == "Boston"
+    assert response.json()[0]["name"] == "Boston"
+
+
+# ---------------------------------------------------------------------------
+# GET /campuses/{campus_id}
+# ---------------------------------------------------------------------------
+
+
+def test_get_campus_by_id_returns_200():
+    with patch(PATCH_GET_BY_ID, return_value=MOCK_CAMPUSES[0]):
+        response = client.get("/campuses/1")
+    assert response.status_code == 200
+
+
+def test_get_campus_by_id_correct_values():
+    with patch(PATCH_GET_BY_ID, return_value=MOCK_CAMPUSES[0]):
+        response = client.get("/campuses/1")
+    data = response.json()
+    assert data["campus_id"] == 1
+    assert data["name"] == "Boston"
+
+
+def test_get_campus_by_id_response_shape():
+    with patch(PATCH_GET_BY_ID, return_value=MOCK_CAMPUSES[1]):
+        response = client.get("/campuses/2")
+    data = response.json()
+    assert "campus_id" in data
+    assert "name" in data
+
+
+def test_get_campus_by_id_not_found():
+    from fastapi import HTTPException
+
+    with patch(
+        PATCH_GET_BY_ID,
+        side_effect=HTTPException(status_code=404, detail="Campus not found"),
+    ):
+        response = client.get("/campuses/9999")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Campus not found"
+
+
+def test_get_campus_by_id_calls_service_with_correct_id():
+    with patch(PATCH_GET_BY_ID, return_value=MOCK_CAMPUSES[2]) as mock_service:
+        client.get("/campuses/3")
+    mock_service.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -131,28 +152,25 @@ def test_get_campuses_single_record():
 # ---------------------------------------------------------------------------
 
 
-def test_service_calls_repo():
-    """campus_service.get_all calls the repository."""
+def test_service_get_all_calls_repo():
     from app.services import campus as campus_service
 
     mock_db = MagicMock()
     with patch("app.services.campus.campus_repo.get_all", return_value=[]) as mock_repo:
         campus_service.get_all(mock_db)
-    mock_repo.assert_called_once_with(mock_db, campus_id=None, campus_name=None)
+    mock_repo.assert_called_once_with(mock_db, name=None)
 
 
-def test_service_passes_filters_to_repo():
-    """campus_service.get_all forwards filter params to repository."""
+def test_service_get_all_passes_name_filter():
     from app.services import campus as campus_service
 
     mock_db = MagicMock()
     with patch("app.services.campus.campus_repo.get_all", return_value=[]) as mock_repo:
-        campus_service.get_all(mock_db, campus_id=2, campus_name="Oakland")
-    mock_repo.assert_called_once_with(mock_db, campus_id=2, campus_name="Oakland")
+        campus_service.get_all(mock_db, name="Oakland")
+    mock_repo.assert_called_once_with(mock_db, name="Oakland")
 
 
-def test_service_returns_repo_result():
-    """campus_service.get_all returns whatever the repository returns."""
+def test_service_get_all_returns_repo_result():
     from app.services import campus as campus_service
 
     mock_db = MagicMock()
@@ -161,8 +179,7 @@ def test_service_returns_repo_result():
     assert result == MOCK_CAMPUSES
 
 
-def test_service_returns_empty_list_when_repo_empty():
-    """campus_service.get_all returns empty list when repo returns empty."""
+def test_service_get_all_returns_empty_list():
     from app.services import campus as campus_service
 
     mock_db = MagicMock()
@@ -171,24 +188,93 @@ def test_service_returns_empty_list_when_repo_empty():
     assert result == []
 
 
+def test_service_get_by_id_calls_repo():
+    from app.services import campus as campus_service
+
+    mock_db = MagicMock()
+    with patch(
+        "app.services.campus.campus_repo.get_by_id", return_value=MOCK_CAMPUSES[0]
+    ) as mock_repo:
+        campus_service.get_by_id(mock_db, 1)
+    mock_repo.assert_called_once_with(mock_db, 1)
+
+
+def test_service_get_by_id_returns_campus():
+    from app.services import campus as campus_service
+
+    mock_db = MagicMock()
+    with patch(
+        "app.services.campus.campus_repo.get_by_id", return_value=MOCK_CAMPUSES[0]
+    ):
+        result = campus_service.get_by_id(mock_db, 1)
+    assert result == MOCK_CAMPUSES[0]
+
+
+def test_service_get_by_id_raises_404_when_not_found():
+    from fastapi import HTTPException
+
+    from app.services import campus as campus_service
+
+    mock_db = MagicMock()
+    with patch("app.services.campus.campus_repo.get_by_id", return_value=None):
+        with pytest.raises(HTTPException) as exc:
+            campus_service.get_by_id(mock_db, 9999)
+    assert exc.value.status_code == 404
+    assert exc.value.detail == "Campus not found"
+
+
 # ---------------------------------------------------------------------------
-# Repository tests (stubbed until Campus ORM model exists)
+# Repository tests
 # ---------------------------------------------------------------------------
 
 
-# def test_repo_get_all_returns_list():
-#     """campus_repo.get_all returns a list."""
-#     from app.repositories import campus as campus_repo
+def test_repo_get_all_returns_list(db_session):
+    from app.repositories import campus as campus_repo
 
-#     mock_db = MagicMock()
-#     result = campus_repo.get_all(mock_db)
-#     assert isinstance(result, list)
+    result = campus_repo.get_all(db_session)
+    assert isinstance(result, list)
 
 
-# def test_repo_get_all_returns_empty_stub():
-#     """campus_repo.get_all returns empty list in stub state."""
-#     from app.repositories import campus as campus_repo
+def test_repo_get_all_returns_empty_when_no_data(db_session):
+    from app.repositories import campus as campus_repo
 
-#     mock_db = MagicMock()
-#     result = campus_repo.get_all(mock_db)
-#     assert result == []
+    result = campus_repo.get_all(db_session)
+    assert result == []
+
+
+def test_repo_get_all_returns_inserted_campus(db_session):
+    from app.repositories import campus as campus_repo
+
+    db_session.add(Campus(name="Boston"))
+    db_session.commit()
+    result = campus_repo.get_all(db_session)
+    assert len(result) == 1
+    assert result[0].name == "Boston"
+
+
+def test_repo_get_all_filter_by_name(db_session):
+    from app.repositories import campus as campus_repo
+
+    db_session.add_all([Campus(name="Boston"), Campus(name="Oakland")])
+    db_session.commit()
+    result = campus_repo.get_all(db_session, name="Boston")
+    assert len(result) == 1
+    assert result[0].name == "Boston"
+
+
+def test_repo_get_by_id_returns_campus(db_session):
+    from app.repositories import campus as campus_repo
+
+    campus = Campus(name="London")
+    db_session.add(campus)
+    db_session.commit()
+    result = campus_repo.get_by_id(db_session, campus.campus_id)
+    assert result is not None
+    assert result.name == "London"
+
+
+def test_repo_get_by_id_returns_none_when_not_found(db_session):
+    from app.repositories import campus as campus_repo
+
+    result = campus_repo.get_by_id(db_session, 9999)
+    assert result is None

@@ -1,12 +1,20 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, Integer, String
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
-from app.core.enums import Campus, Semester
+from app.core.enums import Semester
 
 if TYPE_CHECKING:
     from app.models.schedule_log import ScheduleLog
@@ -27,7 +35,7 @@ class Schedule(Base):
         Integer, CheckConstraint("year >= 1000 AND year <= 9999")
     )
     draft: Mapped[bool] = mapped_column(Boolean, default=True)
-    campus: Mapped[Campus] = mapped_column(Enum(Campus))
+    campus: Mapped[int] = mapped_column(ForeignKey("campus.campus_id"), nullable=False)
     complete: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships

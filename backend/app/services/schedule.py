@@ -3,8 +3,9 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.models.schedule import Schedule
 from app.repositories import schedule as schedule_repo
-from app.schemas.schedule import ScheduleUpdate
+from app.schemas.schedule import ScheduleCreate, ScheduleUpdate
 
 
 def get_all(
@@ -21,6 +22,10 @@ def get_by_id(db: Session, schedule_id: int):
     if schedule is None:
         raise HTTPException(status_code=404, detail="Schedule not found")
     return schedule
+
+
+def create(db: Session, data: ScheduleCreate) -> Schedule:
+    return schedule_repo.create(db, data.model_dump())
 
 
 def update(db: Session, schedule_id: int, data: ScheduleUpdate):
