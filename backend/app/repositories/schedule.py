@@ -2,7 +2,6 @@
 
 from sqlalchemy.orm import Session
 
-from app.core.enums import Semester
 from app.models.schedule import Schedule
 
 
@@ -18,21 +17,25 @@ def schedule_exists(db: Session, schedule_id: int) -> bool:
 def get_all(
     db: Session,
     campus_id: int | None = None,
-    semester: str | None = None,
+    semester_id: int | None = None,
     year: int | None = None,
 ) -> list[Schedule]:
-    query = db.query(Schedule)
+    query = db.query(Schedule).filter(Schedule.active == True)
     if campus_id is not None:
         query = query.filter(Schedule.campus == campus_id)
-    if semester:
-        query = query.filter(Schedule.semester == Semester(semester))
-    if year:
+    if semester_id is not None:
+        query = query.filter(Schedule.semester_id == semester_id)
+    if year is not None:
         query = query.filter(Schedule.year == year)
     return query.all()
 
 
 def get_by_id(db: Session, schedule_id: int) -> Schedule | None:
-    return db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
+    return (
+        db.query(Schedule)
+        .filter(Schedule.schedule_id == schedule_id, Schedule.active == True)
+        .first()
+    )
 
 
 def create(db: Session, data: dict) -> Schedule:
@@ -58,6 +61,6 @@ def delete(db: Session, schedule_id: int) -> bool:
     schedule = get_by_id(db, schedule_id)
     if schedule is None:
         return False
-    db.delete(schedule)
+    schedule.active = False
     db.commit()
     return True

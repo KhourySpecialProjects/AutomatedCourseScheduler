@@ -20,12 +20,12 @@ router = APIRouter(prefix="/schedules", tags=["schedules"])
 @router.get("", response_model=list[ScheduleResponse])
 def get_schedules(
     campus_id: int | None = Query(None),
-    semester_season: str | None = Query(None),
+    semester_id: int | None = Query(None),
     semester_year: int | None = Query(None),
     db: Session = Depends(get_db),
 ):
     return schedule_service.get_all(
-        db, campus_id=campus_id, semester=semester_season, year=semester_year
+        db, campus_id=campus_id, semester_id=semester_id, year=semester_year
     )
 
 

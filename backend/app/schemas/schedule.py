@@ -2,24 +2,23 @@
 
 from pydantic import BaseModel
 
-from app.core.enums import Semester
-
 
 class ScheduleResponse(BaseModel):
     schedule_id: int
     name: str
-    semester: Semester
+    semester_id: int
     year: int
     draft: bool
     campus: int
     complete: bool
+    active: bool
 
     model_config = {"from_attributes": True}
 
 
 class ScheduleCreate(BaseModel):
     name: str
-    semester: Semester
+    semester_id: int
     year: int
     campus: int
 
@@ -27,3 +26,4 @@ class ScheduleCreate(BaseModel):
 class ScheduleUpdate(BaseModel):
     name: str | None = None
     complete: bool | None = None
+    active: bool | None = None
