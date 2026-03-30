@@ -13,7 +13,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
-
 from app.models.semester import Semester
 
 if TYPE_CHECKING:

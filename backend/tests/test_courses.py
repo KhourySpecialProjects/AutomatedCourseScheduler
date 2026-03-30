@@ -6,7 +6,6 @@ from app.models import Course, Schedule, Section, TimeBlock
 from app.models.campus import Campus as CampusModel
 from app.models.semester import Semester as SemesterModel
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

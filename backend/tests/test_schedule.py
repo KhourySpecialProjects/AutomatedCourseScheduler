@@ -18,7 +18,6 @@ from app.models import Schedule
 from app.models.campus import Campus
 from app.models.semester import Semester as SemesterModel
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -333,8 +332,12 @@ def test_get_schedules_filter_by_campus_id(client, db_session):
     campus_a = _make_campus(db_session, "Boston")
     campus_b = _make_campus(db_session, "Oakland")
     semester = _make_semester(db_session)
-    _make_schedule(db_session, campus_a.campus_id, semester.semester_id, name="Boston Schedule")
-    _make_schedule(db_session, campus_b.campus_id, semester.semester_id, name="Oakland Schedule")
+    _make_schedule(
+        db_session, campus_a.campus_id, semester.semester_id, name="Boston Schedule"
+    )
+    _make_schedule(
+        db_session, campus_b.campus_id, semester.semester_id, name="Oakland Schedule"
+    )
 
     response = client.get(f"/schedules?campus_id={campus_a.campus_id}")
     assert response.status_code == 200
@@ -366,8 +369,12 @@ def test_get_schedules_filter_by_year(client, db_session):
     """
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    _make_schedule(db_session, campus.campus_id, semester.semester_id, name="2024", year=2024)
-    _make_schedule(db_session, campus.campus_id, semester.semester_id, name="2025", year=2025)
+    _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="2024", year=2024
+    )
+    _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="2025", year=2025
+    )
 
     response = client.get("/schedules?semester_year=2024")
     assert response.status_code == 200
@@ -435,7 +442,9 @@ def test_get_schedule_by_id(client, db_session):
     """
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Fall 2024")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Fall 2024"
+    )
 
     response = client.get(f"/schedules/{schedule.schedule_id}")
     assert response.status_code == 200
@@ -499,7 +508,9 @@ def test_update_schedule_name(client, db_session):
     """
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Old Name")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Old Name"
+    )
 
     response = client.put(
         f"/schedules/{schedule.schedule_id}", json={"name": "New Name"}
@@ -514,7 +525,9 @@ def test_update_schedule_complete_flag(client, db_session):
     """
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, complete=False)
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, complete=False
+    )
 
     response = client.put(f"/schedules/{schedule.schedule_id}", json={"complete": True})
     assert response.status_code == 200
@@ -530,7 +543,11 @@ def test_update_schedule_partial_name_preserves_complete(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = _make_schedule(
-        db_session, campus.campus_id, semester.semester_id, name="Original", complete=True
+        db_session,
+        campus.campus_id,
+        semester.semester_id,
+        name="Original",
+        complete=True,
     )
 
     response = client.put(
@@ -549,7 +566,11 @@ def test_update_schedule_partial_complete_preserves_name(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = _make_schedule(
-        db_session, campus.campus_id, semester.semester_id, name="Keep This Name", complete=False
+        db_session,
+        campus.campus_id,
+        semester.semester_id,
+        name="Keep This Name",
+        complete=False,
     )
 
     response = client.put(f"/schedules/{schedule.schedule_id}", json={"complete": True})
@@ -567,7 +588,9 @@ def test_update_schedule_persisted_to_db(client, db_session):
     """
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Before")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Before"
+    )
 
     client.put(f"/schedules/{schedule.schedule_id}", json={"name": "After"})
 
@@ -591,7 +614,9 @@ def test_update_schedule_empty_body(client, db_session):
     """
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Unchanged")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Unchanged"
+    )
 
     response = client.put(f"/schedules/{schedule.schedule_id}", json={})
     assert response.status_code == 200
@@ -708,7 +733,10 @@ def test_schedule_year_boundary_min(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = Schedule(
-        name="Min Year", semester_id=semester.semester_id, year=1000, campus=campus.campus_id
+        name="Min Year",
+        semester_id=semester.semester_id,
+        year=1000,
+        campus=campus.campus_id,
     )
     db_session.add(schedule)
     db_session.commit()
@@ -725,7 +753,10 @@ def test_schedule_year_boundary_max(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = Schedule(
-        name="Max Year", semester_id=semester.semester_id, year=9999, campus=campus.campus_id
+        name="Max Year",
+        semester_id=semester.semester_id,
+        year=9999,
+        campus=campus.campus_id,
     )
     db_session.add(schedule)
     db_session.commit()
@@ -767,8 +798,12 @@ def test_multiple_schedules_same_campus(client, db_session):
     """
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S1", year=2024)
-    _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S2", year=2025)
+    _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="S1", year=2024
+    )
+    _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="S2", year=2025
+    )
 
     response = client.get(f"/schedules?campus_id={campus.campus_id}")
     assert len(response.json()) == 2

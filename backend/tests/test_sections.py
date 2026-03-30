@@ -14,7 +14,6 @@ from app.models import (
 from app.models.campus import Campus as CampusModel
 from app.models.semester import Semester as SemesterModel
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -178,7 +177,10 @@ def test_get_rich_sections_nested_shape(client, db_session):
     semester = _make_semester(db_session)
 
     schedule = Schedule(
-        name="Sched", semester_id=semester.semester_id, year=2025, campus=campus.campus_id
+        name="Sched",
+        semester_id=semester.semester_id,
+        year=2025,
+        campus=campus.campus_id,
     )
     course = Course(name="Intro CS", description="Fun", credits=4)
     db_session.add_all([schedule, course])

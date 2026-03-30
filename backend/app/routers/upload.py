@@ -45,8 +45,7 @@ def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
             return UploadResponse(
                 status="success",
                 message=(
-                    "File does not contain any non-existing courses. "
-                    "Nothing inserted."
+                    "File does not contain any non-existing courses. Nothing inserted."
                 ),
                 records_processed=len(to_insert),
                 records_successful=len(to_insert),

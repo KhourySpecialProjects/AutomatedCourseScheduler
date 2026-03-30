@@ -20,7 +20,7 @@ def get_all(
     semester_id: int | None = None,
     year: int | None = None,
 ) -> list[Schedule]:
-    query = db.query(Schedule).filter(Schedule.active == True)
+    query = db.query(Schedule).filter(Schedule.active)
     if campus_id is not None:
         query = query.filter(Schedule.campus == campus_id)
     if semester_id is not None:
@@ -33,7 +33,7 @@ def get_all(
 def get_by_id(db: Session, schedule_id: int) -> Schedule | None:
     return (
         db.query(Schedule)
-        .filter(Schedule.schedule_id == schedule_id, Schedule.active == True)
+        .filter(Schedule.schedule_id == schedule_id, Schedule.active)
         .first()
     )
 
