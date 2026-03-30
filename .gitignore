@@ -25,5 +25,5 @@ frontend/.vite/
 # Logs
 *.log
 
-# sql files
+# SQL helper files
 */database-files/*

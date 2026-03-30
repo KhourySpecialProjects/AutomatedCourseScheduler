@@ -1,26 +1,79 @@
-"""Comment router."""
+"""Comments router."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.comment import Comment, CommentCreate
+from app.schemas.comment import CommentResponse, CommentSchema
+from app.services import comment as comment_service
 
 router = APIRouter(prefix="/comments", tags=["comments"])
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-@router.get("", response_model=list[Comment])
-def get_comments(
-    schedule_id: int | None = Query(None, description="Filter by schedule ID"),
-    db: Session = Depends(get_db),
-):
-    """Get comments, optionally filtered by schedule."""
-    # TODO: Implement comment listing
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+"""Post new comment under a particular section."""
 
 
-@router.post("", response_model=Comment, status_code=201)
-def create_comment(comment: CommentCreate, db: Session = Depends(get_db)):
-    """Create a new comment on a schedule component."""
-    # TODO: Implement comment creation
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+@router.post("", response_model=CommentResponse, status_code=201)
+def post_comment(commentIn: CommentSchema, db: Session = Depends(get_db)):
+    try:
+        posted = comment_service.post_comment(db, commentIn)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=e.args[0]) from e
+
+    return posted
+
+
+"""Post a new comment reply."""
+
+
+@router.post("/{parent_id}", response_model=CommentResponse, status_code=201)
+def post_reply(parent_id: int, replyIn: CommentSchema, db: Session = Depends(get_db)):
+    try:
+        posted = comment_service.post_reply(db, replyIn, parent_id)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=e.args[0]) from e
+
+    return posted
+
+
+"""Fetch comments for the given section"""
+
+
+@router.get("/{section_id}", response_model=list[CommentResponse])
+def get_comments(section_id: int, db: Session = Depends(get_db)):
+    try:
+        comments = comment_service.get_comments(db, section_id)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+    return comments
+
+
+"""Delete the given comment"""
+
+
+@router.delete("/{comment_id}", response_model=list[CommentResponse])
+def delete_comment(comment_id: int, db: Session = Depends(get_db)):
+    try:
+        deleted = comment_service.delete_comment(db, comment_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+    return deleted
+
+
+"""Resolve the given comment"""
+
+
+@router.put("/{comment_id}", status_code=204)
+def resolve_comment(comment_id: int, db: Session = Depends(get_db)):
+    try:
+        comment_service.resolve_comment(db, comment_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+    return
