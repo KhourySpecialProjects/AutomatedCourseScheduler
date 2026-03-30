@@ -14,9 +14,9 @@ export function useScheduleSections(scheduleId: number): UseScheduleSectionsResu
 
   useEffect(() => {
     let cancelled = false;
-    const { getRichSectionsSectionsScheduleIdRichGet } = getAutomatedCourseSchedulerAPI();
+    const { getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet } = getAutomatedCourseSchedulerAPI();
 
-    getRichSectionsSectionsScheduleIdRichGet(scheduleId)
+    getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet(scheduleId)
       .then((data) => {
         if (!cancelled) {
           setSections(data);

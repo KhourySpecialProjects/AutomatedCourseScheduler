@@ -15,7 +15,6 @@ const mockSection: SectionRichResponse = {
     days: 'MWR',
     start_time: '09:00',
     end_time: '10:30',
-    timezone: 'America/New_York',
   },
   instructors: [
     {
@@ -36,7 +35,7 @@ describe('useScheduleSections', () => {
   beforeEach(() => {
     getRichSpy = vi.fn();
     vi.spyOn(generated, 'getAutomatedCourseSchedulerAPI').mockReturnValue({
-      getRichSectionsSectionsScheduleIdRichGet: getRichSpy,
+      getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet: getRichSpy,
     } as unknown as ReturnType<typeof generated.getAutomatedCourseSchedulerAPI>);
   });
 
