@@ -4,9 +4,11 @@ These tests describe CORRECT expected behavior. Several will currently fail
 due to known bugs in the router (documented per test).
 """
 
-from app.core.enums import Semester
+from datetime import datetime
+
 from app.models import Comment, Schedule, Section, User
 from app.models.campus import Campus
+from app.models.semester import Semester as SemesterModel
 
 # ---------------------------------------------------------------------------
 # Fixtures / helpers
@@ -35,9 +37,16 @@ def _make_user(db, nuid=1):
 
 def _make_schedule(db):
     campus = _make_campus(db)
+    semester = SemesterModel(
+        name="Fall 2024",
+        start_date=datetime(2024, 9, 1),
+        end_date=datetime(2024, 12, 31),
+    )
+    db.add(semester)
+    db.flush()
     schedule = Schedule(
         name="Test Schedule",
-        semester=Semester.FALL,
+        semester_id=semester.semester_id,
         year=2024,
         campus=campus.campus_id,
     )

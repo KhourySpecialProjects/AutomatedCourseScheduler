@@ -7,9 +7,9 @@ import pytest
 from app.models.campus import Campus
 
 MOCK_CAMPUSES = [
-    {"campus_id": 1, "name": "Boston"},
-    {"campus_id": 2, "name": "Oakland"},
-    {"campus_id": 3, "name": "London"},
+    {"campus_id": 1, "name": "Boston", "active": True},
+    {"campus_id": 2, "name": "Oakland", "active": False},
+    {"campus_id": 3, "name": "London", "active": True},
 ]
 
 PATCH_GET_ALL = "app.routers.campus.campus_service.get_all"
@@ -91,7 +91,7 @@ def test_get_campuses_filter_by_name(client):
 
 
 def test_get_campuses_single_record(client):
-    single = [{"campus_id": 1, "name": "Boston"}]
+    single = [{"campus_id": 1, "name": "Boston", "active": True}]
     with patch(PATCH_GET_ALL, return_value=single):
         response = client.get("/campuses")
     assert len(response.json()) == 1
