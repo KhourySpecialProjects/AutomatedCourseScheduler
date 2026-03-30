@@ -111,13 +111,13 @@ def test_parse_file_preferences_valid():
     inserts = preferences_result.get("inserts")
     assert inserts[0]["faculty_nuid"] == 1001
     assert inserts[0]["course_id"] == 42
-    assert inserts[0]["preference"] == PreferenceLevel.FIRST
+    assert inserts[0]["preference"] == PreferenceLevel.EAGER
 
 
 def test_parse_file_preferences_dups_found():
     mock_preference = CoursePreference()
     mock_preference.preference_id = 10
-    mock_preference.preference = PreferenceLevel.SECOND
+    mock_preference.preference = PreferenceLevel.READY
 
     def query_side_effect(model):
         mock_query = MagicMock()
@@ -142,7 +142,7 @@ def test_parse_file_preferences_dups_found():
     )
     updates = preferences_result.get("updates")
     assert updates[0]["preference_id"] == 10
-    assert updates[0]["preference"] == PreferenceLevel.FIRST
+    assert updates[0]["preference"] == PreferenceLevel.EAGER
 
 
 """Asserts parse_file throws an error when an unknown course
@@ -297,7 +297,7 @@ def test_upload_faculty_preferences():
 
     mock_preference = CoursePreference()
     mock_preference.preference_id = 10
-    mock_preference.preference = PreferenceLevel.SECOND
+    mock_preference.preference = PreferenceLevel.READY
 
     def query_side_effect(model):
         mock_query = MagicMock()
@@ -341,7 +341,7 @@ def test_upload_faculty_preferences():
     assert len(inserted_rows) == 1
     assert inserted_rows[0]["faculty_nuid"] == 1001
     assert inserted_rows[0]["course_id"] == 42
-    assert inserted_rows[0]["preference"] == PreferenceLevel.FIRST
+    assert inserted_rows[0]["preference"] == PreferenceLevel.EAGER
 
 
 """Assert POST /upload/faculty-preferences parses the CSV
@@ -476,7 +476,7 @@ def test_parse_time_preferences_valid():
     assert len(inserts) == 1
     assert inserts[0]["faculty_nuid"] == 1001
     assert inserts[0]["meeting_time"] == 7
-    assert inserts[0]["preference"] == PreferenceLevel.FIRST
+    assert inserts[0]["preference"] == PreferenceLevel.EAGER
 
 
 """Asserts parse_time_preferences adds an update entry when an existing
@@ -487,7 +487,7 @@ preference is found with a different preference level.
 def test_parse_time_preferences_dup_found():
     mock_existing_pref = MeetingPreference()
     mock_existing_pref.preference_id = 5
-    mock_existing_pref.preference = PreferenceLevel.SECOND
+    mock_existing_pref.preference = PreferenceLevel.READY
 
     def query_side_effect(model):
         mock_query = MagicMock()
@@ -509,7 +509,7 @@ def test_parse_time_preferences_dup_found():
     updates = result.get("updates")
     assert len(updates) == 1
     assert updates[0]["preference_id"] == 5
-    assert updates[0]["preference"] == PreferenceLevel.FIRST
+    assert updates[0]["preference"] == PreferenceLevel.EAGER
 
 
 """Asserts parse_time_preferences raises 422 when an invalid preference
@@ -591,4 +591,4 @@ def test_upload_time_preferences():
     assert len(inserted_rows) == 1
     assert inserted_rows[0]["faculty_nuid"] == 1001
     assert inserted_rows[0]["meeting_time"] == 7
-    assert inserted_rows[0]["preference"] == PreferenceLevel.FIRST
+    assert inserted_rows[0]["preference"] == PreferenceLevel.EAGER

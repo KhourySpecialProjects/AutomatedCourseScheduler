@@ -1,7 +1,8 @@
 from datetime import time
 
-from app.core.enums import Campus, PreferenceLevel, Semester
+from app.core.enums import PreferenceLevel, Semester
 from app.models import (
+    Campus,
     Course,
     CoursePreference,
     Faculty,
@@ -125,11 +126,14 @@ def test_get_rich_sections_unknown_schedule_returns_404(client, db_session):
 def test_get_rich_sections_nested_shape(client, db_session):
     schedule = Schedule(name="Sched", semester=Semester.FALL, year=2025)
     course = Course(name="Intro CS", description="Fun", credits=4)
+    campus = Campus(name="Boston")
+    db_session.add_all([schedule, course, campus])
+    db_session.flush()
     tb = TimeBlock(
         meeting_days="MW",
         start_time=time(10, 30),
         end_time=time(11, 45),
-        campus=Campus.BOSTON,
+        campus=campus.campus_id,
     )
     faculty = Faculty(
         nuid=1001,
@@ -139,7 +143,7 @@ def test_get_rich_sections_nested_shape(client, db_session):
         title=None,
         campus="Boston",
     )
-    db_session.add_all([schedule, course, tb, faculty])
+    db_session.add_all([tb, faculty])
     db_session.flush()
 
     section = Section(
@@ -159,14 +163,14 @@ def test_get_rich_sections_nested_shape(client, db_session):
         CoursePreference(
             faculty_nuid=faculty.nuid,
             course_id=course.course_id,
-            preference=PreferenceLevel.FIRST,
+            preference=PreferenceLevel.EAGER,
         )
     )
     db_session.add(
         MeetingPreference(
             faculty_nuid=faculty.nuid,
             meeting_time=tb.time_block_id,
-            preference=PreferenceLevel.SECOND,
+            preference=PreferenceLevel.READY,
         )
     )
     db_session.commit()
@@ -194,13 +198,16 @@ def test_get_rich_sections_nested_shape(client, db_session):
 def _seed_schedule_course_timeblock(db_session):
     schedule = Schedule(name="F24", semester=Semester.FALL, year=2024)
     course = Course(name="CS 2500", description="Fundamentals", credits=4)
+    campus = Campus(name="Boston")
+    db_session.add_all([schedule, course, campus])
+    db_session.flush()
     time_block = TimeBlock(
         meeting_days="MW",
         start_time=time(10, 0),
         end_time=time(11, 0),
-        campus=Campus.BOSTON,
+        campus=campus.campus_id,
     )
-    db_session.add_all([schedule, course, time_block])
+    db_session.add(time_block)
     db_session.commit()
     return schedule, course, time_block
 
@@ -267,12 +274,17 @@ def test_create_section_invalid_course_returns_400(client, db_session):
 def test_patch_section_success(client, db_session):
     schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
     new_course = Course(name="CS 3200", description="Databases", credits=4)
+    campus = Campus(name="Boston")
+    db_session.add_all([new_course, campus])
+    db_session.flush()
     new_time_block = TimeBlock(
         meeting_days="TR",
         start_time=time(12, 0),
         end_time=time(13, 0),
-        campus=Campus.BOSTON,
+        campus=campus.campus_id,
     )
+    db_session.add(new_time_block)
+    db_session.flush()
     crosslisted_target = Section(
         schedule_id=schedule.schedule_id,
         time_block_id=time_block.time_block_id,
@@ -280,7 +292,7 @@ def test_patch_section_success(client, db_session):
         capacity=20,
         section_number=2,
     )
-    db_session.add_all([new_course, new_time_block, crosslisted_target])
+    db_session.add(crosslisted_target)
     db_session.flush()
 
     section = Section(

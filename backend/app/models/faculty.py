@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -25,7 +25,7 @@ class Faculty(Base):
     email: Mapped[str] = mapped_column(String(100), unique=True)
     phone_number: Mapped[str | None] = mapped_column(String(15))
     title: Mapped[str | None] = mapped_column(String(100))
-    campus: Mapped[str] = mapped_column(String(100))
+    campus: Mapped[str] = mapped_column(ForeignKey("campus.campus_id"))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
