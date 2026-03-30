@@ -56,3 +56,13 @@ def delete(db: Session, schedule_id: int) -> bool:
     db.delete(schedule)
     db.commit()
     return True
+from app.models.schedule import Schedule
+
+
+def schedule_exists(db: Session, schedule_id: int) -> bool:
+    return (
+        db.query(Schedule.schedule_id)
+        .filter(Schedule.schedule_id == schedule_id)
+        .first()
+        is not None
+    )

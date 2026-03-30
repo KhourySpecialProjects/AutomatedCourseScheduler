@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = ""
     POSTGRES_HOST: str = "db"  # host is set to db but overrided if set in env
     DATABASE_URL: str = ""
+    AUTH0_DOMAIN: str = ""
+    AUTH0_AUDIENCE: str = ""
 
     @property
     def db_url(self) -> str:

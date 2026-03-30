@@ -5,18 +5,22 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class Comment(BaseModel):
-    comment_id: int
-    schedule_id: int | None = None
-    section_id: int | None = None
+class CommentSchema(BaseModel):
+    section_id: int
     user_id: int
     content: str
-    created_at: datetime
 
     model_config = {"from_attributes": True}
 
 
-class CommentCreate(BaseModel):
-    schedule_id: int | None = None
-    section_id: int | None = None
+class CommentResponse(BaseModel):
+    comment_id: int
+    user_id: int
+    section_id: int
+    parent_id: int | None
     content: str
+    resolved: bool
+    active: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

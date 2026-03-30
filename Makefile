@@ -30,7 +30,10 @@ be-seed: ## Seed the database with development data
 	cd backend && python3 seed.py
 
 be-test: ## Run backend tests
-	cd backend && pytest
+	cd backend && pytest --ignore=tests/test_upload.py
+
+be-test-upload:
+	cd backend && pytest ./tests/test_upload.py
 
 # ── Frontend ─────────────────────────────────────────────────────────────────
 

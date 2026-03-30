@@ -92,7 +92,6 @@ export default function SectionDetailPanel({ section, onClose }: Props) {
                 <span className="text-gray-600">
                   {section.time_block.start_time} – {section.time_block.end_time}
                 </span>
-                <span className="text-gray-400 text-xs">{section.time_block.timezone}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

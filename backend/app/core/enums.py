@@ -2,17 +2,17 @@ import enum
 
 
 class PreferenceLevel(enum.StrEnum):
-    FIRST = "Eager to teach"
-    SECOND = "Ready to teach"
-    THIRD = "Willing to teach"
-    NO = "Not my cup of tea"
+    EAGER = "Eager to teach"
+    READY = "Ready to teach"
+    WILLING = "Willing to teach"
+    NOT_INTERESTED = "Not my cup of tea"
 
     def to_int(self) -> int:
         mapping = {
-            PreferenceLevel.FIRST: 1,
-            PreferenceLevel.SECOND: 2,
-            PreferenceLevel.THIRD: 3,
-            PreferenceLevel.NO: 4,
+            PreferenceLevel.EAGER: 1,
+            PreferenceLevel.READY: 2,
+            PreferenceLevel.WILLING: 3,
+            PreferenceLevel.NOT_INTERESTED: 4,
         }
 
         return mapping[self]

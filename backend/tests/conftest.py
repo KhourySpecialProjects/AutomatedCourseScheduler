@@ -2,8 +2,10 @@
 
 import os
 
-# Must be set before any app imports — database.py reads this at module load time.
+# Must be set before any app imports — auth.py and database.py
 os.environ.setdefault("DATABASE_URL", "sqlite://")
+os.environ.setdefault("AUTH0_DOMAIN", "test.auth0.com")
+os.environ.setdefault("AUTH0_AUDIENCE", "https://test.api")
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,6 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.auth import get_current_user
 from app.core.database import Base, get_db
 from app.main import app
 
@@ -43,6 +46,7 @@ def client(db_session):
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: {"sub": "test-user"}
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
