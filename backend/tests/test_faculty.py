@@ -2,14 +2,45 @@
 
 from datetime import time
 
-from app.core.enums import Campus, PreferenceLevel
+from app.core.enums import PreferenceLevel
 from app.models import (
     Course,
     CoursePreference,
     Faculty,
+    FacultyAssignment,
     MeetingPreference,
+    Schedule,
+    Section,
     TimeBlock,
 )
+from app.models.campus import Campus as CampusModel
+from app.models.semester import Semester as SemesterModel
+
+
+def _make_campus(db, name="Boston"):
+    campus = CampusModel(name=name)
+    db.add(campus)
+    db.flush()
+    return campus
+
+
+def _make_semester(db, season="Fall", year=2024):
+    semester = SemesterModel(season=season, year=year)
+    db.add(semester)
+    db.flush()
+    return semester
+
+
+def _make_time_block(db, campus_id):
+    tb = TimeBlock(
+        meeting_days="MW",
+        start_time=time(10, 0),
+        end_time=time(11, 0),
+        campus=campus_id,
+    )
+    db.add(tb)
+    db.flush()
+    return tb
 
 
 def test_get_faculty_empty(client, db_session):
@@ -144,14 +175,8 @@ def test_get_faculty_profile_with_preferences(client, db_session):
     db_session.add(faculty)
     db_session.flush()
 
-    tb = TimeBlock(
-        meeting_days="MW",
-        start_time=time(10, 0),
-        end_time=time(11, 0),
-        campus=Campus.BOSTON,
-    )
-    db_session.add(tb)
-    db_session.flush()
+    campus = _make_campus(db_session, name="Boston")
+    tb = _make_time_block(db_session, campus_id=campus.campus_id)
 
     db_session.add(
         CoursePreference(
@@ -183,3 +208,214 @@ def test_get_faculty_not_found(client, db_session):
     response = client.get("/faculty/99999")
     assert response.status_code == 404
     assert response.json()["detail"] == "Faculty not found"
+
+
+def test_create_faculty_success(client, db_session):
+    response = client.post(
+        "/faculty",
+        json={
+            "nuid": 5001,
+            "first_name": "Pat",
+            "last_name": "Kim",
+            "email": "pat.kim@example.edu",
+            "campus": "Boston",
+            "title": "Lecturer",
+        },
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["NUID"] == 5001
+    assert data["FirstName"] == "Pat"
+    assert data["Email"] == "pat.kim@example.edu"
+    assert data["Active"] is True
+
+
+def test_create_faculty_duplicate_nuid_returns_400(client, db_session):
+    db_session.add(
+        Faculty(
+            nuid=6001,
+            first_name="A",
+            last_name="B",
+            email="a@b.edu",
+            campus="Boston",
+        )
+    )
+    db_session.commit()
+
+    response = client.post(
+        "/faculty",
+        json={
+            "nuid": 6001,
+            "first_name": "C",
+            "last_name": "D",
+            "email": "other@b.edu",
+            "campus": "Boston",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "NUID already exists"
+
+
+def test_create_faculty_duplicate_email_returns_400(client, db_session):
+    db_session.add(
+        Faculty(
+            nuid=6002,
+            first_name="A",
+            last_name="B",
+            email="shared@b.edu",
+            campus="Boston",
+        )
+    )
+    db_session.commit()
+
+    response = client.post(
+        "/faculty",
+        json={
+            "nuid": 6003,
+            "first_name": "C",
+            "last_name": "D",
+            "email": "shared@b.edu",
+            "campus": "Boston",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Email already exists"
+
+
+def test_patch_faculty_success(client, db_session):
+    db_session.add(
+        Faculty(
+            nuid=7001,
+            first_name="Old",
+            last_name="Name",
+            email="old@example.edu",
+            campus="Boston",
+            active=True,
+        )
+    )
+    db_session.commit()
+
+    response = client.patch(
+        "/faculty/7001",
+        json={
+            "first_name": "New",
+            "active": False,
+            "title": "Professor",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["FirstName"] == "New"
+    assert data["Active"] is False
+    assert data["Title"] == "Professor"
+
+
+def test_patch_faculty_not_found_returns_404(client, db_session):
+    response = client.patch("/faculty/99999", json={"first_name": "X"})
+    assert response.status_code == 404
+
+
+def test_patch_faculty_duplicate_email_returns_400(client, db_session):
+    db_session.add_all(
+        [
+            Faculty(
+                nuid=8001,
+                first_name="A",
+                last_name="One",
+                email="a1@example.edu",
+                campus="Boston",
+            ),
+            Faculty(
+                nuid=8002,
+                first_name="B",
+                last_name="Two",
+                email="b2@example.edu",
+                campus="Boston",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    response = client.patch(
+        "/faculty/8002",
+        json={"email": "a1@example.edu"},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Email already exists"
+
+
+def test_delete_faculty_success(client, db_session):
+    db_session.add(
+        Faculty(
+            nuid=9001,
+            first_name="Gone",
+            last_name="Soon",
+            email="gone@example.edu",
+            campus="Boston",
+        )
+    )
+    db_session.commit()
+
+    response = client.delete("/faculty/9001")
+    assert response.status_code == 204
+    assert db_session.get(Faculty, 9001) is None
+
+
+def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
+    course = Course(name="PL", description="PL", credits=4)
+    campus = _make_campus(db_session, name="Boston")
+    tb = _make_time_block(db_session, campus_id=campus.campus_id)
+    faculty = Faculty(
+        nuid=9002,
+        first_name="Rich",
+        last_name="Prefs",
+        email="prefs@example.edu",
+        campus="Boston",
+    )
+    db_session.add_all([course, tb, faculty])
+    db_session.flush()
+    semester = _make_semester(db_session, season="Fall", year=2024)
+    schedule = Schedule(
+        name="F24",
+        semester_id=semester.semester_id,
+        campus=campus.campus_id,
+        draft=True,
+        complete=False,
+    )
+    db_session.add(schedule)
+    db_session.flush()
+    section = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=tb.time_block_id,
+        course_id=course.course_id,
+        section_number=1,
+        capacity=20,
+    )
+    db_session.add(section)
+    db_session.flush()
+    db_session.add(
+        CoursePreference(
+            faculty_nuid=faculty.nuid,
+            course_id=course.course_id,
+            preference=PreferenceLevel.EAGER,
+        )
+    )
+    db_session.add(
+        MeetingPreference(
+            faculty_nuid=faculty.nuid,
+            meeting_time=tb.time_block_id,
+            preference=PreferenceLevel.READY,
+        )
+    )
+    db_session.add(
+        FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id)
+    )
+    db_session.commit()
+
+    assert client.delete(f"/faculty/{faculty.nuid}").status_code == 204
+    assert db_session.get(Faculty, faculty.nuid) is None
+
+
+def test_delete_faculty_not_found_returns_404(client, db_session):
+    response = client.delete("/faculty/99999")
+    assert response.status_code == 404

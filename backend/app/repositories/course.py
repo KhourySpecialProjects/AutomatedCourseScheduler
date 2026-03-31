@@ -1,9 +1,19 @@
+import re
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.course import Course
-from app.models.schedule import Schedule
 from app.models.section import Section
+
+_COURSE_NAME_RE = re.compile(r"^[A-Z]{2,4}\s+\d{4}$")
+
+
+def _validate_course_name(name: str) -> None:
+    """Enforce course name format: '{SUBJECT} {course_number}' (e.g. 'CS 2500')."""
+    normalized = " ".join(name.strip().split()).upper()
+    if not _COURSE_NAME_RE.fullmatch(normalized):
+        raise ValueError("Course name must be in format '{SUBJECT} {COURSE_NUMBER}'")
 
 
 def get_all(db: Session) -> list[Course]:
@@ -32,17 +42,29 @@ def get_section_count(
     return query.scalar() or 0
 
 
-def schedule_exists(db: Session, schedule_id: int) -> bool:
-    return (
-        db.query(Schedule.schedule_id)
-        .filter(Schedule.schedule_id == schedule_id)
-        .first()
-        is not None
-    )
-
-
 def course_exists(db: Session, course_id: int) -> bool:
     return (
         db.query(Course.course_id).filter(Course.course_id == course_id).first()
         is not None
     )
+
+
+def create(db: Session, course: Course) -> Course:
+    _validate_course_name(course.name)
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    return course
+
+
+def save(db: Session, course: Course) -> Course:
+    _validate_course_name(course.name)
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    return course
+
+
+def delete(db: Session, course: Course) -> None:
+    db.delete(course)
+    db.commit()
