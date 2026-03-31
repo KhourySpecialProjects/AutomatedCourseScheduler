@@ -276,17 +276,18 @@ def test_delete_course_with_sections_returns_400(client, db_session):
     course = Course(name="Busy", description="Has sections", credits=4)
     db_session.add(course)
     db_session.flush()
-    schedule = Schedule(name="F24", semester=Semester.FALL, year=2024)
+    campus = _make_campus(db_session, name="Boston")
+    semester = _make_semester(db_session, season="Fall", year=2024)
+    schedule = Schedule(
+        name="F24",
+        semester_id=semester.semester_id,
+        campus=campus.campus_id,
+        draft=True,
+        complete=False,
+    )
     db_session.add(schedule)
     db_session.flush()
-    tb = TimeBlock(
-        meeting_days="MW",
-        start_time=time(10, 0),
-        end_time=time(11, 0),
-        campus=Campus.BOSTON,
-    )
-    db_session.add(tb)
-    db_session.flush()
+    tb = _make_time_block(db_session, campus_id=campus.campus_id)
     db_session.add(
         Section(
             schedule_id=schedule.schedule_id,

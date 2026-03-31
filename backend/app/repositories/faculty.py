@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
 
 
