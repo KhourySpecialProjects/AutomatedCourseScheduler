@@ -5,23 +5,20 @@ from pydantic import BaseModel
 
 class SemesterResponse(BaseModel):
     semester_id: int
-    name: str
-    start_date: str  # ISO format date string
-    end_date: str  # ISO format date string
+    season: str
+    year: int
     active: bool
 
     model_config = {"from_attributes": True}
 
 
 class SemesterCreate(BaseModel):
-    name: str
-    start_date: str  # ISO format date string
-    end_date: str  # ISO format date string
+    season: str
+    year: int
     active: bool = True
 
 
 class SemesterUpdate(BaseModel):
-    name: str | None = None
-    start_date: str | None = None  # ISO format date string
-    end_date: str | None = None  # ISO format date string
+    season: str | None = None
+    year: int | None = None
     active: bool | None = None

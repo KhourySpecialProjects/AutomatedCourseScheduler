@@ -32,9 +32,6 @@ class Schedule(Base):
     semester_id: Mapped[int] = mapped_column(
         Integer, ForeignKey(Semester.semester_id), nullable=False
     )
-    year: Mapped[int] = mapped_column(
-        Integer, CheckConstraint("year >= 1000 AND year <= 9999")
-    )
     draft: Mapped[bool] = mapped_column(Boolean, default=True)
     campus: Mapped[int] = mapped_column(ForeignKey("campus.campus_id"), nullable=False)
     complete: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -8,9 +8,9 @@ from app.repositories import schedule as schedule_repo
 from app.schemas.schedule import ScheduleCreate, ScheduleUpdate
 
 
-def get_all(db, campus_id=None, semester_id=None, year=None):
+def get_all(db, campus_id=None, semester_id=None):
     return schedule_repo.get_all(
-        db, campus_id=campus_id, semester_id=semester_id, year=year
+        db, campus_id=campus_id, semester_id=semester_id
     )
 
 

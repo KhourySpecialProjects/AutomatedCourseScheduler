@@ -25,8 +25,6 @@ def get_all(
         query = query.filter(Schedule.campus == campus_id)
     if semester_id is not None:
         query = query.filter(Schedule.semester_id == semester_id)
-    if year is not None:
-        query = query.filter(Schedule.year == year)
     return query.all()
 
 

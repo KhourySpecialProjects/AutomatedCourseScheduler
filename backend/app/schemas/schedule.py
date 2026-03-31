@@ -7,7 +7,6 @@ class ScheduleResponse(BaseModel):
     schedule_id: int
     name: str
     semester_id: int
-    year: int
     draft: bool
     campus: int
     complete: bool
@@ -19,7 +18,6 @@ class ScheduleResponse(BaseModel):
 class ScheduleCreate(BaseModel):
     name: str
     semester_id: int
-    year: int
     campus: int
 
 
