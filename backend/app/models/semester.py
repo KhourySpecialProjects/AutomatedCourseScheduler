@@ -18,7 +18,9 @@ class Semester(Base):
     """
 
     __tablename__ = "semester"
-    __table_args__ = (UniqueConstraint("season", "year", name="uq_semester_season_year"),)
+    __table_args__ = (
+        UniqueConstraint("season", "year", name="uq_semester_season_year"),
+    )
 
     semester_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     season: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -26,7 +28,9 @@ class Semester(Base):
     active: Mapped[bool] = mapped_column(default=True)
 
     # Relationships
-    schedules: Mapped[list["Schedule"]] = relationship("Schedule", back_populates="semester")
+    schedules: Mapped[list["Schedule"]] = relationship(
+        "Schedule", back_populates="semester"
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

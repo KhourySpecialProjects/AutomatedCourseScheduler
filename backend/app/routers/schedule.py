@@ -23,9 +23,7 @@ def get_schedules(
     semester_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    return schedule_service.get_all(
-        db, campus_id=campus_id, semester_id=semester_id
-    )
+    return schedule_service.get_all(db, campus_id=campus_id, semester_id=semester_id)
 
 
 @router.post("", response_model=ScheduleResponse, status_code=201)

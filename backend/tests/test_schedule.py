@@ -15,7 +15,6 @@ from app.models import Schedule
 from app.models.campus import Campus
 from app.models.semester import Semester as SemesterModel
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -57,7 +56,11 @@ def test_create_schedule_returns_201(client, db_session):
     semester = _make_semester(db_session)
     response = client.post(
         "/schedules",
-        json={"name": "Fall 2024", "semester_id": semester.semester_id, "campus": campus.campus_id},
+        json={
+            "name": "Fall 2024",
+            "semester_id": semester.semester_id,
+            "campus": campus.campus_id,
+        },
     )
     assert response.status_code == 201
 
@@ -67,10 +70,22 @@ def test_create_schedule_response_shape(client, db_session):
     semester = _make_semester(db_session)
     response = client.post(
         "/schedules",
-        json={"name": "Fall 2024", "semester_id": semester.semester_id, "campus": campus.campus_id},
+        json={
+            "name": "Fall 2024",
+            "semester_id": semester.semester_id,
+            "campus": campus.campus_id,
+        },
     )
     data = response.json()
-    expected_keys = {"schedule_id", "name", "semester_id", "draft", "campus", "complete", "active"}
+    expected_keys = {
+        "schedule_id",
+        "name",
+        "semester_id",
+        "draft",
+        "campus",
+        "complete",
+        "active",
+    }
     assert expected_keys.issubset(set(data.keys()))
 
 
@@ -79,7 +94,11 @@ def test_create_schedule_correct_values(client, db_session):
     semester = _make_semester(db_session)
     response = client.post(
         "/schedules",
-        json={"name": "My Schedule", "semester_id": semester.semester_id, "campus": campus.campus_id},
+        json={
+            "name": "My Schedule",
+            "semester_id": semester.semester_id,
+            "campus": campus.campus_id,
+        },
     )
     data = response.json()
     assert data["name"] == "My Schedule"
@@ -92,7 +111,11 @@ def test_create_schedule_defaults(client, db_session):
     semester = _make_semester(db_session)
     response = client.post(
         "/schedules",
-        json={"name": "Draft", "semester_id": semester.semester_id, "campus": campus.campus_id},
+        json={
+            "name": "Draft",
+            "semester_id": semester.semester_id,
+            "campus": campus.campus_id,
+        },
     )
     data = response.json()
     assert data["draft"] is True
@@ -104,7 +127,11 @@ def test_create_schedule_persisted_to_db(client, db_session):
     semester = _make_semester(db_session)
     response = client.post(
         "/schedules",
-        json={"name": "Persisted", "semester_id": semester.semester_id, "campus": campus.campus_id},
+        json={
+            "name": "Persisted",
+            "semester_id": semester.semester_id,
+            "campus": campus.campus_id,
+        },
     )
     schedule_id = response.json()["schedule_id"]
     db_session.expire_all()
@@ -118,7 +145,11 @@ def test_create_schedule_returns_id(client, db_session):
     semester = _make_semester(db_session)
     response = client.post(
         "/schedules",
-        json={"name": "ID Test", "semester_id": semester.semester_id, "campus": campus.campus_id},
+        json={
+            "name": "ID Test",
+            "semester_id": semester.semester_id,
+            "campus": campus.campus_id,
+        },
     )
     schedule_id = response.json()["schedule_id"]
     assert isinstance(schedule_id, int)
@@ -130,8 +161,22 @@ def test_create_schedule_returns_id(client, db_session):
 def test_create_multiple_schedules_same_campus(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    client.post("/schedules", json={"name": "S1", "semester_id": semester.semester_id, "campus": campus.campus_id})
-    client.post("/schedules", json={"name": "S2", "semester_id": semester.semester_id, "campus": campus.campus_id})
+    client.post(
+        "/schedules",
+        json={
+            "name": "S1",
+            "semester_id": semester.semester_id,
+            "campus": campus.campus_id,
+        },
+    )
+    client.post(
+        "/schedules",
+        json={
+            "name": "S2",
+            "semester_id": semester.semester_id,
+            "campus": campus.campus_id,
+        },
+    )
     response = client.get("/schedules")
     assert len(response.json()) == 2
 
@@ -163,14 +208,24 @@ def test_get_schedules_response_shape(client, db_session):
     _make_schedule(db_session, campus.campus_id, semester.semester_id)
     response = client.get("/schedules")
     data = response.json()[0]
-    expected_keys = {"schedule_id", "name", "semester_id", "draft", "campus", "complete", "active"}
+    expected_keys = {
+        "schedule_id",
+        "name",
+        "semester_id",
+        "draft",
+        "campus",
+        "complete",
+        "active",
+    }
     assert expected_keys.issubset(set(data.keys()))
 
 
 def test_get_schedules_correct_values(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Fall 2024")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Fall 2024"
+    )
     response = client.get("/schedules")
     data = response.json()[0]
     assert data["schedule_id"] == schedule.schedule_id
@@ -185,8 +240,12 @@ def test_get_schedules_filter_by_campus_id(client, db_session):
     campus_a = _make_campus(db_session, "Boston")
     campus_b = _make_campus(db_session, "Oakland")
     semester = _make_semester(db_session)
-    _make_schedule(db_session, campus_a.campus_id, semester.semester_id, name="Boston Schedule")
-    _make_schedule(db_session, campus_b.campus_id, semester.semester_id, name="Oakland Schedule")
+    _make_schedule(
+        db_session, campus_a.campus_id, semester.semester_id, name="Boston Schedule"
+    )
+    _make_schedule(
+        db_session, campus_b.campus_id, semester.semester_id, name="Oakland Schedule"
+    )
     response = client.get(f"/schedules?campus_id={campus_a.campus_id}")
     assert response.status_code == 200
     data = response.json()
@@ -212,8 +271,12 @@ def test_get_schedules_filter_multiple_params(client, db_session):
     campus_b = _make_campus(db_session, "Oakland")
     semester = _make_semester(db_session)
     _make_schedule(db_session, campus_a.campus_id, semester.semester_id, name="Match")
-    _make_schedule(db_session, campus_b.campus_id, semester.semester_id, name="Wrong Campus")
-    response = client.get(f"/schedules?campus_id={campus_a.campus_id}&semester_id={semester.semester_id}")
+    _make_schedule(
+        db_session, campus_b.campus_id, semester.semester_id, name="Wrong Campus"
+    )
+    response = client.get(
+        f"/schedules?campus_id={campus_a.campus_id}&semester_id={semester.semester_id}"
+    )
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -237,7 +300,9 @@ def test_get_schedules_filter_no_match_returns_empty(client, db_session):
 def test_get_schedule_by_id(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Fall 2024")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Fall 2024"
+    )
     response = client.get(f"/schedules/{schedule.schedule_id}")
     assert response.status_code == 200
     assert response.json()["name"] == "Fall 2024"
@@ -256,7 +321,15 @@ def test_get_schedule_by_id_response_shape(client, db_session):
     schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
     response = client.get(f"/schedules/{schedule.schedule_id}")
     data = response.json()
-    expected_keys = {"schedule_id", "name", "semester_id", "draft", "campus", "complete", "active"}
+    expected_keys = {
+        "schedule_id",
+        "name",
+        "semester_id",
+        "draft",
+        "campus",
+        "complete",
+        "active",
+    }
     assert expected_keys.issubset(set(data.keys()))
 
 
@@ -277,8 +350,12 @@ def test_get_schedule_by_id_campus_is_int(client, db_session):
 def test_update_schedule_name(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Old Name")
-    response = client.put(f"/schedules/{schedule.schedule_id}", json={"name": "New Name"})
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Old Name"
+    )
+    response = client.put(
+        f"/schedules/{schedule.schedule_id}", json={"name": "New Name"}
+    )
     assert response.status_code == 200
     assert response.json()["name"] == "New Name"
 
@@ -286,7 +363,9 @@ def test_update_schedule_name(client, db_session):
 def test_update_schedule_complete_flag(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, complete=False)
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, complete=False
+    )
     response = client.put(f"/schedules/{schedule.schedule_id}", json={"complete": True})
     assert response.status_code == 200
     assert response.json()["complete"] is True
@@ -295,8 +374,16 @@ def test_update_schedule_complete_flag(client, db_session):
 def test_update_schedule_partial_name_preserves_complete(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Original", complete=True)
-    response = client.put(f"/schedules/{schedule.schedule_id}", json={"name": "Updated"})
+    schedule = _make_schedule(
+        db_session,
+        campus.campus_id,
+        semester.semester_id,
+        name="Original",
+        complete=True,
+    )
+    response = client.put(
+        f"/schedules/{schedule.schedule_id}", json={"name": "Updated"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Updated"
@@ -306,7 +393,13 @@ def test_update_schedule_partial_name_preserves_complete(client, db_session):
 def test_update_schedule_partial_complete_preserves_name(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Keep This Name", complete=False)
+    schedule = _make_schedule(
+        db_session,
+        campus.campus_id,
+        semester.semester_id,
+        name="Keep This Name",
+        complete=False,
+    )
     response = client.put(f"/schedules/{schedule.schedule_id}", json={"complete": True})
     assert response.status_code == 200
     data = response.json()
@@ -317,7 +410,9 @@ def test_update_schedule_partial_complete_preserves_name(client, db_session):
 def test_update_schedule_persisted_to_db(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Before")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Before"
+    )
     client.put(f"/schedules/{schedule.schedule_id}", json={"name": "After"})
     db_session.expire_all()
     updated = db_session.get(Schedule, schedule.schedule_id)
@@ -332,7 +427,9 @@ def test_update_schedule_not_found(client, db_session):
 def test_update_schedule_empty_body(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Unchanged")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Unchanged"
+    )
     response = client.put(f"/schedules/{schedule.schedule_id}", json={})
     assert response.status_code == 200
     assert response.json()["name"] == "Unchanged"

@@ -4,7 +4,6 @@ from app.models import Comment, Schedule, Section, User
 from app.models.campus import Campus as CampusModel
 from app.models.semester import Semester as SemesterModel
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -87,7 +86,12 @@ def test_post_comment_success(client, db_session):
 
     response = client.post(
         "/comments",
-        json={"user_id": user.nuid, "section_id": section.section_id, "parent_id": None, "content": "Looks good to me"},
+        json={
+            "user_id": user.nuid,
+            "section_id": section.section_id,
+            "parent_id": None,
+            "content": "Looks good to me",
+        },
     )
 
     assert response.status_code == 201
@@ -106,7 +110,12 @@ def test_post_comment_persisted_to_db(client, db_session):
 
     client.post(
         "/comments",
-        json={"user_id": user.nuid, "section_id": section.section_id, "parent_id": None, "content": "Persisted comment"},
+        json={
+            "user_id": user.nuid,
+            "section_id": section.section_id,
+            "parent_id": None,
+            "content": "Persisted comment",
+        },
     )
 
     db_session.expire_all()
@@ -122,7 +131,12 @@ def test_post_comment_user_not_found(client, db_session):
 
     response = client.post(
         "/comments",
-        json={"user_id": 9999, "section_id": section.section_id, "parent_id": None, "content": "Ghost comment"},
+        json={
+            "user_id": 9999,
+            "section_id": section.section_id,
+            "parent_id": None,
+            "content": "Ghost comment",
+        },
     )
 
     assert response.status_code == 422
@@ -140,7 +154,12 @@ def test_post_comment_section_not_found(client, db_session):
 
     response = client.post(
         "/comments",
-        json={"user_id": user.nuid, "section_id": 9999, "parent_id": None, "content": "Section-less comment"},
+        json={
+            "user_id": user.nuid,
+            "section_id": 9999,
+            "parent_id": None,
+            "content": "Section-less comment",
+        },
     )
 
     assert response.status_code == 422
@@ -152,7 +171,12 @@ def test_post_comment_section_not_found(client, db_session):
 def test_post_comment_user_and_section_not_found(client, db_session):
     response = client.post(
         "/comments",
-        json={"user_id": 9999, "section_id": 8888, "parent_id": None, "content": "Nothing exists"},
+        json={
+            "user_id": 9999,
+            "section_id": 8888,
+            "parent_id": None,
+            "content": "Nothing exists",
+        },
     )
 
     assert response.status_code == 422
@@ -171,13 +195,19 @@ def test_post_reply_success(client, db_session):
 
     response = client.post(
         f"/comments/{parent.comment_id}",
-        json={"user_id": user.nuid, "section_id": section.section_id, "content": "This is a reply"},
+        json={
+            "user_id": user.nuid,
+            "section_id": section.section_id,
+            "content": "This is a reply",
+        },
     )
 
     assert response.status_code == 201
 
     db_session.expire_all()
-    reply = db_session.query(Comment).filter(Comment.content == "This is a reply").first()
+    reply = (
+        db_session.query(Comment).filter(Comment.content == "This is a reply").first()
+    )
     assert reply is not None
     assert reply.parent_id == parent.comment_id
 
@@ -188,7 +218,11 @@ def test_post_reply_invalid_parent_returns_422(client, db_session):
 
     response = client.post(
         "/comments/9999",
-        json={"user_id": user.nuid, "section_id": section.section_id, "content": "Reply to nowhere"},
+        json={
+            "user_id": user.nuid,
+            "section_id": section.section_id,
+            "content": "Reply to nowhere",
+        },
     )
 
     assert response.status_code == 422

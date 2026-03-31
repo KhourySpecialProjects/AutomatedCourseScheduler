@@ -6,7 +6,6 @@ from app.models import Course, Schedule, Section, TimeBlock
 from app.models.campus import Campus as CampusModel
 from app.models.semester import Semester as SemesterModel
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -27,7 +26,12 @@ def _make_semester(db, season="Fall", year=2024):
 
 
 def _make_time_block(db, campus_id):
-    tb = TimeBlock(meeting_days="MW", start_time=time(10, 0), end_time=time(11, 0), campus=campus_id)
+    tb = TimeBlock(
+        meeting_days="MW",
+        start_time=time(10, 0),
+        end_time=time(11, 0),
+        campus=campus_id,
+    )
     db.add(tb)
     db.flush()
     return tb
@@ -66,7 +70,9 @@ def test_get_courses_includes_section_count(client, db_session):
     db_session.add(course)
     db_session.flush()
 
-    schedule = Schedule(name="F24", semester_id=semester.semester_id, campus=campus.campus_id)
+    schedule = Schedule(
+        name="F24", semester_id=semester.semester_id, campus=campus.campus_id
+    )
     db_session.add(schedule)
     db_session.flush()
 
@@ -74,8 +80,20 @@ def test_get_courses_includes_section_count(client, db_session):
 
     db_session.add_all(
         [
-            Section(schedule_id=schedule.schedule_id, time_block_id=tb.time_block_id, course_id=course.course_id, section_number=1, capacity=30),
-            Section(schedule_id=schedule.schedule_id, time_block_id=tb.time_block_id, course_id=course.course_id, section_number=2, capacity=25),
+            Section(
+                schedule_id=schedule.schedule_id,
+                time_block_id=tb.time_block_id,
+                course_id=course.course_id,
+                section_number=1,
+                capacity=30,
+            ),
+            Section(
+                schedule_id=schedule.schedule_id,
+                time_block_id=tb.time_block_id,
+                course_id=course.course_id,
+                section_number=2,
+                capacity=25,
+            ),
         ]
     )
     db_session.commit()
@@ -108,8 +126,24 @@ def test_get_courses_filter_by_schedule_id(client, db_session):
 
     tb = _make_time_block(db_session, campus.campus_id)
 
-    db_session.add(Section(schedule_id=s1.schedule_id, time_block_id=tb.time_block_id, course_id=c1.course_id, section_number=1, capacity=30))
-    db_session.add(Section(schedule_id=s2.schedule_id, time_block_id=tb.time_block_id, course_id=c2.course_id, section_number=1, capacity=30))
+    db_session.add(
+        Section(
+            schedule_id=s1.schedule_id,
+            time_block_id=tb.time_block_id,
+            course_id=c1.course_id,
+            section_number=1,
+            capacity=30,
+        )
+    )
+    db_session.add(
+        Section(
+            schedule_id=s2.schedule_id,
+            time_block_id=tb.time_block_id,
+            course_id=c2.course_id,
+            section_number=1,
+            capacity=30,
+        )
+    )
     db_session.commit()
 
     response = client.get(f"/courses?schedule_id={s1.schedule_id}")
