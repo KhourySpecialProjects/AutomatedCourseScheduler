@@ -68,15 +68,15 @@ def delete(db: Session, schedule_id: int) -> bool:
 
 def get_courses(schedule: Schedule) -> list[Course]:
     sections = schedule.sections
-    courses = list({section.course_id: section.course for section in sections}.values())
+    courses = list(
+        {section.course_id: section.course for section in sections}.values())
     return courses
+
 
 def count_sections_for_course(schedule: Schedule, course_id: int) -> int:
     sections = schedule.sections
     count = 0
-    for section in sections: 
+    for section in sections:
         if section.course_id == course_id:
             count += 1
     return count
-
-

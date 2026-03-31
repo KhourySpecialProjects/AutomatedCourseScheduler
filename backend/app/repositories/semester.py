@@ -51,5 +51,18 @@ def delete(db: Session, semester_id: int) -> bool:
 
 def get_schedules(semester: Semester) -> list[Schedule]:
     schedules = semester.schedules
+    if not schedules:
+        raise ValueError(
+            f"No schedules found for semester {semester.name} with id {semester.semester_id}")
 
     return schedules
+
+
+def get_last_year(db: Session, semester_id: int) -> int | None:
+    semester = get_by_id(db, semester_id)
+    last_year = db.query(Semester).filter(
+        Semester.season == semester.season,
+        Semester.year == semester.year - 1
+    ).first()
+
+    return last_year.semester_id if last_year is not None else None

@@ -29,7 +29,8 @@ def create(db: Session, data: SemesterCreate) -> Semester:
 
 
 def update(db: Session, schedule_id: int, data: SemesterUpdate):
-    updated = semester_repo.update(db, schedule_id, data.model_dump(exclude_unset=True))
+    updated = semester_repo.update(
+        db, schedule_id, data.model_dump(exclude_unset=True))
     if updated is None:
         raise HTTPException(status_code=404, detail="Semester not found")
     return updated
@@ -39,3 +40,7 @@ def delete(db: Session, schedule_id: int) -> None:
     success = semester_repo.delete(db, schedule_id)
     if not success:
         raise HTTPException(status_code=404, detail="Semester not found")
+
+
+def get_last_year(db: Session, semester_id: int) -> int | None:
+    return semester_repo.get_last_year(db, semester_id)

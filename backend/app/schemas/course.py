@@ -10,6 +10,7 @@ class CourseResponse(BaseModel):
     CourseSubject: str | None = None
     CourseName: str | None = None
     SectionCount: int | None = None
-    HighPriority: bool = False
+    Priority: bool = False
+    QualifiedFaculty: int = 0
 
     model_config = {"from_attributes": True}

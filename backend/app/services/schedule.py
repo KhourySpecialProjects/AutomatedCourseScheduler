@@ -7,7 +7,8 @@ from app.models.schedule import Schedule
 from app.models.course import Course
 from app.repositories import schedule as schedule_repo
 from app.repositories import semester as semester_repo
-from app.schemas.schedule import ScheduleCreate, ScheduleUpdate
+from app.schemas.schedule import ScheduleCreate, ScheduleUpdate, ScheduleResponse
+from app.schemas.course import CourseResponse
 
 
 def get_all(db, campus_id=None, semester_id=None):
@@ -22,7 +23,12 @@ def get_by_id(db: Session, schedule_id: int):
 
 
 def create(db: Session, data: ScheduleCreate) -> Schedule:
-    return schedule_repo.create(db, data.model_dump())
+    to_create = {
+        "name": data.name,
+        "semester_id": data.semester_id,
+        "campus": data.campus
+    }
+    return schedule_repo.create(db, to_create)
 
 
 def update(db: Session, schedule_id: int, data: ScheduleUpdate):
@@ -39,4 +45,14 @@ def delete(db: Session, schedule_id: int) -> None:
         raise HTTPException(status_code=404, detail="Schedule not found")
 
 
-
+def add_course_list(db: Session, schedule: Schedule, course_list: list[CourseResponse]) -> ScheduleResponse:
+    return ScheduleResponse(
+        schedule_id=schedule.schedule_id,
+        name=schedule.name,
+        semester_id=schedule.semester_id,
+        draft=schedule.draft,
+        campus=schedule.campus,
+        complete=schedule.complete,
+        active=schedule.active,
+        course_list=course_list
+    )
