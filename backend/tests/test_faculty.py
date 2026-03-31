@@ -160,14 +160,14 @@ def test_get_faculty_profile_with_preferences(client, db_session):
         CoursePreference(
             faculty_nuid=faculty.nuid,
             course_id=course.course_id,
-            preference=PreferenceLevel.FIRST,
+            preference=PreferenceLevel.EAGER,
         )
     )
     db_session.add(
         MeetingPreference(
             faculty_nuid=faculty.nuid,
             meeting_time=tb.time_block_id,
-            preference=PreferenceLevel.SECOND,
+            preference=PreferenceLevel.READY,
         )
     )
     db_session.commit()

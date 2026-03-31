@@ -14,6 +14,10 @@ export interface BodyUploadFacultyPreferencesUploadFacultyPreferencesPost {
   file: string;
 }
 
+export interface BodyUploadTimePreferencesUploadTimePreferencesPost {
+  file: string;
+}
+
 export interface CampusResponse {
   CampusID: number;
   CampusName: string;
@@ -72,6 +76,20 @@ export interface CourseResponse {
   CourseSubject?: CourseResponseCourseSubject;
   CourseName?: CourseResponseCourseName;
   SectionCount?: CourseResponseSectionCount;
+}
+
+export type FacultyProfileResponseTitle = string | null;
+
+export interface FacultyProfileResponse {
+  nuid: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  title?: FacultyProfileResponseTitle;
+  campus: string;
+  active: boolean;
+  course_preferences: CoursePreferenceInfo[];
+  meeting_preferences: MeetingPreferenceInfo[];
 }
 
 export type FacultyResponseFirstName = string | null;
@@ -161,6 +179,10 @@ export interface SectionCreate {
   section_number: number;
 }
 
+export type SectionResponseRoom = string | null;
+
+export type SectionResponseAssignmentScore = number | null;
+
 export interface SectionResponse {
   section_id: number;
   schedule_id: number;
@@ -168,12 +190,17 @@ export interface SectionResponse {
   course_id: number;
   capacity: number;
   section_number: number;
+  room?: SectionResponseRoom;
+  assignment_score?: SectionResponseAssignmentScore;
 }
+
+export type SectionRichResponseRoom = string | null;
 
 export interface SectionRichResponse {
   section_id: number;
   section_number: number;
   capacity: number;
+  room?: SectionRichResponseRoom;
   schedule_id: number;
   course: CourseInfo;
   time_block: TimeBlockInfo;
@@ -186,10 +213,19 @@ export type SectionUpdateCourseId = number | null;
 
 export type SectionUpdateCapacity = number | null;
 
+export type SectionUpdateRoom = string | null;
+
+export type SectionUpdateCrosslistedSectionId = number | null;
+
+export type SectionUpdateFacultyNuids = number[] | null;
+
 export interface SectionUpdate {
   time_block_id?: SectionUpdateTimeBlockId;
   course_id?: SectionUpdateCourseId;
   capacity?: SectionUpdateCapacity;
+  room?: SectionUpdateRoom;
+  crosslisted_section_id?: SectionUpdateCrosslistedSectionId;
+  faculty_nuids?: SectionUpdateFacultyNuids;
 }
 
 export interface TimeBlockInfo {
@@ -197,7 +233,6 @@ export interface TimeBlockInfo {
   days: string;
   start_time: string;
   end_time: string;
-  timezone: string;
 }
 
 export type TimeBlockResponseBlockID = number | null;
@@ -253,11 +288,25 @@ semester_season?: string | null;
 semester_year?: number | null;
 };
 
+export type GetCoursesCoursesGetParams = {
+/**
+ * Filter to courses with sections in this schedule
+ */
+schedule_id?: number | null;
+};
+
+export type GetCourseCoursesCourseIdGetParams = {
+/**
+ * Section count for this schedule only
+ */
+schedule_id?: number | null;
+};
+
 export type GetFacultyFacultyGetParams = {
 /**
- * Filter by campus ID
+ * Filter by campus name
  */
-campus_id?: number | null;
+campus?: string | null;
 /**
  * Filter to only active faculty
  */
@@ -280,32 +329,6 @@ schedule_id?: number | null;
 
 export const getAutomatedCourseSchedulerAPI = () => {
 /**
- * Get all sections with denormalized course, time block, and instructor data.
- * @summary Get Rich Sections
- */
-const getRichSectionsSectionsScheduleIdRichGet = (
-    scheduleId: number,
- ) => {
-      return axiosInstance<SectionRichResponse[]>(
-      {url: `/sections/${scheduleId}/rich`, method: 'GET'
-    },
-      );
-    }
-  
-/**
- * Get all sections.
- * @summary Get Sections
- */
-const getSectionsSectionsScheduleIdGet = (
-    scheduleId: number,
- ) => {
-      return axiosInstance<SectionResponse[]>(
-      {url: `/sections/${scheduleId}`, method: 'GET'
-    },
-      );
-    }
-  
-/**
  * Create a new section in a schedule.
  * @summary Create Section
  */
@@ -324,12 +347,12 @@ const createSectionSectionsPost = (
  * Update an existing section.
  * @summary Update Section
  */
-const updateSectionSectionsSectionIdPut = (
+const updateSectionSectionsSectionIdPatch = (
     sectionId: number,
     sectionUpdate: SectionUpdate,
  ) => {
       return axiosInstance<SectionResponse>(
-      {url: `/sections/${sectionId}`, method: 'PUT',
+      {url: `/sections/${sectionId}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
       data: sectionUpdate
     },
@@ -434,14 +457,14 @@ const getScheduleSectionsSchedulesScheduleIdSectionsGet = (
     }
   
 /**
- * Trigger the scheduling algorithm to generate a draft schedule.
- * @summary Generate Schedule
+ * Get all sections with denormalized course, time block, and instructor data.
+ * @summary Get Schedule Sections Rich
  */
-const generateScheduleSchedulesScheduleIdGeneratePost = (
+const getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet = (
     scheduleId: number,
  ) => {
-      return axiosInstance<ScheduleResponse>(
-      {url: `/schedules/${scheduleId}/generate`, method: 'POST'
+      return axiosInstance<SectionRichResponse[]>(
+      {url: `/schedules/${scheduleId}/sections/rich`, method: 'GET'
     },
       );
     }
@@ -460,14 +483,30 @@ const exportScheduleCsvSchedulesScheduleIdExportCsvGet = (
     }
   
 /**
- * Retrieve all courses.
+ * Retrieve all courses, optionally filtered by schedule
  * @summary Get Courses
  */
 const getCoursesCoursesGet = (
-    
+    params?: GetCoursesCoursesGetParams,
  ) => {
       return axiosInstance<CourseResponse[]>(
-      {url: `/courses`, method: 'GET'
+      {url: `/courses`, method: 'GET',
+        params
+    },
+      );
+    }
+  
+/**
+ * Retrieve a course by ID with section count.
+ * @summary Get Course
+ */
+const getCourseCoursesCourseIdGet = (
+    courseId: number,
+    params?: GetCourseCoursesCourseIdGetParams,
+ ) => {
+      return axiosInstance<CourseResponse>(
+      {url: `/courses/${courseId}`, method: 'GET',
+        params
     },
       );
     }
@@ -482,6 +521,19 @@ const getFacultyFacultyGet = (
       return axiosInstance<FacultyResponse[]>(
       {url: `/faculty`, method: 'GET',
         params
+    },
+      );
+    }
+  
+/**
+ * Retrieve faculty profile with course and time preferences.
+ * @summary Get Faculty Profile
+ */
+const getFacultyProfileFacultyNuidGet = (
+    nuid: number,
+ ) => {
+      return axiosInstance<FacultyProfileResponse>(
+      {url: `/faculty/${nuid}`, method: 'GET'
     },
       );
     }
@@ -514,7 +566,6 @@ const getCampusesCampusesGet = (
     }
   
 /**
- * Upload a CSV file containing course offering data.
  * @summary Upload Courses
  */
 const uploadCoursesUploadCoursesPost = (
@@ -541,6 +592,23 @@ formData.append(`file`, bodyUploadFacultyPreferencesUploadFacultyPreferencesPost
 
       return axiosInstance<UploadResponse>(
       {url: `/upload/faculty-preferences`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData
+    },
+      );
+    }
+  
+/**
+ * Upload a CSV file containing faculty preference data.
+ * @summary Upload Time Preferences
+ */
+const uploadTimePreferencesUploadTimePreferencesPost = (
+    bodyUploadTimePreferencesUploadTimePreferencesPost: BodyUploadTimePreferencesUploadTimePreferencesPost,
+ ) => {const formData = new FormData();
+formData.append(`file`, bodyUploadTimePreferencesUploadTimePreferencesPost.file)
+
+      return axiosInstance<UploadResponse>(
+      {url: `/upload/time-preferences`, method: 'POST',
       headers: {'Content-Type': 'multipart/form-data', },
        data: formData
     },
@@ -588,11 +656,9 @@ const rootGet = (
       );
     }
   
-return {getRichSectionsSectionsScheduleIdRichGet,getSectionsSectionsScheduleIdGet,createSectionSectionsPost,updateSectionSectionsSectionIdPut,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,generateScheduleSchedulesScheduleIdGeneratePost,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getCoursesCoursesGet,getFacultyFacultyGet,getTimeBlocksTimeBlocksGet,getCampusesCampusesGet,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,getCommentsCommentsGet,createCommentCommentsPost,rootGet}};
-export type GetRichSectionsSectionsScheduleIdRichGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getRichSectionsSectionsScheduleIdRichGet']>>>
-export type GetSectionsSectionsScheduleIdGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getSectionsSectionsScheduleIdGet']>>>
+return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getCoursesCoursesGet,getCourseCoursesCourseIdGet,getFacultyFacultyGet,getFacultyProfileFacultyNuidGet,getTimeBlocksTimeBlocksGet,getCampusesCampusesGet,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,getCommentsCommentsGet,createCommentCommentsPost,rootGet}};
 export type CreateSectionSectionsPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createSectionSectionsPost']>>>
-export type UpdateSectionSectionsSectionIdPutResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateSectionSectionsSectionIdPut']>>>
+export type UpdateSectionSectionsSectionIdPatchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateSectionSectionsSectionIdPatch']>>>
 export type DeleteSectionSectionsSectionIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteSectionSectionsSectionIdDelete']>>>
 export type GetSchedulesSchedulesGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getSchedulesSchedulesGet']>>>
 export type CreateScheduleSchedulesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createScheduleSchedulesPost']>>>
@@ -600,14 +666,17 @@ export type GetScheduleSchedulesScheduleIdGetResult = NonNullable<Awaited<Return
 export type UpdateScheduleSchedulesScheduleIdPutResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateScheduleSchedulesScheduleIdPut']>>>
 export type DeleteScheduleSchedulesScheduleIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteScheduleSchedulesScheduleIdDelete']>>>
 export type GetScheduleSectionsSchedulesScheduleIdSectionsGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getScheduleSectionsSchedulesScheduleIdSectionsGet']>>>
-export type GenerateScheduleSchedulesScheduleIdGeneratePostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['generateScheduleSchedulesScheduleIdGeneratePost']>>>
+export type GetScheduleSectionsRichSchedulesScheduleIdSectionsRichGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet']>>>
 export type ExportScheduleCsvSchedulesScheduleIdExportCsvGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['exportScheduleCsvSchedulesScheduleIdExportCsvGet']>>>
 export type GetCoursesCoursesGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getCoursesCoursesGet']>>>
+export type GetCourseCoursesCourseIdGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getCourseCoursesCourseIdGet']>>>
 export type GetFacultyFacultyGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getFacultyFacultyGet']>>>
+export type GetFacultyProfileFacultyNuidGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getFacultyProfileFacultyNuidGet']>>>
 export type GetTimeBlocksTimeBlocksGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getTimeBlocksTimeBlocksGet']>>>
 export type GetCampusesCampusesGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getCampusesCampusesGet']>>>
 export type UploadCoursesUploadCoursesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['uploadCoursesUploadCoursesPost']>>>
 export type UploadFacultyPreferencesUploadFacultyPreferencesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['uploadFacultyPreferencesUploadFacultyPreferencesPost']>>>
+export type UploadTimePreferencesUploadTimePreferencesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['uploadTimePreferencesUploadTimePreferencesPost']>>>
 export type GetCommentsCommentsGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getCommentsCommentsGet']>>>
 export type CreateCommentCommentsPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createCommentCommentsPost']>>>
 export type RootGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['rootGet']>>>

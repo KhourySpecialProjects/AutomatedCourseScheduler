@@ -10,6 +10,7 @@ from app.schemas.schedule import (
     ScheduleUpdate,
 )
 from app.schemas.section import SectionResponse, SectionRichResponse
+from app.services import schedule as schedule_service
 from app.services import section as section_service
 from app.services.section import ScheduleNotFoundError
 
@@ -18,28 +19,23 @@ router = APIRouter(prefix="/schedules", tags=["schedules"])
 
 @router.get("", response_model=list[ScheduleResponse])
 def get_schedules(
-    campus_id: int | None = Query(None, description="Filter by campus ID"),
-    semester_season: str | None = Query(None, description="Filter by semester season"),
-    semester_year: int | None = Query(None, description="Filter by semester year"),
+    campus_id: int | None = Query(None),
+    semester_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    """Retrieve all schedules, optionally filtered by campus or semester."""
-    # TODO: Implement schedule listing with filters
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    return schedule_service.get_all(db, campus_id=campus_id, semester_id=semester_id)
 
 
 @router.post("", response_model=ScheduleResponse, status_code=201)
 def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
     """Create a new schedule draft."""
-    # TODO: Implement schedule creation
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    return schedule_service.create(db, schedule)
 
 
 @router.get("/{schedule_id}", response_model=ScheduleResponse)
 def get_schedule(schedule_id: int, db: Session = Depends(get_db)):
     """Retrieve a specific schedule."""
-    # TODO: Implement schedule retrieval
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    return schedule_service.get_by_id(db, schedule_id)
 
 
 @router.get("/{schedule_id}/sections", response_model=list[SectionResponse])
@@ -67,15 +63,13 @@ def update_schedule(
     schedule_id: int, schedule: ScheduleUpdate, db: Session = Depends(get_db)
 ):
     """Update schedule metadata (name, complete status, etc.)."""
-    # TODO: Implement schedule update
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    return schedule_service.update(db, schedule_id, schedule)
 
 
 @router.delete("/{schedule_id}", status_code=204)
 def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
     """Delete a schedule and all its sections."""
-    # TODO: Implement schedule deletion
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    schedule_service.delete(db, schedule_id)
 
 
 @router.get("/{schedule_id}/export/csv")

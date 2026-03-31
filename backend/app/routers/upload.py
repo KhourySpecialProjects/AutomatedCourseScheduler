@@ -30,67 +30,36 @@ COURSE_PREFERENCES = "Course Preferences"
 TIME_PREFERENCES = "Time Preferences"
 
 
-"""
-    Upload a CSV file containing course offering data.
-
-    Params: None
-    Body:
-        - expects one file in request body with key "file"
-        - Each row should contain information for one course offering. Format must
-          match expected schema.
-
-    Result:
-        - If valid, inserts all courses found in the file into DB Course table.
-
-"""
-# Query for exisiting course... don't add duplicates
-
-
 @router.post("/courses", response_model=UploadResponse)
 def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Upload a CSV file containing course offering data."""
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a .csv")
 
-    elif file.content_type != "text/csv":
-        raise HTTPException(status_code=400, detail="Invalid document type")
+    try:
+        to_insert = parse_file(file, COURSE_OFFERINGS, db)
+        if to_insert:
+            db.execute(insert(Course), to_insert)
+            db.commit()
+        else:
+            return UploadResponse(
+                status="success",
+                message=(
+                    "File does not contain any non-existing courses. Nothing inserted."
+                ),
+                records_processed=len(to_insert),
+                records_successful=len(to_insert),
+            )
+    except HTTPException as e:
+        logger.error(f"Database error in upload_courses: {str(e)}")
+        raise
 
-    else:
-        try:
-            to_insert = parse_file(file, COURSE_OFFERINGS, db)
-            if to_insert:
-                db.execute(insert(Course), to_insert)
-                db.commit()
-            else:
-                return UploadResponse(
-                    status="success",
-                    message=(
-                        "File does not contain any non-existing courses. "
-                        "Nothing inserted."
-                    ),
-                    records_processed=len(to_insert),
-                    records_successful=len(to_insert),
-                )
-        except HTTPException as e:
-            logger.error(f"Database error in upload_courses: {str(e)}")
-            raise
-        return UploadResponse(
-            status="success",
-            message="Courses uploaded successfully",
-            records_processed=len(to_insert),
-            records_successful=len(to_insert),
-        )
-
-
-"""
-    Upload a CSV file containing faculty preference data.
-
-    Params: None
-    Body:
-        - expects one file in request body with key "file"
-
-"""
-
-# query for exisitng prefernce... update
+    return UploadResponse(
+        status="success",
+        message="Courses uploaded successfully",
+        records_processed=len(to_insert),
+        records_successful=len(to_insert),
+    )
 
 
 @router.post("/faculty-preferences", response_model=UploadResponse)
@@ -101,97 +70,58 @@ def upload_faculty_preferences(
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a .csv")
 
-    elif file.content_type != "text/csv":
-        raise HTTPException(status_code=400, detail="Invalid document type")
+    to_insert = []
+    to_update = []
+    try:
+        result = parse_file(file, COURSE_PREFERENCES, db)
+        to_insert.extend(result.get("inserts"))
+        to_update.extend(result.get("updates"))
+        if to_insert:
+            db.execute(insert(CoursePreference), to_insert)
+        if to_update:
+            db.execute(update(CoursePreference), to_update)
+        db.commit()
+    except HTTPException as e:
+        logger.error(f"Upload error in upload_faculty_preferences: {str(e)}")
+        raise
 
-    else:
-        to_insert = []
-        to_update = []
-        try:
-            result = parse_file(file, COURSE_PREFERENCES, db)
-            to_insert.extend(result.get("inserts"))
-            to_update.extend(result.get("updates"))
-            if to_insert:
-                db.execute(insert(CoursePreference), to_insert)
-            if to_update:
-                db.execute(update(CoursePreference), to_update)
-            db.commit()
-        except HTTPException as e:
-            logger.error(f"Upload error in upload_faculty_preferences: {str(e)}")
-            raise
-
-        return UploadResponse(
-            status="success",
-            message="Faculty preferences updated successfully",
-            records_processed=len(to_insert) + len(to_update),
-            records_successful=len(to_insert) + len(to_update),
-        )
-
-
-"""
-    Upload a CSV file containing faculty time preference data.
-
-    Params: None
-    Body:
-        - expects one file in request body with key "file"
-        - Each row should contain information for one course offering. Format must
-          match expected schema.
-
-    Result:
-        - If valid, inserts all courses found in the file into DB Course table.
-
-"""
+    return UploadResponse(
+        status="success",
+        message="Faculty preferences updated successfully",
+        records_processed=len(to_insert) + len(to_update),
+        records_successful=len(to_insert) + len(to_update),
+    )
 
 
 @router.post("/time-preferences", response_model=UploadResponse)
 def upload_time_preferences(
     file: UploadFile = File(...), db: Session = Depends(get_db)
 ):
-    """Upload a CSV file containing faculty preference data."""
+    """Upload a CSV file containing faculty time preference data."""
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a .csv")
 
-    elif file.content_type != "text/csv":
-        raise HTTPException(status_code=400, detail="Invalid document type")
+    to_insert = []
+    to_update = []
+    try:
+        result = parse_file(file, TIME_PREFERENCES, db)
+        to_insert.extend(result.get("inserts"))
+        to_update.extend(result.get("updates"))
+        if to_insert:
+            db.execute(insert(MeetingPreference), to_insert)
+        if to_update:
+            db.execute(update(MeetingPreference), to_update)
+        db.commit()
+    except HTTPException as e:
+        logger.error(f"Upload error in upload_time_preferences: {str(e)}")
+        raise
 
-    else:
-        to_insert = []
-        to_update = []
-        try:
-            result = parse_file(file, TIME_PREFERENCES, db)
-            to_insert.extend(result.get("inserts"))
-            to_update.extend(result.get("updates"))
-            if to_insert:
-                db.execute(insert(MeetingPreference), to_insert)
-            if to_update:
-                db.execute(update(MeetingPreference), to_update)
-            db.commit()
-        except HTTPException as e:
-            logger.error(f"Upload error in upload_time_preferences: {str(e)}")
-            raise
-
-        return UploadResponse(
-            status="success",
-            message="Faculty meeting preferences updated successfully",
-            records_processed=len(to_insert) + len(to_update),
-            records_successful=len(to_insert) + len(to_update),
-        )
-
-
-"""
-    Parses the given csv file and validates each entry
-
-    Args:
-        file (File): The file to be read; must be .csv
-        schema (String): Specifies the contents of the given csv. Must be either
-            Course Offerings or Course Preferences.
-        db (Session): The current database session
-
-    Returns:
-        List of course offerings/preferences validated against the corresponding
-        schema and translated into expected db model format parsed from the given file
-
-"""
+    return UploadResponse(
+        status="success",
+        message="Faculty meeting preferences updated successfully",
+        records_processed=len(to_insert) + len(to_update),
+        records_successful=len(to_insert) + len(to_update),
+    )
 
 
 def parse_file(file, schema, db):
@@ -229,20 +159,6 @@ def format_time_block(meeting_days, start_time, end_time):
         return f"{hour}:{t.minute:02d}{period}"
 
     return f"{meeting_days} {fmt(start_time)}-{fmt(end_time)}"
-
-
-"""
-    Helper for parse_file. Handles files which match the CoursePreferences schema.
-
-    Args:
-        db (Session): The current database session
-        reader (DictReader): The dict reader which is reading the file
-
-    Returns:
-        List of course preferences validated against the corresponding schema and
-        translated into expected db model format parsed from the given file
-
-"""
 
 
 def parse_time_preferences(db, reader):
@@ -286,10 +202,6 @@ def parse_time_preferences(db, reader):
                     )
                     db.add(time_block)
                     db.flush()
-                    # errors.append(
-                    #     f"Row {i}: time block "
-                    #     f"'{days} {start_time}-{end_time}' not found")
-                    # continue
 
                 elif not faculty:
                     errors.append(
@@ -326,20 +238,6 @@ def parse_time_preferences(db, reader):
     return {"inserts": inserts, "updates": updates}
 
 
-"""
-    Helper for parse_file. Handles files which match the CourseOfferings schema.
-
-    Args:
-        db (Session): The current database session
-        reader (DictReader): The dict reader which is reading the file
-
-    Returns:
-        List of course offerings validated against the corresponding schema and
-        translated into expected db model format parsed from the given file
-
-"""
-
-
 def parse_course_offerings(db, reader):
     table_entries = []
     errors = []
@@ -364,20 +262,6 @@ def parse_course_offerings(db, reader):
         raise HTTPException(status_code=422, detail=errors)
 
     return table_entries
-
-
-"""
-    Helper for parse_file. Handles files which match the CoursePreferences schema.
-
-    Args:
-        db (Session): The current database session
-        reader (DictReader): The dict reader which is reading the file
-
-    Returns:
-        List of course preferences validated against the corresponding schema and
-        translated into expected db model format parsed from the given file
-
-"""
 
 
 def parse_course_preferences(db, reader):
@@ -428,21 +312,6 @@ def parse_course_preferences(db, reader):
     return {"inserts": inserts, "updates": updates}
 
 
-"""
-    Validates the given column headers against the expected schema
-
-    Args:
-        headers (List[String]): The column headers
-        schema (String): Specifies the contents of the origin csv file. Must be
-            either Course Offerings or Course Preferences.
-
-    Returns:
-        A dict with two keys:
-            - expected (List[String]): The headers expected for the provided schema
-            - valid (Boolean): True if headers match expected schema, False otherwise
-"""
-
-
 def validate_headers(headers, schema):
     if schema == COURSE_OFFERINGS:
         expected_headers = ["Course", "Credit Hours", "Description"]
@@ -471,19 +340,6 @@ def validate_headers(headers, schema):
     valid = set(expected_headers) == set(headers)
 
     return {"expected": expected_headers, "valid": valid}
-
-
-"""
-    Normalizes the keys in the given row to match expected schema
-
-    Args:
-        row (List[String]): The row to normalize keys for
-        schema (String): Specifies the contents of the origin csv file. Must be
-            either Course Offerings or Course Preferences.
-
-    Returns:
-        A mapping of the row
-"""
 
 
 def normalize_headers(row, schema):

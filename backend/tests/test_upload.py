@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
+from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.core.enums import PreferenceLevel
 from app.main import app
@@ -63,11 +64,6 @@ def make_upload_file_from_disk(path: str):
     return mock_file
 
 
-"""Asserts parse_file correctly validates csv preference entries
-against the schema and returns expected model format.
-"""
-
-
 def test_parse_file_offerings_valid():
     offerings_csv = (
         "Course,Credit Hours,Description\n"
@@ -111,13 +107,13 @@ def test_parse_file_preferences_valid():
     inserts = preferences_result.get("inserts")
     assert inserts[0]["faculty_nuid"] == 1001
     assert inserts[0]["course_id"] == 42
-    assert inserts[0]["preference"] == PreferenceLevel.FIRST
+    assert inserts[0]["preference"] == PreferenceLevel.EAGER
 
 
 def test_parse_file_preferences_dups_found():
     mock_preference = CoursePreference()
     mock_preference.preference_id = 10
-    mock_preference.preference = PreferenceLevel.SECOND
+    mock_preference.preference = PreferenceLevel.READY
 
     def query_side_effect(model):
         mock_query = MagicMock()
@@ -142,12 +138,7 @@ def test_parse_file_preferences_dups_found():
     )
     updates = preferences_result.get("updates")
     assert updates[0]["preference_id"] == 10
-    assert updates[0]["preference"] == PreferenceLevel.FIRST
-
-
-"""Asserts parse_file throws an error when an unknown course
-has been found in the provided file.
-"""
+    assert updates[0]["preference"] == PreferenceLevel.EAGER
 
 
 def test_parse_file_preferences_course_not_found():
@@ -173,11 +164,6 @@ def test_parse_file_preferences_course_not_found():
     assert exc.value.status_code == 422
 
 
-"""Asserts parse_file throws an error when an unknown course
-has been found in the provided file.
-"""
-
-
 def test_parse_file_preferences_faculty_not_found():
     csv_content = (
         "Faculty Name,Faculty ID,Course,Semester,Preference\n"
@@ -201,11 +187,6 @@ def test_parse_file_preferences_faculty_not_found():
     assert exc.value.status_code == 422
 
 
-"""Asserts parse_file throws an error when an unknown preference rank
-has been found in the provided file.
-"""
-
-
 def test_parse_file_preferences_invalid_enum():
     csv_content = (
         "Faculty Name,Faculty ID,Course,Semester,Preference\n"
@@ -218,12 +199,6 @@ def test_parse_file_preferences_invalid_enum():
         parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db)
 
     assert exc.value.status_code == 422
-
-
-"""Asserts parse_file correctly validates csv preference entries
-against the schema and returns expected model format.
-Checked against real file with multiple entries.
-"""
 
 
 def test_parse_file_from_real_csv_offerings():
@@ -287,17 +262,10 @@ def test_parse_file_from_real_csv_preferences():
     )
 
 
-"""Assert POST /upload/faculty-preferences parses the CSV
-and inserts rows into the DB.
-"""
-
-
 def test_upload_faculty_preferences():
-    # mock_db.reset_mock()
-
     mock_preference = CoursePreference()
     mock_preference.preference_id = 10
-    mock_preference.preference = PreferenceLevel.SECOND
+    mock_preference.preference = PreferenceLevel.READY
 
     def query_side_effect(model):
         mock_query = MagicMock()
@@ -316,6 +284,7 @@ def test_upload_faculty_preferences():
         yield mock_db_local
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: {"sub": "test-user"}
 
     csv_content = (
         "Faculty Name,Faculty ID,Course,Semester,Preference\n"
@@ -336,17 +305,11 @@ def test_upload_faculty_preferences():
     mock_db_local.execute.assert_called_once()
     mock_db_local.commit.assert_called_once()
 
-    # Verify the exact rows passed to db.execute match the CSV contents
     _, inserted_rows = mock_db_local.execute.call_args[0]
     assert len(inserted_rows) == 1
     assert inserted_rows[0]["faculty_nuid"] == 1001
     assert inserted_rows[0]["course_id"] == 42
-    assert inserted_rows[0]["preference"] == PreferenceLevel.FIRST
-
-
-"""Assert POST /upload/faculty-preferences parses the CSV
-and inserts rows into the DB.
-"""
+    assert inserted_rows[0]["preference"] == PreferenceLevel.EAGER
 
 
 def test_upload_course_offerings():
@@ -356,6 +319,7 @@ def test_upload_course_offerings():
         yield mock_db
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: {"sub": "test-user"}
 
     csv_content = (
         "Course,Credit Hours,Description\n"
@@ -374,7 +338,6 @@ def test_upload_course_offerings():
     mock_db.execute.assert_called_once()
     mock_db.commit.assert_called_once()
 
-    # Verify the exact rows passed to db.execute match the CSV contents
     _, inserted_rows = mock_db.execute.call_args[0]
     assert len(inserted_rows) == 1
     assert inserted_rows[0]["name"] == "CS 2500"
@@ -382,9 +345,6 @@ def test_upload_course_offerings():
     assert inserted_rows[0]["description"] == (
         "This course provides an overview of cs 2500 concepts."
     )
-
-
-"""Asserts parse_file accepts files with correct headers."""
 
 
 def test_validate_headers_preferences_valid():
@@ -413,9 +373,6 @@ def test_validate_headers_offerings_valid():
     csv_content = "Course,Credit Hours,Description\nCS 2500,4,Intro to CS.\n"
     result = parse_file(make_upload_file(csv_content), COURSE_OFFERINGS, mock_db)
     assert isinstance(result, list)
-
-
-"""Asserts parse_file raises HTTPException when headers are wrong."""
 
 
 def test_validate_headers_preferences_invalid():
@@ -449,11 +406,6 @@ mock_time_block = TimeBlock()
 mock_time_block.time_block_id = 7
 
 
-"""Asserts parse_time_preferences inserts a new row when no existing preference
-is found for the faculty/time block combination.
-"""
-
-
 def test_parse_time_preferences_valid():
     def query_side_effect(model):
         mock_query = MagicMock()
@@ -476,18 +428,13 @@ def test_parse_time_preferences_valid():
     assert len(inserts) == 1
     assert inserts[0]["faculty_nuid"] == 1001
     assert inserts[0]["meeting_time"] == 7
-    assert inserts[0]["preference"] == PreferenceLevel.FIRST
-
-
-"""Asserts parse_time_preferences adds an update entry when an existing
-preference is found with a different preference level.
-"""
+    assert inserts[0]["preference"] == PreferenceLevel.EAGER
 
 
 def test_parse_time_preferences_dup_found():
     mock_existing_pref = MeetingPreference()
     mock_existing_pref.preference_id = 5
-    mock_existing_pref.preference = PreferenceLevel.SECOND
+    mock_existing_pref.preference = PreferenceLevel.READY
 
     def query_side_effect(model):
         mock_query = MagicMock()
@@ -509,12 +456,7 @@ def test_parse_time_preferences_dup_found():
     updates = result.get("updates")
     assert len(updates) == 1
     assert updates[0]["preference_id"] == 5
-    assert updates[0]["preference"] == PreferenceLevel.FIRST
-
-
-"""Asserts parse_time_preferences raises 422 when an invalid preference
-value is found in the CSV.
-"""
+    assert updates[0]["preference"] == PreferenceLevel.EAGER
 
 
 def test_parse_time_preferences_invalid_enum():
@@ -531,10 +473,6 @@ def test_parse_time_preferences_invalid_enum():
     assert exc.value.status_code == 422
 
 
-"""Asserts parse_time_preferences raises 422 when column headers are wrong.
-"""
-
-
 def test_parse_time_preferences_invalid_headers():
     csv_content = (
         "Wrong,Faculty Name,Faculty ID,Meetingtime,Preference\n"
@@ -547,10 +485,6 @@ def test_parse_time_preferences_invalid_headers():
         parse_file(make_upload_file(csv_content), TIME_PREFERENCES, mock_db_local)
 
     assert exc.value.status_code == 422
-
-
-"""Asserts POST /upload/time-preferences inserts new rows into the DB.
-"""
 
 
 def test_upload_time_preferences():
@@ -569,6 +503,7 @@ def test_upload_time_preferences():
         yield mock_db_local
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: {"sub": "test-user"}
 
     csv_content = (
         "Semester,Faculty Name,Faculty ID,Meetingtime,Preference\n"
@@ -591,4 +526,4 @@ def test_upload_time_preferences():
     assert len(inserted_rows) == 1
     assert inserted_rows[0]["faculty_nuid"] == 1001
     assert inserted_rows[0]["meeting_time"] == 7
-    assert inserted_rows[0]["preference"] == PreferenceLevel.FIRST
+    assert inserted_rows[0]["preference"] == PreferenceLevel.EAGER
