@@ -1,9 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
-from app.models.faculty_assignment import FacultyAssignment
-from app.models.meeting_preference import MeetingPreference
 
 
 def get_all(
@@ -61,14 +58,5 @@ def save(db: Session, faculty: Faculty) -> Faculty:
 
 
 def delete_with_dependencies(db: Session, faculty: Faculty) -> None:
-    db.query(FacultyAssignment).filter(
-        FacultyAssignment.faculty_nuid == faculty.nuid
-    ).delete()
-    db.query(CoursePreference).filter(
-        CoursePreference.faculty_nuid == faculty.nuid
-    ).delete()
-    db.query(MeetingPreference).filter(
-        MeetingPreference.faculty_nuid == faculty.nuid
-    ).delete()
     db.delete(faculty)
     db.commit()

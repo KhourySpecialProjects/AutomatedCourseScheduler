@@ -30,13 +30,19 @@ class Faculty(Base):
 
     # Relationships
     course_preferences: Mapped[list["CoursePreference"]] = relationship(
-        "CoursePreference", back_populates="faculty"
+        "CoursePreference",
+        back_populates="faculty",
+        cascade="all, delete-orphan",
     )
     meeting_preferences: Mapped[list["MeetingPreference"]] = relationship(
-        "MeetingPreference", back_populates="faculty"
+        "MeetingPreference",
+        back_populates="faculty",
+        cascade="all, delete-orphan",
     )
     faculty_assignments: Mapped[list["FacultyAssignment"]] = relationship(
-        "FacultyAssignment", back_populates="faculty"
+        "FacultyAssignment",
+        back_populates="faculty",
+        cascade="all, delete-orphan",
     )
 
     # Timestamps

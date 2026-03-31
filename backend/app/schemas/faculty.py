@@ -1,6 +1,6 @@
 """Faculty Pydantic schemas."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.section import CoursePreferenceInfo, MeetingPreferenceInfo
 
@@ -28,6 +28,13 @@ class FacultyCreate(BaseModel):
     title: str | None = None
     active: bool = True
 
+    @field_validator("first_name", "last_name", "email", "campus")
+    @classmethod
+    def not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Field cannot be empty")
+        return v
+
 
 class FacultyUpdate(BaseModel):
     first_name: str | None = None
@@ -37,6 +44,13 @@ class FacultyUpdate(BaseModel):
     phone_number: str | None = None
     title: str | None = None
     active: bool | None = None
+
+    @field_validator("first_name", "last_name", "email", "campus")
+    @classmethod
+    def not_empty_optional(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("Field cannot be empty")
+        return v
 
 
 class FacultyProfileResponse(BaseModel):
