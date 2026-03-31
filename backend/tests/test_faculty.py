@@ -2,7 +2,7 @@
 
 from datetime import time
 
-from app.core.enums import Campus, PreferenceLevel, Semester
+from app.core.enums import PreferenceLevel
 from app.models import (
     Course,
     CoursePreference,
@@ -13,6 +13,34 @@ from app.models import (
     Section,
     TimeBlock,
 )
+from app.models.campus import Campus as CampusModel
+from app.models.semester import Semester as SemesterModel
+
+
+def _make_campus(db, name="Boston"):
+    campus = CampusModel(name=name)
+    db.add(campus)
+    db.flush()
+    return campus
+
+
+def _make_semester(db, season="Fall", year=2024):
+    semester = SemesterModel(season=season, year=year)
+    db.add(semester)
+    db.flush()
+    return semester
+
+
+def _make_time_block(db, campus_id):
+    tb = TimeBlock(
+        meeting_days="MW",
+        start_time=time(10, 0),
+        end_time=time(11, 0),
+        campus=campus_id,
+    )
+    db.add(tb)
+    db.flush()
+    return tb
 
 
 def test_get_faculty_empty(client, db_session):
@@ -147,14 +175,8 @@ def test_get_faculty_profile_with_preferences(client, db_session):
     db_session.add(faculty)
     db_session.flush()
 
-    tb = TimeBlock(
-        meeting_days="MW",
-        start_time=time(10, 0),
-        end_time=time(11, 0),
-        campus=Campus.BOSTON,
-    )
-    db_session.add(tb)
-    db_session.flush()
+    campus = _make_campus(db_session, name="Boston")
+    tb = _make_time_block(db_session, campus_id=campus.campus_id)
 
     db_session.add(
         CoursePreference(
@@ -341,12 +363,8 @@ def test_delete_faculty_success(client, db_session):
 
 def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
     course = Course(name="PL", description="PL", credits=4)
-    tb = TimeBlock(
-        meeting_days="MW",
-        start_time=time(10, 0),
-        end_time=time(11, 0),
-        campus=Campus.BOSTON,
-    )
+    campus = _make_campus(db_session, name="Boston")
+    tb = _make_time_block(db_session, campus_id=campus.campus_id)
     faculty = Faculty(
         nuid=9002,
         first_name="Rich",
@@ -356,7 +374,14 @@ def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
     )
     db_session.add_all([course, tb, faculty])
     db_session.flush()
-    schedule = Schedule(name="F24", semester=Semester.FALL, year=2024)
+    semester = _make_semester(db_session, season="Fall", year=2024)
+    schedule = Schedule(
+        name="F24",
+        semester_id=semester.semester_id,
+        campus=campus.campus_id,
+        draft=True,
+        complete=False,
+    )
     db_session.add(schedule)
     db_session.flush()
     section = Section(
@@ -372,14 +397,14 @@ def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
         CoursePreference(
             faculty_nuid=faculty.nuid,
             course_id=course.course_id,
-            preference=PreferenceLevel.FIRST,
+            preference=PreferenceLevel.EAGER,
         )
     )
     db_session.add(
         MeetingPreference(
             faculty_nuid=faculty.nuid,
             meeting_time=tb.time_block_id,
-            preference=PreferenceLevel.SECOND,
+            preference=PreferenceLevel.READY,
         )
     )
     db_session.add(

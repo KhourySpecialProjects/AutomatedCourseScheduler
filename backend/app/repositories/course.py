@@ -1,8 +1,19 @@
+import re
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.course import Course
 from app.models.section import Section
+
+_COURSE_NAME_RE = re.compile(r"^[A-Z]{2,4}\s+\d{4}$")
+
+
+def _validate_course_name(name: str) -> None:
+    """Enforce course name format: '{SUBJECT} {course_number}' (e.g. 'CS 2500')."""
+    normalized = " ".join(name.strip().split()).upper()
+    if not _COURSE_NAME_RE.fullmatch(normalized):
+        raise ValueError("Course name must be in format '{SUBJECT} {COURSE_NUMBER}'")
 
 
 def get_all(db: Session) -> list[Course]:
@@ -39,6 +50,7 @@ def course_exists(db: Session, course_id: int) -> bool:
 
 
 def create(db: Session, course: Course) -> Course:
+    _validate_course_name(course.name)
     db.add(course)
     db.commit()
     db.refresh(course)
@@ -46,6 +58,7 @@ def create(db: Session, course: Course) -> Course:
 
 
 def save(db: Session, course: Course) -> Course:
+    _validate_course_name(course.name)
     db.add(course)
     db.commit()
     db.refresh(course)
