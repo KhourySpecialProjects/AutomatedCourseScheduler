@@ -1,15 +1,26 @@
-"""Tests for comment routes.
+"""Tests for comment routes."""
 
-These tests describe CORRECT expected behavior. Several will currently fail
-due to known bugs in the router (documented per test).
-"""
-
-from app.core.enums import Semester
 from app.models import Comment, Schedule, Section, User
+from app.models.campus import Campus as CampusModel
+from app.models.semester import Semester as SemesterModel
 
 # ---------------------------------------------------------------------------
-# Fixtures / helpers
+# Helpers
 # ---------------------------------------------------------------------------
+
+
+def _make_campus(db, name="Boston"):
+    campus = CampusModel(name=name)
+    db.add(campus)
+    db.flush()
+    return campus
+
+
+def _make_semester(db, season="Fall", year=2024):
+    semester = SemesterModel(season=season, year=year)
+    db.add(semester)
+    db.flush()
+    return semester
 
 
 def _make_user(db, nuid=1):
@@ -26,7 +37,13 @@ def _make_user(db, nuid=1):
 
 
 def _make_schedule(db):
-    schedule = Schedule(name="Test Schedule", semester=Semester.FALL, year=2024)
+    campus = _make_campus(db)
+    semester = _make_semester(db)
+    schedule = Schedule(
+        name="Test Schedule",
+        semester_id=semester.semester_id,
+        campus=campus.campus_id,
+    )
     db.add(schedule)
     db.commit()
     return schedule
@@ -148,11 +165,10 @@ def test_post_comment_section_not_found(client, db_session):
     assert response.status_code == 422
     errors = response.json()["detail"]
     assert any("9999" in e for e in errors)
-    # The closing quote should be present: "Section with id '9999' not found"
     assert any(e == "Section with id '9999' not found" for e in errors)
 
 
-def test_post_comment_user_and_section_not_found(client):
+def test_post_comment_user_and_section_not_found(client, db_session):
     response = client.post(
         "/comments",
         json={
@@ -173,7 +189,6 @@ def test_post_comment_user_and_section_not_found(client):
 
 
 def test_post_reply_success(client, db_session):
-    """A reply should be created and stored with parent_id set."""
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
     parent = _make_comment(db_session, user.nuid, section.section_id, "Parent comment")
@@ -189,7 +204,6 @@ def test_post_reply_success(client, db_session):
 
     assert response.status_code == 201
 
-    # Verify parent_id was persisted
     db_session.expire_all()
     reply = (
         db_session.query(Comment).filter(Comment.content == "This is a reply").first()
@@ -199,7 +213,6 @@ def test_post_reply_success(client, db_session):
 
 
 def test_post_reply_invalid_parent_returns_422(client, db_session):
-    """Supplying a non-existent parent_id should return 422."""
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
 
@@ -222,24 +235,20 @@ def test_post_reply_invalid_parent_returns_422(client, db_session):
 # ---------------------------------------------------------------------------
 
 
-def test_get_comments_section_not_found(client):
+def test_get_comments_section_not_found(client, db_session):
     response = client.get("/comments/9999")
-
     assert response.status_code == 404
     assert "9999" in response.json()["detail"]
 
 
 def test_get_comments_section_with_no_comments_returns_empty_list(client, db_session):
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
-
     response = client.get(f"/comments/{section.section_id}")
-
     assert response.status_code == 200
     assert response.json() == []
 
 
 def test_get_comments_returns_comments_for_section(client, db_session):
-
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
     _make_comment(db_session, user.nuid, section.section_id, "First comment")
@@ -252,7 +261,6 @@ def test_get_comments_returns_comments_for_section(client, db_session):
     assert len(data) == 2
     contents = {c["content"] for c in data}
     assert contents == {"First comment", "Second comment"}
-    # Each item must look like a CommentResponse
     for item in data:
         assert "comment_id" in item
         assert "user_id" in item
@@ -262,7 +270,6 @@ def test_get_comments_returns_comments_for_section(client, db_session):
 
 
 def test_get_comments_only_returns_comments_for_requested_section(client, db_session):
-    """Comments from other sections must not appear in the response."""
     user = _make_user(db_session)
     schedule_id = _make_schedule(db_session).schedule_id
     section_a = _make_section(db_session, schedule_id)
@@ -297,9 +304,8 @@ def test_delete_comment_success(client, db_session):
     assert updated.active is False
 
 
-def test_delete_comment_not_found_returns_404(client):
+def test_delete_comment_not_found_returns_404(client, db_session):
     response = client.delete("/comments/9999")
-
     assert response.status_code == 404
 
 
@@ -323,7 +329,6 @@ def test_resolve_comment_success(client, db_session):
     assert updated.resolved is True
 
 
-def test_resolve_comment_not_found_returns_404(client):
+def test_resolve_comment_not_found_returns_404(client, db_session):
     response = client.put("/comments/9999")
-
     assert response.status_code == 404

@@ -14,6 +14,7 @@ class Campus(Base):
 
     campus_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
+    active: Mapped[bool] = mapped_column(default=True)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

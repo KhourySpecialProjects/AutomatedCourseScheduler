@@ -1,8 +1,7 @@
 from datetime import time
 
-from app.core.enums import PreferenceLevel, Semester
+from app.core.enums import PreferenceLevel
 from app.models import (
-    Campus,
     Course,
     CoursePreference,
     Faculty,
@@ -12,13 +11,55 @@ from app.models import (
     Section,
     TimeBlock,
 )
+from app.models.campus import Campus as CampusModel
+from app.models.semester import Semester as SemesterModel
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _make_campus(db, name="Boston"):
+    campus = CampusModel(name=name)
+    db.add(campus)
+    db.flush()
+    return campus
+
+
+def _make_semester(db, season="Fall", year=2024):
+    semester = SemesterModel(season=season, year=year)
+    db.add(semester)
+    db.flush()
+    return semester
+
+
+def _seed_schedule_course_timeblock(db_session):
+    campus = _make_campus(db_session)
+    semester = _make_semester(db_session)
+    schedule = Schedule(
+        name="F24", semester_id=semester.semester_id, campus=campus.campus_id
+    )
+    course = Course(name="CS 2500", description="Fundamentals", credits=4)
+    db_session.add_all([schedule, course])
+    db_session.flush()
+    time_block = TimeBlock(
+        meeting_days="MW",
+        start_time=time(10, 0),
+        end_time=time(11, 0),
+        campus=campus.campus_id,
+    )
+    db_session.add(time_block)
+    db_session.commit()
+    return schedule, course, time_block
+
+
+# ---------------------------------------------------------------------------
+# GET /schedules/{id}/sections
+# ---------------------------------------------------------------------------
 
 
 def test_get_schedule_sections_empty(client, db_session):
-    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
-    db_session.add(schedule)
-    db_session.commit()
-
+    schedule, _, __ = _seed_schedule_course_timeblock(db_session)
     response = client.get(f"/schedules/{schedule.schedule_id}/sections")
     assert response.status_code == 200
     assert response.json() == []
@@ -26,7 +67,6 @@ def test_get_schedule_sections_empty(client, db_session):
 
 def test_get_schedule_sections_returns_all(client, db_session):
     schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
-
     db_session.add_all(
         [
             Section(
@@ -46,7 +86,6 @@ def test_get_schedule_sections_returns_all(client, db_session):
         ]
     )
     db_session.commit()
-
     response = client.get(f"/schedules/{schedule.schedule_id}/sections")
     assert response.status_code == 200
     assert len(response.json()) == 2
@@ -54,7 +93,6 @@ def test_get_schedule_sections_returns_all(client, db_session):
 
 def test_get_schedule_sections_response_shape(client, db_session):
     schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
-
     db_session.add(
         Section(
             schedule_id=schedule.schedule_id,
@@ -65,7 +103,6 @@ def test_get_schedule_sections_response_shape(client, db_session):
         )
     )
     db_session.commit()
-
     response = client.get(f"/schedules/{schedule.schedule_id}/sections")
     assert response.status_code == 200
     section = response.json()[0]
@@ -84,7 +121,6 @@ def test_get_schedule_sections_response_shape(client, db_session):
 
 def test_get_schedule_sections_field_values(client, db_session):
     schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
-
     db_session.add(
         Section(
             schedule_id=schedule.schedule_id,
@@ -95,7 +131,6 @@ def test_get_schedule_sections_field_values(client, db_session):
         )
     )
     db_session.commit()
-
     response = client.get(f"/schedules/{schedule.schedule_id}/sections")
     section = response.json()[0]
     assert section["capacity"] == 15
@@ -109,11 +144,13 @@ def test_get_schedule_sections_unknown_schedule_returns_404(client, db_session):
     assert client.get("/schedules/99999/sections").status_code == 404
 
 
-def test_get_rich_sections_empty(client, db_session):
-    schedule = Schedule(name="Test", semester=Semester.FALL, year=2024)
-    db_session.add(schedule)
-    db_session.commit()
+# ---------------------------------------------------------------------------
+# GET /schedules/{id}/sections/rich
+# ---------------------------------------------------------------------------
 
+
+def test_get_rich_sections_empty(client, db_session):
+    schedule, _, __ = _seed_schedule_course_timeblock(db_session)
     response = client.get(f"/schedules/{schedule.schedule_id}/sections/rich")
     assert response.status_code == 200
     assert response.json() == []
@@ -124,11 +161,16 @@ def test_get_rich_sections_unknown_schedule_returns_404(client, db_session):
 
 
 def test_get_rich_sections_nested_shape(client, db_session):
-    schedule = Schedule(name="Sched", semester=Semester.FALL, year=2025)
+    campus = _make_campus(db_session)
+    semester = _make_semester(db_session)
+
+    schedule = Schedule(
+        name="Sched", semester_id=semester.semester_id, campus=campus.campus_id
+    )
     course = Course(name="Intro CS", description="Fun", credits=4)
-    campus = Campus(name="Boston")
-    db_session.add_all([schedule, course, campus])
+    db_session.add_all([schedule, course])
     db_session.flush()
+
     tb = TimeBlock(
         meeting_days="MW",
         start_time=time(10, 30),
@@ -141,7 +183,7 @@ def test_get_rich_sections_nested_shape(client, db_session):
         last_name="Lovelace",
         email="ada@example.edu",
         title=None,
-        campus="Boston",
+        campus=campus.campus_id,
     )
     db_session.add_all([tb, faculty])
     db_session.flush()
@@ -195,26 +237,13 @@ def test_get_rich_sections_nested_shape(client, db_session):
     assert inst["meeting_preferences"][0]["meeting_time"] == str(tb.time_block_id)
 
 
-def _seed_schedule_course_timeblock(db_session):
-    schedule = Schedule(name="F24", semester=Semester.FALL, year=2024)
-    course = Course(name="CS 2500", description="Fundamentals", credits=4)
-    campus = Campus(name="Boston")
-    db_session.add_all([schedule, course, campus])
-    db_session.flush()
-    time_block = TimeBlock(
-        meeting_days="MW",
-        start_time=time(10, 0),
-        end_time=time(11, 0),
-        campus=campus.campus_id,
-    )
-    db_session.add(time_block)
-    db_session.commit()
-    return schedule, course, time_block
+# ---------------------------------------------------------------------------
+# POST /sections
+# ---------------------------------------------------------------------------
 
 
 def test_create_section_success(client, db_session):
     schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
-
     response = client.post(
         "/sections",
         json={
@@ -225,7 +254,6 @@ def test_create_section_success(client, db_session):
             "section_number": 1,
         },
     )
-
     assert response.status_code == 201
     data = response.json()
     assert data["schedule_id"] == schedule.schedule_id
@@ -237,7 +265,6 @@ def test_create_section_success(client, db_session):
 
 def test_create_section_invalid_schedule_returns_400(client, db_session):
     _, course, time_block = _seed_schedule_course_timeblock(db_session)
-
     response = client.post(
         "/sections",
         json={
@@ -248,14 +275,12 @@ def test_create_section_invalid_schedule_returns_400(client, db_session):
             "section_number": 1,
         },
     )
-
     assert response.status_code == 400
     assert response.json()["detail"] == "ScheduleID is invalid"
 
 
 def test_create_section_invalid_course_returns_400(client, db_session):
     schedule, _, time_block = _seed_schedule_course_timeblock(db_session)
-
     response = client.post(
         "/sections",
         json={
@@ -266,16 +291,20 @@ def test_create_section_invalid_course_returns_400(client, db_session):
             "section_number": 1,
         },
     )
-
     assert response.status_code == 400
     assert response.json()["detail"] == "CourseID is invalid"
 
 
+# ---------------------------------------------------------------------------
+# PATCH /sections/{id}
+# ---------------------------------------------------------------------------
+
+
 def test_patch_section_success(client, db_session):
     schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
+    campus = _make_campus(db_session, "Oakland")
     new_course = Course(name="CS 3200", description="Databases", credits=4)
-    campus = Campus(name="Boston")
-    db_session.add_all([new_course, campus])
+    db_session.add(new_course)
     db_session.flush()
     new_time_block = TimeBlock(
         meeting_days="TR",
@@ -294,7 +323,6 @@ def test_patch_section_success(client, db_session):
     )
     db_session.add(crosslisted_target)
     db_session.flush()
-
     section = Section(
         schedule_id=schedule.schedule_id,
         time_block_id=time_block.time_block_id,
@@ -315,7 +343,6 @@ def test_patch_section_success(client, db_session):
             "crosslisted_section_id": crosslisted_target.section_id,
         },
     )
-
     assert response.status_code == 200
     data = response.json()
     assert data["schedule_id"] == schedule.schedule_id
@@ -342,10 +369,8 @@ def test_patch_section_invalid_time_block_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-
     response = client.patch(
-        f"/sections/{section.section_id}",
-        json={"time_block_id": 99999},
+        f"/sections/{section.section_id}", json={"time_block_id": 99999}
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "TimeBlockID is invalid"
@@ -362,10 +387,8 @@ def test_patch_section_invalid_course_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-
     response = client.patch(
-        f"/sections/{section.section_id}",
-        json={"course_id": 99999},
+        f"/sections/{section.section_id}", json={"course_id": 99999}
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "CourseID is invalid"
@@ -382,10 +405,8 @@ def test_patch_section_invalid_crosslisted_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-
     response = client.patch(
-        f"/sections/{section.section_id}",
-        json={"crosslisted_section_id": 99999},
+        f"/sections/{section.section_id}", json={"crosslisted_section_id": 99999}
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "CrosslistedSectionID is invalid"
@@ -438,19 +459,20 @@ def test_patch_section_replace_faculty_assignments(client, db_session):
         capacity=25,
         section_number=1,
     )
+    campus = _make_campus(db_session, "Oakland")
     f1 = Faculty(
         nuid=1001,
         first_name="Jane",
         last_name="Doe",
         email="jane@example.com",
-        campus="Boston",
+        campus=campus.campus_id,
     )
     f2 = Faculty(
         nuid=1002,
         first_name="John",
         last_name="Smith",
         email="john@example.com",
-        campus="Boston",
+        campus=campus.campus_id,
     )
     db_session.add_all([section, f1, f2])
     db_session.flush()
@@ -460,8 +482,7 @@ def test_patch_section_replace_faculty_assignments(client, db_session):
     db_session.commit()
 
     response = client.patch(
-        f"/sections/{section.section_id}",
-        json={"faculty_nuids": [f2.nuid]},
+        f"/sections/{section.section_id}", json={"faculty_nuids": [f2.nuid]}
     )
     assert response.status_code == 200
 
@@ -485,13 +506,16 @@ def test_patch_section_invalid_faculty_assignments_returns_400(client, db_sessio
     )
     db_session.add(section)
     db_session.commit()
-
     response = client.patch(
-        f"/sections/{section.section_id}",
-        json={"faculty_nuids": [99999]},
+        f"/sections/{section.section_id}", json={"faculty_nuids": [99999]}
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "FacultyNUIDs is invalid"
+
+
+# ---------------------------------------------------------------------------
+# DELETE /sections/{id}
+# ---------------------------------------------------------------------------
 
 
 def test_delete_section_success(client, db_session):

@@ -1,12 +1,18 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, Integer, String
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
-from app.core.enums import Semester
+from app.models.semester import Semester
 
 if TYPE_CHECKING:
     from app.models.schedule_log import ScheduleLog
@@ -22,11 +28,12 @@ class Schedule(Base):
 
     schedule_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
-    semester: Mapped[Semester] = mapped_column(Enum(Semester))
-    year: Mapped[int] = mapped_column(
-        Integer, CheckConstraint("year >= 1000 AND year <= 9999")
+    semester_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey(Semester.semester_id), nullable=False
     )
     draft: Mapped[bool] = mapped_column(Boolean, default=True)
+    campus: Mapped[int] = mapped_column(ForeignKey("campus.campus_id"), nullable=False)
+    complete: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
     sections: Mapped[list["Section"]] = relationship(
@@ -35,9 +42,13 @@ class Schedule(Base):
     schedule_log: Mapped["ScheduleLog"] = relationship(
         "ScheduleLog", back_populates="schedule"
     )
+    semester: Mapped["Semester"] = relationship("Semester", back_populates="schedules")
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
+
+    # Deletion
+    active: Mapped[bool] = mapped_column(Boolean, default=True)

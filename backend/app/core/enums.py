@@ -18,13 +18,6 @@ class PreferenceLevel(enum.StrEnum):
         return mapping[self]
 
 
-class Semester(enum.Enum):
-    FALL = "Fall"
-    SPRING = "Spring"
-    SUMMER_1 = "Summer 1"
-    SUMMER_2 = "Summer 2"
-
-
 class Severity(int, enum.Enum):
     LOW = 1
     MEDIUM = 2
