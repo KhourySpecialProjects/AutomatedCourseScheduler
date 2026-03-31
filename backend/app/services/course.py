@@ -1,11 +1,21 @@
 from sqlalchemy.orm import Session
 
 from app.models.course import Course
+from app.models.schedule import Schedule
 from app.repositories import course as course_repo
+from app.repositories import semester as semester_repo
 from app.schemas.course import CourseResponse
 
+from app.repositories import schedule as schedule_repo
 
-def _course_to_response(course: Course, section_count: int) -> CourseResponse:
+
+HIGH_PRIORITY_COURSES = ["CS 1800", "CS 2000", "CS 2100", "CS 2700", "CS 2800",
+                         "CS 3000", "CS 3100", "CS 3200", "CS 3650", "CS 3800",
+                         "CS 4530", "CS 5001", "CS 5002", "CS 5004", "CS 5010",
+                         "DS 3000", "DS 4400", "CY 2550"]
+
+
+def _course_to_response(course: Course, section_count: int, high_priority: bool = False) -> CourseResponse:
     return CourseResponse(
         CourseID=course.course_id,
         CourseName=course.name,
@@ -13,6 +23,7 @@ def _course_to_response(course: Course, section_count: int) -> CourseResponse:
         CourseNo=None,
         CourseSubject=None,
         SectionCount=section_count,
+        HighPriority=high_priority
     )
 
 
@@ -43,3 +54,51 @@ def get_course(
         return None
     section_count = course_repo.get_section_count(db, course_id, schedule_id)
     return _course_to_response(course, section_count)
+
+
+def get_section_count(schedule: Schedule, courses: list[Course], new_courses: list[Course]) -> list[CourseResponse]:
+    course_responses = []
+    errors = []
+
+    for course in courses:
+        section_count = schedule_repo.count_sections_for_course(
+            schedule, course.course_id)
+
+        if section_count == 0:
+            errors.append(
+                f"Course {course.name} not found in schedule with id {schedule.schedule_id}")
+
+        response = _course_to_response(
+            course, section_count, (course.name in HIGH_PRIORITY_COURSES))
+        course_responses.append(response)
+
+    for course in new_courses:
+        response = _course_to_response(course, 1)
+        course_responses.append(response)
+
+    if errors:
+        raise ValueError(errors)
+
+    return course_responses
+
+
+def generate_course_list(db: Session, semester_id: int, schedule_id: int | None, new_courses: list[Course]) -> list[CourseResponse]:
+    if schedule_id:
+        schedule = schedule_repo.get_by_id(db, schedule_id)
+        if schedule:
+            courses = schedule_repo.get_courses(db, schedule)
+    else:
+        semester = semester_repo.get_by_id(semester_id)
+        schedule = semester_repo.get_schedules(semester)
+
+        if len(schedule) > 1:
+            raise ValueError(
+                f"Semester with id {semester_id} invalid. Multiple scheduels present. Expected 1.")
+        else:
+            courses = schedule_repo.get_courses(db, schedule[0])
+
+    if not courses:
+        raise ValueError(
+            f"No courses found for schedule with id {schedule_id}")
+
+    return get_section_count(schedule, courses, new_courses)

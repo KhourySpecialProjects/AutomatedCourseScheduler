@@ -3,6 +3,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.schedule import Schedule
+from app.models.course import Course
 
 
 def schedule_exists(db: Session, schedule_id: int) -> bool:
@@ -46,7 +47,8 @@ def create(db: Session, data: dict) -> Schedule:
 
 def update(db: Session, schedule_id: int, data: dict) -> Schedule | None:
     rows_updated = (
-        db.query(Schedule).filter(Schedule.schedule_id == schedule_id).update(data)
+        db.query(Schedule).filter(
+            Schedule.schedule_id == schedule_id).update(data)
     )
     db.commit()
     if rows_updated == 0:
@@ -62,3 +64,19 @@ def delete(db: Session, schedule_id: int) -> bool:
     schedule.active = False
     db.commit()
     return True
+
+
+def get_courses(schedule: Schedule) -> list[Course]:
+    sections = schedule.sections
+    courses = list({section.course_id: section.course for section in sections}.values())
+    return courses
+
+def count_sections_for_course(schedule: Schedule, course_id: int) -> int:
+    sections = schedule.sections
+    count = 0
+    for section in sections: 
+        if section.course_id == course_id:
+            count += 1
+    return count
+
+

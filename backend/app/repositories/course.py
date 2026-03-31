@@ -46,3 +46,6 @@ def course_exists(db: Session, course_id: int) -> bool:
         db.query(Course.course_id).filter(Course.course_id == course_id).first()
         is not None
     )
+    
+def get_by_name(db: Session, course_name: str) -> int:
+    return db.query(Course).filter(Course.name == course_name).first()
