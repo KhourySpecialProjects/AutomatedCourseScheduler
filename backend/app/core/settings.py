@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
     AUTH0_DOMAIN: str = ""
     AUTH0_AUDIENCE: str = ""
+    LOCK_TIMEOUT_MINUTES: int = 2  # duration in minutes before a section lock expires
 
     @property
     def db_url(self) -> str:

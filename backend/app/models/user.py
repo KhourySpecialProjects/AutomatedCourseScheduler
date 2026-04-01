@@ -24,6 +24,7 @@ class User(Base):
     last_name: Mapped[str] = mapped_column(String(100))
     email: Mapped[str] = mapped_column(String(100), unique=True)
     phone_number: Mapped[str] = mapped_column(String(15))
+    role: Mapped[str] = mapped_column(String(50), default="VIEWER")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
