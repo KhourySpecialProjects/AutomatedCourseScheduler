@@ -71,7 +71,7 @@ def get_courses(schedule: Schedule) -> list[Course]:
     return courses
 
 
-def count_sections_for_course(schedule: Schedule, course_id: int) -> int:
+def total_section_count(schedule: Schedule, course_id: int) -> int:
     sections = schedule.sections
     count = 0
     for section in sections:

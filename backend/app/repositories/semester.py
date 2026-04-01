@@ -31,7 +31,8 @@ def create(db: Session, data: dict) -> Semester:
 
 def update(db: Session, semester_id: int, data: dict) -> Semester | None:
     rows_updated = (
-        db.query(Semester).filter(Semester.semester_id == semester_id).update(data)
+        db.query(Semester).filter(
+            Semester.semester_id == semester_id).update(data)
     )
     db.commit()
     if rows_updated == 0:
@@ -48,7 +49,7 @@ def delete(db: Session, semester_id: int) -> bool:
     return True
 
 
-def get_schedules(db: Session, semester: Semester, campus_id: int) -> list[Schedule]:
+def get_schedules(db: Session, semester: Semester, campus_id: int | None) -> list[Schedule]:
     schedules = (
         db.query(Schedule)
         .filter(

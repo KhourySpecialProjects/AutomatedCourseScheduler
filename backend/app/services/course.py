@@ -84,7 +84,7 @@ def get_section_count(
     errors = []
 
     for course in courses:
-        section_count = schedule_repo.count_sections_for_course(
+        section_count = schedule_repo.total_section_count(
             schedule, course.course_id
         )
 
@@ -109,7 +109,8 @@ def get_section_count(
 
 def sort_course_list(course_list: list[CourseResponse]) -> list[CourseResponse]:
     return sorted(
-        course_list, key=lambda c: (not c.Priority, c.QualifiedFaculty, c.CourseNo or 0)
+        course_list, key=lambda c: (
+            not c.Priority, c.QualifiedFaculty, c.CourseNo or 0)
     )
 
 
