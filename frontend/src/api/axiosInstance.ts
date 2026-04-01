@@ -3,6 +3,7 @@ import type { AxiosRequestConfig } from 'axios';
 
 export const instance = axios.create({
   baseURL: 'http://localhost:8000',
+  
 });
 
 export const axiosInstance = <T>(config: AxiosRequestConfig): Promise<T> => {

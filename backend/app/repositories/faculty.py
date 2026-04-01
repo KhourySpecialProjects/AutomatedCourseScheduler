@@ -15,6 +15,17 @@ def get_all(
     return query.order_by(Faculty.last_name, Faculty.first_name).all()
 
 
+def get_by_nuid(db: Session, nuid: int) -> Faculty | None:
+    return db.query(Faculty).filter(Faculty.nuid == nuid).first()
+
+
+def email_in_use_by_other(db: Session, email: str, exclude_nuid: int | None) -> bool:
+    q = db.query(Faculty).filter(Faculty.email == email)
+    if exclude_nuid is not None:
+        q = q.filter(Faculty.nuid != exclude_nuid)
+    return q.first() is not None
+
+
 def get_by_nuid_with_preferences(db: Session, nuid: int) -> Faculty | None:
     return (
         db.query(Faculty)
@@ -31,3 +42,22 @@ def faculty_exists(db: Session, faculty_nuid: int) -> bool:
     return (
         db.query(Faculty.nuid).filter(Faculty.nuid == faculty_nuid).first() is not None
     )
+
+
+def create(db: Session, faculty: Faculty) -> Faculty:
+    db.add(faculty)
+    db.commit()
+    db.refresh(faculty)
+    return faculty
+
+
+def save(db: Session, faculty: Faculty) -> Faculty:
+    db.add(faculty)
+    db.commit()
+    db.refresh(faculty)
+    return faculty
+
+
+def delete_with_dependencies(db: Session, faculty: Faculty) -> None:
+    db.delete(faculty)
+    db.commit()
