@@ -36,12 +36,8 @@ class Schedule(Base):
     complete: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
-    sections: Mapped[list["Section"]] = relationship(
-        "Section", back_populates="schedule"
-    )
-    schedule_log: Mapped["ScheduleLog"] = relationship(
-        "ScheduleLog", back_populates="schedule"
-    )
+    sections: Mapped[list["Section"]] = relationship("Section", back_populates="schedule")
+    schedule_log: Mapped["ScheduleLog"] = relationship("ScheduleLog", back_populates="schedule")
     semester: Mapped["Semester"] = relationship("Semester", back_populates="schedules")
 
     # Timestamps

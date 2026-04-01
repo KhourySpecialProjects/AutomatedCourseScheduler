@@ -50,9 +50,7 @@ def create_faculty(db: Session, body: FacultyCreate) -> FacultyResponse:
     return _faculty_to_response(faculty)
 
 
-def update_faculty(
-    db: Session, nuid: int, body: FacultyUpdate
-) -> FacultyResponse | None:
+def update_faculty(db: Session, nuid: int, body: FacultyUpdate) -> FacultyResponse | None:
     faculty = faculty_repo.get_by_nuid(db, nuid)
     if faculty is None:
         return None

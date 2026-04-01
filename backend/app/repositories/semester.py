@@ -7,10 +7,7 @@ from app.models.semester import Semester
 
 
 def semester_exists(db: Session, semester_id: int) -> bool:
-    return (
-        db.query(Semester).filter(Semester.semester_id == semester_id).first()
-        is not None
-    )
+    return db.query(Semester).filter(Semester.semester_id == semester_id).first() is not None
 
 
 def get_all(db: Session) -> list[Semester]:
@@ -30,10 +27,7 @@ def create(db: Session, data: dict) -> Semester:
 
 
 def update(db: Session, semester_id: int, data: dict) -> Semester | None:
-    rows_updated = (
-        db.query(Semester).filter(
-            Semester.semester_id == semester_id).update(data)
-    )
+    rows_updated = db.query(Semester).filter(Semester.semester_id == semester_id).update(data)
     db.commit()
     if rows_updated == 0:
         return None
@@ -61,8 +55,7 @@ def get_schedules(db: Session, semester: Semester, campus_id: int | None) -> lis
     )
     if not schedules:
         raise ValueError(
-            f"No schedules found for semester {semester.semester_id} "
-            f"and campus {campus_id}"
+            f"No schedules found for semester {semester.semester_id} and campus {campus_id}"
         )
 
     return schedules

@@ -8,9 +8,7 @@ from app.models.schedule import Schedule
 
 def schedule_exists(db: Session, schedule_id: int) -> bool:
     return (
-        db.query(Schedule.schedule_id)
-        .filter(Schedule.schedule_id == schedule_id)
-        .first()
+        db.query(Schedule.schedule_id).filter(Schedule.schedule_id == schedule_id).first()
         is not None
     )
 
@@ -30,11 +28,7 @@ def get_all(
 
 
 def get_by_id(db: Session, schedule_id: int) -> Schedule | None:
-    return (
-        db.query(Schedule)
-        .filter(Schedule.schedule_id == schedule_id, Schedule.active)
-        .first()
-    )
+    return db.query(Schedule).filter(Schedule.schedule_id == schedule_id, Schedule.active).first()
 
 
 def create(db: Session, data: dict) -> Schedule:
@@ -46,9 +40,7 @@ def create(db: Session, data: dict) -> Schedule:
 
 
 def update(db: Session, schedule_id: int, data: dict) -> Schedule | None:
-    rows_updated = (
-        db.query(Schedule).filter(Schedule.schedule_id == schedule_id).update(data)
-    )
+    rows_updated = db.query(Schedule).filter(Schedule.schedule_id == schedule_id).update(data)
     db.commit()
     if rows_updated == 0:
         return None

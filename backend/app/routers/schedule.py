@@ -74,9 +74,7 @@ def get_schedule_sections_rich(schedule_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse)
-def update_schedule(
-    schedule_id: int, schedule: ScheduleUpdate, db: Session = Depends(get_db)
-):
+def update_schedule(schedule_id: int, schedule: ScheduleUpdate, db: Session = Depends(get_db)):
     """Update schedule metadata (name, complete status, etc.)."""
     return schedule_service.update(db, schedule_id, schedule)
 

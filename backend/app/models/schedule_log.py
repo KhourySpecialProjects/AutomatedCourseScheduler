@@ -21,14 +21,10 @@ class ScheduleLog(Base):
     content: Mapped[str] = mapped_column(String(500))
 
     # Foreign Keys
-    schedule_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("schedule.schedule_id")
-    )
+    schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("schedule.schedule_id"))
 
     # Relationships
-    schedule: Mapped["Schedule"] = relationship(
-        "Schedule", back_populates="schedule_log"
-    )
+    schedule: Mapped["Schedule"] = relationship("Schedule", back_populates="schedule_log")
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

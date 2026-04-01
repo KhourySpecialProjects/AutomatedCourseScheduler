@@ -29,9 +29,7 @@ def get_semester(semester_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{semester_id}", response_model=SemesterResponse)
-def update_semester(
-    semester_id: int, semester: SemesterUpdate, db: Session = Depends(get_db)
-):
+def update_semester(semester_id: int, semester: SemesterUpdate, db: Session = Depends(get_db)):
     """Update semester metadata (name, complete status, etc.)."""
     return semester_service.update(db, semester_id, semester)
 

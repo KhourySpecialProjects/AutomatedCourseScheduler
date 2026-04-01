@@ -19,9 +19,7 @@ from app.schemas.comment import CommentResponse, CommentSchema
 
 def get_comments(db: Session, section_id: int) -> list[CommentResponse]:
     if not section_repo.get_by_id(db, section_id):
-        raise HTTPException(
-            status_code=404, detail=f"Section with id {section_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Section with id {section_id} not found")
 
     comments = comment_repo.get_by_section(db, section_id)
     return comments

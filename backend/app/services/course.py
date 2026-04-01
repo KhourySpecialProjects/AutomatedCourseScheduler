@@ -30,9 +30,7 @@ HIGH_PRIORITY_COURSES = [
 
 
 def _course_to_response(course: Course, section_count: int) -> CourseResponse:
-    qualified_faculty = sum(
-        1 for p in course.course_preferences if p.preference.to_int() <= 3
-    )
+    qualified_faculty = sum(1 for p in course.course_preferences if p.preference.to_int() <= 3)
     split_name = course.name.split(" ", 1)
     course_subject = split_name[0]
     course_no = split_name[1] if len(split_name) > 1 else None
@@ -84,14 +82,11 @@ def get_section_count(
     errors = []
 
     for course in courses:
-        section_count = schedule_repo.total_section_count(
-            schedule, course.course_id
-        )
+        section_count = schedule_repo.total_section_count(schedule, course.course_id)
 
         if section_count == 0:
             errors.append(
-                f"Course {course.name} not found in schedule "
-                f"with id {schedule.schedule_id}"
+                f"Course {course.name} not found in schedule with id {schedule.schedule_id}"
             )
 
         response = _course_to_response(course, section_count)
@@ -108,10 +103,7 @@ def get_section_count(
 
 
 def sort_course_list(course_list: list[CourseResponse]) -> list[CourseResponse]:
-    return sorted(
-        course_list, key=lambda c: (
-            not c.Priority, c.QualifiedFaculty, c.CourseNo or 0)
-    )
+    return sorted(course_list, key=lambda c: (not c.Priority, c.QualifiedFaculty, c.CourseNo or 0))
 
 
 def generate_course_list(
@@ -124,17 +116,14 @@ def generate_course_list(
 
     if len(schedule) > 1:
         raise ValueError(
-            f"Semester with id {semester_id} invalid. "
-            "Multiple schedules present. Expected 1."
+            f"Semester with id {semester_id} invalid. Multiple schedules present. Expected 1."
         )
     else:
         courses = schedule_repo.get_courses(schedule[0])
         course_list = get_section_count(schedule[0], courses, new_courses)
 
     if not courses:
-        raise ValueError(
-            f"No courses found for schedule with id {schedule[0].schedule_id}"
-        )
+        raise ValueError(f"No courses found for schedule with id {schedule[0].schedule_id}")
 
     return sort_course_list(course_list)
 
@@ -150,9 +139,7 @@ def create_course(db: Session, body: CourseCreate) -> CourseResponse:
     return _course_to_response(course, 0)
 
 
-def update_course(
-    db: Session, course_id: int, body: CourseUpdate
-) -> CourseResponse | None:
+def update_course(db: Session, course_id: int, body: CourseUpdate) -> CourseResponse | None:
     course = course_repo.get_by_id(db, course_id)
     if course is None:
         return None
