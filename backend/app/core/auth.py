@@ -2,6 +2,7 @@
 
 import os
 
+from fastapi import Depends
 from fastapi_plugin.fast_api_client import Auth0FastAPI
 
 auth0_domain = os.environ.get("AUTH0_DOMAIN")
@@ -15,11 +16,11 @@ auth0 = Auth0FastAPI(domain=auth0_domain, audience=auth0_audience)
 _verifier = auth0.require_auth()
 
 
-# async def get_current_user(claims: dict = Depends(_verifier)) -> dict:
-#     """Dependency that validates the Auth0 JWT and returns the claims."""
-#     return claims
+async def get_current_user(claims: dict = Depends(_verifier)) -> dict:
+    """Dependency that validates the Auth0 JWT and returns the claims."""
+    return claims
 
 
-# Uncomment to bypass auth for local dev/testing:
-async def get_current_user() -> dict:
-    return {"sub": "dev-user"}
+# Uncomment to bypass auth for local dev/testing (re-comment before committing):
+# async def get_current_user() -> dict:
+#     return {"sub": "dev-user"}

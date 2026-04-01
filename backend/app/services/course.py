@@ -29,15 +29,13 @@ HIGH_PRIORITY_COURSES = [
 ]
 
 
-def _course_to_response(
-    course: Course, section_count: int, high_priority: bool = False
-) -> CourseResponse:
+def _course_to_response(course: Course, section_count: int) -> CourseResponse:
     qualified_faculty = sum(
         1 for p in course.course_preferences if p.preference.to_int() <= 3
     )
-    split_name = course.name.split(" ")
-    course_no = split_name[1]
+    split_name = course.name.split(" ", 1)
     course_subject = split_name[0]
+    course_no = split_name[1] if len(split_name) > 1 else None
     return CourseResponse(
         CourseID=course.course_id,
         CourseName=course.name,
@@ -96,9 +94,7 @@ def get_section_count(
                 f"with id {schedule.schedule_id}"
             )
 
-        response = _course_to_response(
-            course, section_count, (course.name in HIGH_PRIORITY_COURSES)
-        )
+        response = _course_to_response(course, section_count)
         course_responses.append(response)
 
     for course in new_courses:
