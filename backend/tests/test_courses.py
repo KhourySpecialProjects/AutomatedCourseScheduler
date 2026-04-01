@@ -70,9 +70,7 @@ def test_get_courses_includes_section_count(client, db_session):
     db_session.add(course)
     db_session.flush()
 
-    schedule = Schedule(
-        name="F24", semester_id=semester.semester_id, campus=campus.campus_id
-    )
+    schedule = Schedule(name="F24", semester_id=semester.semester_id, campus=campus.campus_id)
     db_session.add(schedule)
     db_session.flush()
 
