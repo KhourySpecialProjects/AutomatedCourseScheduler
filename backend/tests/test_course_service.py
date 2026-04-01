@@ -45,8 +45,9 @@ def _make_schedule(db, campus_id, semester_id, *, name="Test Schedule"):
     return schedule
 
 
-def _make_course(db, name="CS 1800", description="Discrete", credits=4):
-    course = Course(name=name, description=description, credits=credits)
+def _make_course(db, priority=False, name="CS 1800", description="Discrete", credits=4):
+    course = Course(name=name, description=description,
+                    credits=credits, priority=priority)
     db.add(course)
     db.flush()
     return course
@@ -142,10 +143,9 @@ class TestCourseToResponse:
         assert response.Priority is False
 
     def test_priority_explicit_true(self, db_session):
-        course = _make_course(db_session, name="CS 1800")
+        course = _make_course(db_session, name="CS 1800", priority=True)
         response = course_service._course_to_response(
-            course, section_count=2, high_priority=True
-        )
+            course, section_count=2)
         assert response.Priority is True
 
     def test_course_name_preserved(self, db_session):
@@ -161,9 +161,12 @@ class TestCourseToResponse:
         f2 = _make_faculty(db_session, campus.campus_id, nuid=2)
         f3 = _make_faculty(db_session, campus.campus_id, nuid=3)
         f4 = _make_faculty(db_session, campus.campus_id, nuid=4)
-        _make_preference(db_session, f1.nuid, course.course_id, PreferenceLevel.EAGER)
-        _make_preference(db_session, f2.nuid, course.course_id, PreferenceLevel.READY)
-        _make_preference(db_session, f3.nuid, course.course_id, PreferenceLevel.WILLING)
+        _make_preference(db_session, f1.nuid,
+                         course.course_id, PreferenceLevel.EAGER)
+        _make_preference(db_session, f2.nuid,
+                         course.course_id, PreferenceLevel.READY)
+        _make_preference(db_session, f3.nuid, course.course_id,
+                         PreferenceLevel.WILLING)
         _make_preference(
             db_session, f4.nuid, course.course_id, PreferenceLevel.NOT_INTERESTED
         )
@@ -207,13 +210,15 @@ class TestSortCourseList:
         non_priority = self._resp(
             1, priority=False, qualified_faculty=1, course_no=1000
         )
-        priority = self._resp(2, priority=True, qualified_faculty=10, course_no=9999)
+        priority = self._resp(
+            2, priority=True, qualified_faculty=10, course_no=9999)
         result = course_service.sort_course_list([non_priority, priority])
         assert result[0].CourseID == 2
 
     def test_most_constrained_first_within_same_priority(self):
         """Fewest qualified faculty (most constrained) comes first."""
-        constrained = self._resp(1, priority=True, qualified_faculty=1, course_no=2000)
+        constrained = self._resp(
+            1, priority=True, qualified_faculty=1, course_no=2000)
         unconstrained = self._resp(
             2, priority=True, qualified_faculty=10, course_no=1000
         )
@@ -242,7 +247,8 @@ class TestSortCourseList:
         assert course_service.sort_course_list([]) == []
 
     def test_single_element_unchanged(self):
-        item = self._resp(1, priority=True, qualified_faculty=3, course_no=1000)
+        item = self._resp(1, priority=True,
+                          qualified_faculty=3, course_no=1000)
         result = course_service.sort_course_list([item])
         assert result[0].CourseID == 1
 
@@ -256,8 +262,10 @@ class TestSortCourseList:
     def test_non_priority_never_precedes_priority_regardless_of_faculty(self):
         """Even a non-priority course with 0 faculty should rank after
         any priority course."""
-        non_priority = self._resp(1, priority=False, qualified_faculty=0, course_no=1)
-        priority = self._resp(2, priority=True, qualified_faculty=100, course_no=9999)
+        non_priority = self._resp(
+            1, priority=False, qualified_faculty=0, course_no=1)
+        priority = self._resp(
+            2, priority=True, qualified_faculty=100, course_no=9999)
         result = course_service.sort_course_list([non_priority, priority])
         assert result[0].CourseID == 2
 
@@ -271,7 +279,8 @@ class TestGetSectionCount:
     def test_section_count_read_from_schedule(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
         course = _make_course(db_session, name="CS 2100")
         _make_section(
@@ -298,7 +307,8 @@ class TestGetSectionCount:
     def test_new_courses_default_to_one_section(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         new_course = _make_course(db_session, name="CS 9001")
         db_session.refresh(schedule)
 
@@ -312,7 +322,8 @@ class TestGetSectionCount:
         raise ValueError."""
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         course = _make_course(db_session, name="CS 3200")
         db_session.refresh(schedule)
 
@@ -322,9 +333,10 @@ class TestGetSectionCount:
     def test_high_priority_flag_set_for_known_courses(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
-        course = _make_course(db_session, name="CS 1800")
+        course = _make_course(db_session, name="CS 1800", priority=True)
         _make_section(
             db_session, schedule.schedule_id, course.course_id, tb.time_block_id
         )
@@ -337,7 +349,8 @@ class TestGetSectionCount:
     def test_non_priority_course_not_flagged(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
         course = _make_course(db_session, name="CS 9999")
         _make_section(
@@ -353,12 +366,13 @@ class TestGetSectionCount:
         """Every name in HIGH_PRIORITY_COURSES should yield Priority=True."""
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
 
         priority_courses = []
         for i, name in enumerate(course_service.HIGH_PRIORITY_COURSES):
-            c = _make_course(db_session, name=name)
+            c = _make_course(db_session, name=name, priority=True)
             _make_section(
                 db_session,
                 schedule.schedule_id,
@@ -369,7 +383,8 @@ class TestGetSectionCount:
             priority_courses.append(c)
         db_session.refresh(schedule)
 
-        result = course_service.get_section_count(schedule, priority_courses, [])
+        result = course_service.get_section_count(
+            schedule, priority_courses, [])
 
         assert all(r.Priority is True for r in result)
 
@@ -378,7 +393,8 @@ class TestGetSectionCount:
         matches HIGH_PRIORITY_COURSES."""
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         new_course = _make_course(db_session, name="CS 1800")
         db_session.refresh(schedule)
 
@@ -390,7 +406,8 @@ class TestGetSectionCount:
     def test_combined_existing_and_new_courses(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
         existing = _make_course(db_session, name="CS 2000")
         new_course = _make_course(
@@ -401,7 +418,8 @@ class TestGetSectionCount:
         )
         db_session.refresh(schedule)
 
-        result = course_service.get_section_count(schedule, [existing], [new_course])
+        result = course_service.get_section_count(
+            schedule, [existing], [new_course])
 
         assert len(result) == 2
         existing_resp = next(r for r in result if r.CourseName == "CS 2000")
@@ -412,7 +430,8 @@ class TestGetSectionCount:
     def test_multiple_sections_counted_correctly(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
         course = _make_course(db_session, name="CS 2800")
         for i in range(3):
@@ -481,7 +500,8 @@ class TestGenerateCourseList:
         """generate_course_list receives the previous semester_id from the router."""
         campus = _make_campus(db_session)
         sem_prev = _make_semester(db_session, season="Fall", year=2025)
-        schedule = _make_schedule(db_session, campus.campus_id, sem_prev.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem_prev.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
         course = _make_course(db_session, name="CS 2000")
         _make_section(
@@ -497,12 +517,14 @@ class TestGenerateCourseList:
     def test_result_is_sorted_priority_first(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session, season="Fall", year=2025)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
 
-        priority_course = _make_course(db_session, name="CS 1800")
+        priority_course = _make_course(
+            db_session, name="CS 1800", priority=True)
         other_course = _make_course(
-            db_session, name="CS 9999", description="d", credits=3
+            db_session, name="CS 9999", description="d", credits=3,
         )
         _make_section(
             db_session,
@@ -529,7 +551,8 @@ class TestGenerateCourseList:
     def test_new_course_ids_included_with_one_section(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session, season="Fall", year=2025)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
 
         existing = _make_course(db_session, name="CS 2000")
@@ -541,7 +564,8 @@ class TestGenerateCourseList:
         )
 
         result = course_service.generate_course_list(
-            db_session, sem.semester_id, [new_course.course_id], campus.campus_id
+            db_session, sem.semester_id, [
+                new_course.course_id], campus.campus_id
         )
 
         new_resp = next((r for r in result if r.CourseName == "CS 8888"), None)
@@ -551,8 +575,10 @@ class TestGenerateCourseList:
     def test_raises_when_multiple_schedules_for_semester(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session, season="Fall", year=2025)
-        _make_schedule(db_session, campus.campus_id, sem.semester_id, name="S1")
-        _make_schedule(db_session, campus.campus_id, sem.semester_id, name="S2")
+        _make_schedule(db_session, campus.campus_id,
+                       sem.semester_id, name="S1")
+        _make_schedule(db_session, campus.campus_id,
+                       sem.semester_id, name="S2")
 
         with pytest.raises(ValueError, match="Multiple"):
             course_service.generate_course_list(
@@ -573,7 +599,8 @@ class TestGenerateCourseList:
         """A course with 3 sections in the prior schedule should show SectionCount=3."""
         campus = _make_campus(db_session)
         sem = _make_semester(db_session, season="Fall", year=2025)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
         course = _make_course(db_session, name="CS 2800")
         for i in range(3):
@@ -595,7 +622,8 @@ class TestGenerateCourseList:
         """Within non-priority courses, fewest qualified faculty comes first."""
         campus = _make_campus(db_session)
         sem = _make_semester(db_session, season="Fall", year=2025)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
 
         constrained = _make_course(
@@ -648,7 +676,8 @@ class TestGenerateCourseList:
         specific schedule."""
         campus = _make_campus(db_session)
         sem = _make_semester(db_session, season="Fall", year=2025)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
         course = _make_course(db_session, name="CS 3100")
         _make_section(
@@ -664,7 +693,8 @@ class TestGenerateCourseList:
     def test_empty_new_course_ids_list_works(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session, season="Fall", year=2025)
-        schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
+        schedule = _make_schedule(
+            db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
         course = _make_course(db_session, name="CS 2700")
         _make_section(
