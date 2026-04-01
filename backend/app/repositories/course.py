@@ -55,6 +55,8 @@ def get_by_name(db: Session, course_name: str) -> int:
 
 def get_by_ids(db: Session, course_ids: list[int]) -> list[Course]:
     return db.query(Course).filter(Course.course_id.in_(course_ids)).all()
+
+
 def create(db: Session, course: Course) -> Course:
     _validate_course_name(course.name)
     db.add(course)

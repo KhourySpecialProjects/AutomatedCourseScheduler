@@ -140,6 +140,8 @@ def generate_course_list(
         )
 
     return sort_course_list(course_list)
+
+
 def create_course(db: Session, body: CourseCreate) -> CourseResponse:
     course = Course(
         name=body.name,
