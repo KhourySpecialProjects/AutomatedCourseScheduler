@@ -49,11 +49,20 @@ def delete(db: Session, semester_id: int) -> bool:
     return True
 
 
-def get_schedules(semester: Semester) -> list[Schedule]:
-    schedules = semester.schedules
+def get_schedules(db: Session, semester: Semester, campus_id: int) -> list[Schedule]:
+    schedules = (
+        db.query(Schedule)
+        .filter(
+            Schedule.semester_id == semester.semester_id,
+            Schedule.campus == campus_id,
+            Schedule.active,
+        )
+        .all()
+    )
     if not schedules:
         raise ValueError(
-            f"No schedules found for semester {semester.name} with id {semester.semester_id}")
+            f"No schedules found for semester with id {semester.semester_id} and campus {campus_id}"
+        )
 
     return schedules
 

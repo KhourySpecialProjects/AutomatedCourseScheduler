@@ -39,7 +39,7 @@ def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
     else:
         try:
             course_list = course_service.generate_course_list(
-                db, previous_year, schedule.new_courses)
+                db, previous_year, schedule.new_courses, schedule.campus)
         except ValueError:
             course_list = []
 

@@ -97,11 +97,11 @@ def sort_course_list(course_list: list[CourseResponse]) -> list[CourseResponse]:
     )
 
 
-def generate_course_list(db: Session, semester_id: int, new_course_ids: list[int]) -> list[CourseResponse]:
+def generate_course_list(db: Session, semester_id: int, new_course_ids: list[int], campus_id: int) -> list[CourseResponse]:
     new_courses = course_repo.get_by_ids(db, new_course_ids)
 
     semester = semester_repo.get_by_id(db, semester_id)
-    schedule = semester_repo.get_schedules(semester)
+    schedule = semester_repo.get_schedules(db, semester, campus_id)
 
     if len(schedule) > 1:
         raise ValueError(

@@ -479,7 +479,7 @@ class TestGenerateCourseList:
                       course.course_id, tb.time_block_id)
 
         result = course_service.generate_course_list(
-            db_session, sem_prev.semester_id, [])
+            db_session, sem_prev.semester_id, [], campus.campus_id)
 
         assert any(r.CourseName == "CS 2000" for r in result)
 
@@ -499,7 +499,7 @@ class TestGenerateCourseList:
                       other_course.course_id, tb.time_block_id, section_number=2)
 
         result = course_service.generate_course_list(
-            db_session, sem.semester_id, [])
+            db_session, sem.semester_id, [], campus.campus_id)
 
         assert result[0].Priority is True
         assert result[0].CourseName == "CS 1800"
@@ -518,7 +518,8 @@ class TestGenerateCourseList:
                       existing.course_id, tb.time_block_id)
 
         result = course_service.generate_course_list(
-            db_session, sem.semester_id, [new_course.course_id]
+            db_session, sem.semester_id, [
+                new_course.course_id], campus.campus_id
         )
 
         new_resp = next((r for r in result if r.CourseName == "CS 8888"), None)
@@ -535,7 +536,7 @@ class TestGenerateCourseList:
 
         with pytest.raises(ValueError, match="Multiple"):
             course_service.generate_course_list(
-                db_session, sem.semester_id, [])
+                db_session, sem.semester_id, [], campus.campus_id)
 
     def test_raises_when_schedule_has_no_courses(self, db_session):
         campus = _make_campus(db_session)
@@ -544,7 +545,7 @@ class TestGenerateCourseList:
 
         with pytest.raises(ValueError):
             course_service.generate_course_list(
-                db_session, sem.semester_id, [])
+                db_session, sem.semester_id, [], campus.campus_id)
 
     def test_multiple_sections_preserved(self, db_session):
         """A course with 3 sections in the prior schedule should show SectionCount=3."""
@@ -559,7 +560,7 @@ class TestGenerateCourseList:
                           course.course_id, tb.time_block_id, section_number=i + 1)
 
         result = course_service.generate_course_list(
-            db_session, sem.semester_id, [])
+            db_session, sem.semester_id, [], campus.campus_id)
 
         assert result[0].SectionCount == 3
 
@@ -596,7 +597,7 @@ class TestGenerateCourseList:
                              unconstrained.course_id, PreferenceLevel.EAGER)
 
         result = course_service.generate_course_list(
-            db_session, sem.semester_id, [])
+            db_session, sem.semester_id, [], campus.campus_id)
 
         non_priority = [r for r in result if not r.Priority]
         assert non_priority[0].CourseName == "CS 7000"
@@ -613,7 +614,7 @@ class TestGenerateCourseList:
                       course.course_id, tb.time_block_id)
 
         result = course_service.generate_course_list(
-            db_session, sem.semester_id, []
+            db_session, sem.semester_id, [], campus.campus_id
         )
 
         assert any(r.CourseName == "CS 3100" for r in result)
@@ -629,6 +630,6 @@ class TestGenerateCourseList:
                       course.course_id, tb.time_block_id)
 
         result = course_service.generate_course_list(
-            db_session, sem.semester_id, [])
+            db_session, sem.semester_id, [], campus.campus_id)
 
         assert len(result) == 1
