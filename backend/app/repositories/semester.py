@@ -2,8 +2,8 @@
 
 from sqlalchemy.orm import Session
 
-from app.models.semester import Semester
 from app.models.schedule import Schedule
+from app.models.semester import Semester
 
 
 def semester_exists(db: Session, semester_id: int) -> bool:
@@ -61,7 +61,8 @@ def get_schedules(db: Session, semester: Semester, campus_id: int) -> list[Sched
     )
     if not schedules:
         raise ValueError(
-            f"No schedules found for semester with id {semester.semester_id} and campus {campus_id}"
+            f"No schedules found for semester {semester.semester_id} "
+            f"and campus {campus_id}"
         )
 
     return schedules
@@ -69,9 +70,10 @@ def get_schedules(db: Session, semester: Semester, campus_id: int) -> list[Sched
 
 def get_last_year(db: Session, semester_id: int) -> int | None:
     semester = get_by_id(db, semester_id)
-    last_year = db.query(Semester).filter(
-        Semester.season == semester.season,
-        Semester.year == semester.year - 1
-    ).first()
+    last_year = (
+        db.query(Semester)
+        .filter(Semester.season == semester.season, Semester.year == semester.year - 1)
+        .first()
+    )
 
     return last_year.semester_id if last_year is not None else None

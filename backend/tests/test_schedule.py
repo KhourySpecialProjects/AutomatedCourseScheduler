@@ -103,8 +103,9 @@ def _make_historical_context(db, campus, season="Fall", current_year=2024):
     db.flush()
     course = _make_course(db)
     time_block = _make_time_block(db, campus.campus_id)
-    _make_section(db, prev_schedule.schedule_id,
-                  course.course_id, time_block.time_block_id)
+    _make_section(
+        db, prev_schedule.schedule_id, course.course_id, time_block.time_block_id
+    )
     db.commit()
     return course
 
@@ -224,11 +225,13 @@ def test_create_schedule_returns_id(client, db_session):
 
 
 def test_create_schedule_course_list_populated_from_history(client, db_session):
-    """Courses from the previous year's schedule appear in the new schedule's course_list."""
+    """Courses from the previous year's schedule appear in the new
+    schedule's course_list."""
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
     historical_course = _make_historical_context(
-        db_session, campus, season="Fall", current_year=2024)
+        db_session, campus, season="Fall", current_year=2024
+    )
     response = client.post(
         "/schedules",
         json={
@@ -276,7 +279,8 @@ def test_create_schedule_course_list_item_correct_values(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
     historical_course = _make_historical_context(
-        db_session, campus, season="Fall", current_year=2024)
+        db_session, campus, season="Fall", current_year=2024
+    )
     response = client.post(
         "/schedules",
         json={
@@ -300,7 +304,8 @@ def test_create_schedule_course_list_includes_new_courses(client, db_session):
     _make_historical_context(
         db_session, campus, season="Fall", current_year=2024)
     new_course = _make_course(
-        db_session, name="CS 3800", description="Theory of Computation", credits=4)
+        db_session, name="CS 3800", description="Theory of Computation", credits=4
+    )
     db_session.commit()
     response = client.post(
         "/schedules",
@@ -323,7 +328,8 @@ def test_create_schedule_new_courses_section_count_is_one(client, db_session):
     _make_historical_context(
         db_session, campus, season="Fall", current_year=2024)
     new_course = _make_course(
-        db_session, name="CS 3800", description="Theory of Computation", credits=4)
+        db_session, name="CS 3800", description="Theory of Computation", credits=4
+    )
     db_session.commit()
     response = client.post(
         "/schedules",

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from app.models.course import Course
+
 from app.core.database import get_db
 from app.schemas.schedule import (
     ScheduleCreate,
@@ -10,10 +10,10 @@ from app.schemas.schedule import (
     ScheduleUpdate,
 )
 from app.schemas.section import SectionResponse, SectionRichResponse
+from app.services import course as course_service
 from app.services import schedule as schedule_service
 from app.services import section as section_service
 from app.services import semester as semester_service
-from app.services import course as course_service
 from app.services.section import ScheduleNotFoundError
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
@@ -39,7 +39,8 @@ def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
     else:
         try:
             course_list = course_service.generate_course_list(
-                db, previous_year, schedule.new_courses, schedule.campus)
+                db, previous_year, schedule.new_courses, schedule.campus
+            )
         except ValueError:
             course_list = []
 
@@ -59,8 +60,7 @@ def get_schedule_sections(schedule_id: int, db: Session = Depends(get_db)):
         section_service.require_schedule(db, schedule_id)
         return section_service.get_all_sections(db, schedule_id)
     except ScheduleNotFoundError:
-        raise HTTPException(
-            status_code=404, detail="Schedule not found") from None
+        raise HTTPException(status_code=404, detail="Schedule not found") from None
 
 
 @router.get("/{schedule_id}/sections/rich", response_model=list[SectionRichResponse])
@@ -70,8 +70,7 @@ def get_schedule_sections_rich(schedule_id: int, db: Session = Depends(get_db)):
         section_service.require_schedule(db, schedule_id)
         return section_service.get_rich_sections(db, schedule_id)
     except ScheduleNotFoundError:
-        raise HTTPException(
-            status_code=404, detail="Schedule not found") from None
+        raise HTTPException(status_code=404, detail="Schedule not found") from None
 
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse)

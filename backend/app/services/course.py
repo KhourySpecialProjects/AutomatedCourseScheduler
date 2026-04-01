@@ -3,19 +3,35 @@ from sqlalchemy.orm import Session
 from app.models.course import Course
 from app.models.schedule import Schedule
 from app.repositories import course as course_repo
+from app.repositories import schedule as schedule_repo
 from app.repositories import semester as semester_repo
 from app.schemas.course import CourseResponse
 
-from app.repositories import schedule as schedule_repo
+HIGH_PRIORITY_COURSES = [
+    "CS 1800",
+    "CS 2000",
+    "CS 2100",
+    "CS 2700",
+    "CS 2800",
+    "CS 3000",
+    "CS 3100",
+    "CS 3200",
+    "CS 3650",
+    "CS 3800",
+    "CS 4530",
+    "CS 5001",
+    "CS 5002",
+    "CS 5004",
+    "CS 5010",
+    "DS 3000",
+    "DS 4400",
+    "CY 2550",
+]
 
 
-HIGH_PRIORITY_COURSES = ["CS 1800", "CS 2000", "CS 2100", "CS 2700", "CS 2800",
-                         "CS 3000", "CS 3100", "CS 3200", "CS 3650", "CS 3800",
-                         "CS 4530", "CS 5001", "CS 5002", "CS 5004", "CS 5010",
-                         "DS 3000", "DS 4400", "CY 2550"]
-
-
-def _course_to_response(course: Course, section_count: int, high_priority: bool = False) -> CourseResponse:
+def _course_to_response(
+    course: Course, section_count: int, high_priority: bool = False
+) -> CourseResponse:
     qualified_faculty = sum(
         1 for p in course.course_preferences if p.preference.to_int() <= 3
     )
@@ -30,7 +46,7 @@ def _course_to_response(course: Course, section_count: int, high_priority: bool 
         CourseSubject=course_subject,
         SectionCount=section_count,
         Priority=high_priority,
-        QualifiedFaculty=qualified_faculty
+        QualifiedFaculty=qualified_faculty,
     )
 
 
@@ -63,20 +79,26 @@ def get_course(
     return _course_to_response(course, section_count)
 
 
-def get_section_count(schedule: Schedule, courses: list[Course], new_courses: list[Course]) -> list[CourseResponse]:
+def get_section_count(
+    schedule: Schedule, courses: list[Course], new_courses: list[Course]
+) -> list[CourseResponse]:
     course_responses = []
     errors = []
 
     for course in courses:
         section_count = schedule_repo.count_sections_for_course(
-            schedule, course.course_id)
+            schedule, course.course_id
+        )
 
         if section_count == 0:
             errors.append(
-                f"Course {course.name} not found in schedule with id {schedule.schedule_id}")
+                f"Course {course.name} not found in schedule "
+                f"with id {schedule.schedule_id}"
+            )
 
         response = _course_to_response(
-            course, section_count, (course.name in HIGH_PRIORITY_COURSES))
+            course, section_count, (course.name in HIGH_PRIORITY_COURSES)
+        )
         course_responses.append(response)
 
     for course in new_courses:
@@ -91,13 +113,13 @@ def get_section_count(schedule: Schedule, courses: list[Course], new_courses: li
 
 def sort_course_list(course_list: list[CourseResponse]) -> list[CourseResponse]:
     return sorted(
-        course_list,
-        key=lambda c: (not c.Priority, c.QualifiedFaculty,
-                       c.CourseNo or 0)
+        course_list, key=lambda c: (not c.Priority, c.QualifiedFaculty, c.CourseNo or 0)
     )
 
 
-def generate_course_list(db: Session, semester_id: int, new_course_ids: list[int], campus_id: int) -> list[CourseResponse]:
+def generate_course_list(
+    db: Session, semester_id: int, new_course_ids: list[int], campus_id: int
+) -> list[CourseResponse]:
     new_courses = course_repo.get_by_ids(db, new_course_ids)
 
     semester = semester_repo.get_by_id(db, semester_id)
@@ -105,13 +127,16 @@ def generate_course_list(db: Session, semester_id: int, new_course_ids: list[int
 
     if len(schedule) > 1:
         raise ValueError(
-            f"Semester with id {semester_id} invalid. Multiple scheduels present. Expected 1.")
+            f"Semester with id {semester_id} invalid. "
+            "Multiple schedules present. Expected 1."
+        )
     else:
         courses = schedule_repo.get_courses(schedule[0])
         course_list = get_section_count(schedule[0], courses, new_courses)
 
     if not courses:
         raise ValueError(
-            f"No courses found for schedule with id {schedule[0].schedule_id}")
+            f"No courses found for schedule with id {schedule[0].schedule_id}"
+        )
 
     return sort_course_list(course_list)

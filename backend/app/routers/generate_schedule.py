@@ -43,5 +43,3 @@ def regenerate_algorithm(
 
     background_tasks.add_task(run_regenerate_task, schedule_id, request.parameters)
     return {"schedule_id": schedule_id, "status": "running"}
-
-

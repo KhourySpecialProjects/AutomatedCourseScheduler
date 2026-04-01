@@ -1,6 +1,7 @@
 """Schedule Pydantic schemas."""
 
 from pydantic import BaseModel
+
 from app.schemas.course import CourseResponse
 
 

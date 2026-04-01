@@ -29,8 +29,7 @@ def create(db: Session, data: SemesterCreate) -> Semester:
 
 
 def update(db: Session, schedule_id: int, data: SemesterUpdate):
-    updated = semester_repo.update(
-        db, schedule_id, data.model_dump(exclude_unset=True))
+    updated = semester_repo.update(db, schedule_id, data.model_dump(exclude_unset=True))
     if updated is None:
         raise HTTPException(status_code=404, detail="Semester not found")
     return updated

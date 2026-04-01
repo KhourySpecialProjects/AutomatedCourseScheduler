@@ -12,8 +12,7 @@ def get_all(db: Session) -> list[Course]:
 
 def get_by_schedule(db: Session, schedule_id: int) -> list[Course]:
     course_ids = (
-        select(Section.course_id).where(
-            Section.schedule_id == schedule_id).distinct()
+        select(Section.course_id).where(Section.schedule_id == schedule_id).distinct()
     )
     return db.query(Course).filter(Course.course_id.in_(course_ids)).all()
 
@@ -44,8 +43,7 @@ def schedule_exists(db: Session, schedule_id: int) -> bool:
 
 def course_exists(db: Session, course_id: int) -> bool:
     return (
-        db.query(Course.course_id).filter(
-            Course.course_id == course_id).first()
+        db.query(Course.course_id).filter(Course.course_id == course_id).first()
         is not None
     )
 

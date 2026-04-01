@@ -4,11 +4,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.schedule import Schedule
-from app.models.course import Course
 from app.repositories import schedule as schedule_repo
-from app.repositories import semester as semester_repo
-from app.schemas.schedule import ScheduleCreate, ScheduleUpdate, ScheduleResponse
 from app.schemas.course import CourseResponse
+from app.schemas.schedule import ScheduleCreate, ScheduleResponse, ScheduleUpdate
 
 
 def get_all(db, campus_id=None, semester_id=None):
@@ -26,14 +24,13 @@ def create(db: Session, data: ScheduleCreate) -> Schedule:
     to_create = {
         "name": data.name,
         "semester_id": data.semester_id,
-        "campus": data.campus
+        "campus": data.campus,
     }
     return schedule_repo.create(db, to_create)
 
 
 def update(db: Session, schedule_id: int, data: ScheduleUpdate):
-    updated = schedule_repo.update(
-        db, schedule_id, data.model_dump(exclude_unset=True))
+    updated = schedule_repo.update(db, schedule_id, data.model_dump(exclude_unset=True))
     if updated is None:
         raise HTTPException(status_code=404, detail="Schedule not found")
     return updated
@@ -45,7 +42,9 @@ def delete(db: Session, schedule_id: int) -> None:
         raise HTTPException(status_code=404, detail="Schedule not found")
 
 
-def add_course_list(db: Session, schedule: Schedule, course_list: list[CourseResponse]) -> ScheduleResponse:
+def add_course_list(
+    db: Session, schedule: Schedule, course_list: list[CourseResponse]
+) -> ScheduleResponse:
     return ScheduleResponse(
         schedule_id=schedule.schedule_id,
         name=schedule.name,
@@ -54,5 +53,5 @@ def add_course_list(db: Session, schedule: Schedule, course_list: list[CourseRes
         campus=schedule.campus,
         complete=schedule.complete,
         active=schedule.active,
-        course_list=course_list
+        course_list=course_list,
     )

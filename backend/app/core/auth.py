@@ -2,7 +2,6 @@
 
 import os
 
-from fastapi import Depends
 from fastapi_plugin.fast_api_client import Auth0FastAPI
 
 auth0_domain = os.environ.get("AUTH0_DOMAIN")

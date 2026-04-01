@@ -2,8 +2,8 @@
 
 from sqlalchemy.orm import Session
 
-from app.models.schedule import Schedule
 from app.models.course import Course
+from app.models.schedule import Schedule
 
 
 def schedule_exists(db: Session, schedule_id: int) -> bool:
@@ -47,8 +47,7 @@ def create(db: Session, data: dict) -> Schedule:
 
 def update(db: Session, schedule_id: int, data: dict) -> Schedule | None:
     rows_updated = (
-        db.query(Schedule).filter(
-            Schedule.schedule_id == schedule_id).update(data)
+        db.query(Schedule).filter(Schedule.schedule_id == schedule_id).update(data)
     )
     db.commit()
     if rows_updated == 0:
@@ -68,8 +67,7 @@ def delete(db: Session, schedule_id: int) -> bool:
 
 def get_courses(schedule: Schedule) -> list[Course]:
     sections = schedule.sections
-    courses = list(
-        {section.course_id: section.course for section in sections}.values())
+    courses = list({section.course_id: section.course for section in sections}.values())
     return courses
 
 
