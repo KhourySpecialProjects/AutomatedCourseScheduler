@@ -31,8 +31,7 @@ def create(db: Session, data: dict) -> Semester:
 
 def update(db: Session, semester_id: int, data: dict) -> Semester | None:
     rows_updated = (
-        db.query(Semester).filter(
-            Semester.semester_id == semester_id).update(data)
+        db.query(Semester).filter(Semester.semester_id == semester_id).update(data)
     )
     db.commit()
     if rows_updated == 0:
