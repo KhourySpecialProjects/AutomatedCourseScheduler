@@ -15,7 +15,7 @@ from datetime import time
 from sqlalchemy.orm import Session
 
 from app.core.database import Base, SessionLocal, engine
-from app.core.enums import PreferenceLevel, Semester
+from app.core.enums import PreferenceLevel
 from app.models.campus import Campus
 from app.models.course import Course
 from app.models.course_preference import CoursePreference
@@ -25,6 +25,7 @@ from app.models.meeting_preference import MeetingPreference
 from app.models.schedule import Schedule
 from app.models.schedule_log import ScheduleLog
 from app.models.section import Section
+from app.models.semester import Semester
 from app.models.time_block import TimeBlock
 
 # Allow running from the backend/ directory without installing the package.
@@ -125,7 +126,7 @@ def seed(db: Session) -> None:
             email="a.chen@univ.edu",
             phone_number="617-555-0101",
             title="Associate Professor",
-            campus="Boston",
+            campus=boston.campus_id,
             active=True,
         ),
         Faculty(
@@ -135,7 +136,7 @@ def seed(db: Session) -> None:
             email="b.martinez@univ.edu",
             phone_number="617-555-0102",
             title="Professor",
-            campus="Boston",
+            campus=boston.campus_id,
             active=True,
         ),
         Faculty(
@@ -145,7 +146,7 @@ def seed(db: Session) -> None:
             email="c.okafor@univ.edu",
             phone_number="617-555-0103",
             title="Assistant Professor",
-            campus="Boston",
+            campus=boston.campus_id,
             active=True,
         ),
         Faculty(
@@ -155,7 +156,7 @@ def seed(db: Session) -> None:
             email="d.kim@univ.edu",
             phone_number="617-555-0104",
             title="Associate Professor",
-            campus="Boston",
+            campus=boston.campus_id,
             active=True,
         ),
         Faculty(
@@ -165,7 +166,7 @@ def seed(db: Session) -> None:
             email="e.patel@univ.edu",
             phone_number="617-555-0105",
             title="Lecturer",
-            campus="Boston",
+            campus=boston.campus_id,
             active=True,
         ),
         Faculty(
@@ -175,7 +176,7 @@ def seed(db: Session) -> None:
             email="f.torres@univ.edu",
             phone_number="617-555-0106",
             title="Professor",
-            campus="Boston",
+            campus=boston.campus_id,
             active=True,
         ),
         Faculty(
@@ -185,7 +186,7 @@ def seed(db: Session) -> None:
             email="g.liu@univ.edu",
             phone_number="617-555-0107",
             title="Assistant Professor",
-            campus="Boston",
+            campus=boston.campus_id,
             active=True,
         ),
         Faculty(
@@ -195,7 +196,7 @@ def seed(db: Session) -> None:
             email="h.nguyen@univ.edu",
             phone_number="617-555-0108",
             title="Lecturer",
-            campus="Boston",
+            campus=boston.campus_id,
             active=True,
         ),
     ]
@@ -264,8 +265,16 @@ def seed(db: Session) -> None:
     # ------------------------------------------------------------------
     # Schedule
     # ------------------------------------------------------------------
+    semester = Semester(
+        season="FALL",
+        year=2026,
+    )
     schedule = Schedule(
-        name="Fall 2026 Draft", semester=Semester.FALL, year=2026, draft=True
+        name="Fall 2026 Draft",
+        semester=semester,
+        schedule_id=1,
+        campus=boston.campus_id,
+        draft=True,
     )
     db.add(schedule)
     db.flush()

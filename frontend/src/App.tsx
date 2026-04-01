@@ -4,9 +4,11 @@ import Home from './pages/Home';
 import Schedules from './pages/Schedules';
 import LoginButton from './components/LoginButton';
 import LogoutButton from './components/LogoutButton';
+import { useAuthInterceptor } from './hooks/useAuthInterceptor';
 
 function App() {
   const { isAuthenticated, isLoading, error } = useAuth0();
+  useAuthInterceptor()
 
   if (isLoading) {
     return (
