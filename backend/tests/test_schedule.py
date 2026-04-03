@@ -39,12 +39,11 @@ def _make_semester(db, season="Fall", year=2024):
     return semester
 
 
-def _make_schedule(db, campus_id, semester_id, *, name="Test Schedule", complete=False):
+def _make_schedule(db, campus_id, semester_id, *, name="Test Schedule"):
     schedule = Schedule(
         name=name,
         semester_id=semester_id,
         campus=campus_id,
-        complete=complete,
     )
     db.add(schedule)
     db.commit()
@@ -97,13 +96,13 @@ def _make_historical_context(db, campus, season="Fall", current_year=2024):
         name="Prev Year Schedule",
         semester_id=prev_semester.semester_id,
         campus=campus.campus_id,
-        complete=True,
     )
     db.add(prev_schedule)
     db.flush()
     course = _make_course(db)
     time_block = _make_time_block(db, campus.campus_id)
-    _make_section(db, prev_schedule.schedule_id, course.course_id, time_block.time_block_id)
+    _make_section(db, prev_schedule.schedule_id,
+                  course.course_id, time_block.time_block_id)
     db.commit()
     return course
 
@@ -248,7 +247,8 @@ def test_create_schedule_course_list_item_fields(client, db_session):
     """Each item in course_list contains all required CourseResponse fields."""
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
-    _make_historical_context(db_session, campus, season="Fall", current_year=2024)
+    _make_historical_context(
+        db_session, campus, season="Fall", current_year=2024)
     response = client.post(
         "/schedules",
         json={
@@ -298,7 +298,8 @@ def test_create_schedule_course_list_includes_new_courses(client, db_session):
     """Courses passed via new_courses are appended to course_list."""
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
-    _make_historical_context(db_session, campus, season="Fall", current_year=2024)
+    _make_historical_context(
+        db_session, campus, season="Fall", current_year=2024)
     new_course = _make_course(
         db_session, name="CS 3800", description="Theory of Computation", credits=4
     )
@@ -321,7 +322,8 @@ def test_create_schedule_new_courses_section_count_is_one(client, db_session):
     """Courses added via new_courses always have SectionCount == 1."""
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
-    _make_historical_context(db_session, campus, season="Fall", current_year=2024)
+    _make_historical_context(
+        db_session, campus, season="Fall", current_year=2024)
     new_course = _make_course(
         db_session, name="CS 3800", description="Theory of Computation", credits=4
     )
@@ -336,7 +338,8 @@ def test_create_schedule_new_courses_section_count_is_one(client, db_session):
         },
     )
     course_list = response.json()["course_list"]
-    new_entry = next(c for c in course_list if c["CourseID"] == new_course.course_id)
+    new_entry = next(
+        c for c in course_list if c["CourseID"] == new_course.course_id)
     assert new_entry["SectionCount"] == 1
 
 
@@ -377,8 +380,10 @@ def test_get_schedules_empty(client, db_session):
 def test_get_schedules_returns_all(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S1")
-    _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S2")
+    _make_schedule(db_session, campus.campus_id,
+                   semester.semester_id, name="S1")
+    _make_schedule(db_session, campus.campus_id,
+                   semester.semester_id, name="S2")
     response = client.get("/schedules")
     assert response.status_code == 200
     assert len(response.json()) == 2
@@ -405,7 +410,8 @@ def test_get_schedules_response_shape(client, db_session):
 def test_get_schedules_correct_values(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Fall 2024")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Fall 2024")
     response = client.get("/schedules")
     data = response.json()[0]
     assert data["schedule_id"] == schedule.schedule_id
@@ -420,8 +426,10 @@ def test_get_schedules_filter_by_campus_id(client, db_session):
     campus_a = _make_campus(db_session, "Boston")
     campus_b = _make_campus(db_session, "Oakland")
     semester = _make_semester(db_session)
-    _make_schedule(db_session, campus_a.campus_id, semester.semester_id, name="Boston Schedule")
-    _make_schedule(db_session, campus_b.campus_id, semester.semester_id, name="Oakland Schedule")
+    _make_schedule(db_session, campus_a.campus_id,
+                   semester.semester_id, name="Boston Schedule")
+    _make_schedule(db_session, campus_b.campus_id,
+                   semester.semester_id, name="Oakland Schedule")
     response = client.get(f"/schedules?campus_id={campus_a.campus_id}")
     assert response.status_code == 200
     data = response.json()
@@ -433,8 +441,10 @@ def test_get_schedules_filter_by_semester_id(client, db_session):
     campus = _make_campus(db_session)
     semester_a = _make_semester(db_session, season="Fall", year=2024)
     semester_b = _make_semester(db_session, season="Spring", year=2025)
-    _make_schedule(db_session, campus.campus_id, semester_a.semester_id, name="Fall")
-    _make_schedule(db_session, campus.campus_id, semester_b.semester_id, name="Spring")
+    _make_schedule(db_session, campus.campus_id,
+                   semester_a.semester_id, name="Fall")
+    _make_schedule(db_session, campus.campus_id,
+                   semester_b.semester_id, name="Spring")
     response = client.get(f"/schedules?semester_id={semester_a.semester_id}")
     assert response.status_code == 200
     data = response.json()
@@ -446,8 +456,10 @@ def test_get_schedules_filter_multiple_params(client, db_session):
     campus_a = _make_campus(db_session, "Boston")
     campus_b = _make_campus(db_session, "Oakland")
     semester = _make_semester(db_session)
-    _make_schedule(db_session, campus_a.campus_id, semester.semester_id, name="Match")
-    _make_schedule(db_session, campus_b.campus_id, semester.semester_id, name="Wrong Campus")
+    _make_schedule(db_session, campus_a.campus_id,
+                   semester.semester_id, name="Match")
+    _make_schedule(db_session, campus_b.campus_id,
+                   semester.semester_id, name="Wrong Campus")
     response = client.get(
         f"/schedules?campus_id={campus_a.campus_id}&semester_id={semester.semester_id}"
     )
@@ -474,7 +486,8 @@ def test_get_schedules_filter_no_match_returns_empty(client, db_session):
 def test_get_schedule_by_id(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Fall 2024")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Fall 2024")
     response = client.get(f"/schedules/{schedule.schedule_id}")
     assert response.status_code == 200
     assert response.json()["name"] == "Fall 2024"
@@ -490,7 +503,8 @@ def test_get_schedule_by_id_not_found(client, db_session):
 def test_get_schedule_by_id_response_shape(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id)
     response = client.get(f"/schedules/{schedule.schedule_id}")
     data = response.json()
     expected_keys = {
@@ -508,7 +522,8 @@ def test_get_schedule_by_id_response_shape(client, db_session):
 def test_get_schedule_by_id_campus_is_int(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id)
     response = client.get(f"/schedules/{schedule.schedule_id}")
     assert isinstance(response.json()["campus"], int)
     assert response.json()["campus"] == campus.campus_id
@@ -522,8 +537,10 @@ def test_get_schedule_by_id_campus_is_int(client, db_session):
 def test_update_schedule_name(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Old Name")
-    response = client.put(f"/schedules/{schedule.schedule_id}", json={"name": "New Name"})
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Old Name")
+    response = client.put(
+        f"/schedules/{schedule.schedule_id}", json={"name": "New Name"})
     assert response.status_code == 200
     assert response.json()["name"] == "New Name"
 
@@ -531,8 +548,10 @@ def test_update_schedule_name(client, db_session):
 def test_update_schedule_complete_flag(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, complete=False)
-    response = client.put(f"/schedules/{schedule.schedule_id}", json={"complete": True})
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id)
+    response = client.put(
+        f"/schedules/{schedule.schedule_id}", json={"complete": True})
     assert response.status_code == 200
     assert response.json()["complete"] is True
 
@@ -545,9 +564,9 @@ def test_update_schedule_partial_name_preserves_complete(client, db_session):
         campus.campus_id,
         semester.semester_id,
         name="Original",
-        complete=True,
     )
-    response = client.put(f"/schedules/{schedule.schedule_id}", json={"name": "Updated"})
+    response = client.put(
+        f"/schedules/{schedule.schedule_id}", json={"name": "Updated"})
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Updated"
@@ -562,9 +581,9 @@ def test_update_schedule_partial_complete_preserves_name(client, db_session):
         campus.campus_id,
         semester.semester_id,
         name="Keep This Name",
-        complete=False,
     )
-    response = client.put(f"/schedules/{schedule.schedule_id}", json={"complete": True})
+    response = client.put(
+        f"/schedules/{schedule.schedule_id}", json={"complete": True})
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Keep This Name"
@@ -574,7 +593,8 @@ def test_update_schedule_partial_complete_preserves_name(client, db_session):
 def test_update_schedule_persisted_to_db(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Before")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Before")
     client.put(f"/schedules/{schedule.schedule_id}", json={"name": "After"})
     db_session.expire_all()
     updated = db_session.get(Schedule, schedule.schedule_id)
@@ -589,7 +609,8 @@ def test_update_schedule_not_found(client, db_session):
 def test_update_schedule_empty_body(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="Unchanged")
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id, name="Unchanged")
     response = client.put(f"/schedules/{schedule.schedule_id}", json={})
     assert response.status_code == 200
     assert response.json()["name"] == "Unchanged"
@@ -599,7 +620,8 @@ def test_update_schedule_immutable_fields_ignored(client, db_session):
     """Fields not in ScheduleUpdate (semester_id, campus) are stripped by Pydantic."""
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id)
     response = client.put(
         f"/schedules/{schedule.schedule_id}",
         json={"semester_id": 9999, "name": "Updated"},
@@ -618,7 +640,8 @@ def test_update_schedule_immutable_fields_ignored(client, db_session):
 def test_delete_schedule(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id)
     schedule_id = schedule.schedule_id
     response = client.delete(f"/schedules/{schedule_id}")
     assert response.status_code == 204
@@ -636,7 +659,8 @@ def test_delete_schedule_not_found(client, db_session):
 def test_delete_schedule_no_response_body(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id)
     response = client.delete(f"/schedules/{schedule.schedule_id}")
     assert response.status_code == 204
     assert response.content == b""
@@ -645,7 +669,8 @@ def test_delete_schedule_no_response_body(client, db_session):
 def test_delete_schedule_second_attempt_returns_404(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id)
     schedule_id = schedule.schedule_id
     client.delete(f"/schedules/{schedule_id}")
     response = client.delete(f"/schedules/{schedule_id}")
@@ -655,7 +680,8 @@ def test_delete_schedule_second_attempt_returns_404(client, db_session):
 def test_delete_schedule_no_longer_in_list(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
+    schedule = _make_schedule(
+        db_session, campus.campus_id, semester.semester_id)
     schedule_id = schedule.schedule_id
     client.delete(f"/schedules/{schedule_id}")
     response = client.get("/schedules")
@@ -687,7 +713,9 @@ def test_schedule_complete_defaults_to_false(client, db_session):
 def test_multiple_schedules_same_campus(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S1")
-    _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S2")
+    _make_schedule(db_session, campus.campus_id,
+                   semester.semester_id, name="S1")
+    _make_schedule(db_session, campus.campus_id,
+                   semester.semester_id, name="S2")
     response = client.get(f"/schedules?campus_id={campus.campus_id}")
     assert len(response.json()) == 2

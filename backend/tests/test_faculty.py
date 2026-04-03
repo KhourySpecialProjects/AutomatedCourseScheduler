@@ -380,7 +380,6 @@ def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
         semester_id=semester.semester_id,
         campus=campus.campus_id,
         draft=True,
-        complete=False,
     )
     db_session.add(schedule)
     db_session.flush()

@@ -281,7 +281,6 @@ def test_delete_course_with_sections_returns_400(client, db_session):
         semester_id=semester.semester_id,
         campus=campus.campus_id,
         draft=True,
-        complete=False,
     )
     db_session.add(schedule)
     db_session.flush()
