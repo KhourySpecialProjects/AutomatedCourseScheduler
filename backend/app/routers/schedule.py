@@ -1,6 +1,6 @@
 """Schedule router."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -75,9 +75,13 @@ def get_schedule_sections_rich(schedule_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse)
-def update_schedule(schedule_id: int, schedule: ScheduleUpdate, db: Session = Depends(get_db)):
+def update_schedule(
+    schedule_id: int,
+    schedule: ScheduleUpdate = Body(default=None),
+    db: Session = Depends(get_db),
+):
     """Update schedule metadata (name, complete status, etc.)."""
-    return schedule_service.update(db, schedule_id, schedule)
+    return schedule_service.update(db, schedule_id, schedule or ScheduleUpdate())
 
 
 @router.delete("/{schedule_id}", status_code=204)

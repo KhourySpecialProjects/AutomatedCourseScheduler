@@ -27,5 +27,4 @@ class ScheduleCreate(BaseModel):
 
 class ScheduleUpdate(BaseModel):
     name: str | None = None
-    complete: bool | None = None
     active: bool | None = None

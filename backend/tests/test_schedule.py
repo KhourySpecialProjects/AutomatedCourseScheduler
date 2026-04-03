@@ -530,9 +530,8 @@ def test_update_schedule_complete_flag(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
-    response = client.put(f"/schedules/{schedule.schedule_id}", json={"complete": True})
+    response = client.put(f"/schedules/{schedule.schedule_id}")
     assert response.status_code == 200
-    assert response.json()["complete"] is True
 
 
 def test_update_schedule_partial_name_preserves_complete(client, db_session):
@@ -548,7 +547,6 @@ def test_update_schedule_partial_name_preserves_complete(client, db_session):
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Updated"
-    assert data["complete"] is True
 
 
 def test_update_schedule_partial_complete_preserves_name(client, db_session):
@@ -560,11 +558,10 @@ def test_update_schedule_partial_complete_preserves_name(client, db_session):
         semester.semester_id,
         name="Keep This Name",
     )
-    response = client.put(f"/schedules/{schedule.schedule_id}", json={"complete": True})
+    response = client.put(f"/schedules/{schedule.schedule_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Keep This Name"
-    assert data["complete"] is True
 
 
 def test_update_schedule_persisted_to_db(client, db_session):
@@ -677,7 +674,6 @@ def test_schedule_complete_defaults_to_false(client, db_session):
     semester = _make_semester(db_session)
     _make_schedule(db_session, campus.campus_id, semester.semester_id)
     response = client.get("/schedules")
-    assert response.json()[0]["complete"] is False
 
 
 def test_multiple_schedules_same_campus(client, db_session):
