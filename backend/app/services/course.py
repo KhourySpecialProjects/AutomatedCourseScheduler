@@ -30,8 +30,7 @@ HIGH_PRIORITY_COURSES = [
 
 
 def _course_to_response(course: Course, section_count: int) -> CourseResponse:
-    qualified_faculty = sum(
-        1 for p in course.course_preferences if p.preference.to_int() <= 3)
+    qualified_faculty = sum(1 for p in course.course_preferences if p.preference.to_int() <= 3)
     split_name = course.name.split(" ", 1)
     course_subject = split_name[0]
     course_no = int(split_name[1]) if len(split_name) > 1 else None
@@ -83,8 +82,7 @@ def get_section_count(
     errors = []
 
     for course in courses:
-        section_count = schedule_repo.total_section_count(
-            schedule, course.course_id)
+        section_count = schedule_repo.total_section_count(schedule, course.course_id)
 
         if section_count == 0:
             errors.append(
@@ -125,8 +123,7 @@ def generate_course_list(
         course_list = get_section_count(schedule[0], courses, new_courses)
 
     if not courses:
-        raise ValueError(
-            f"No courses found for schedule with id {schedule[0].schedule_id}")
+        raise ValueError(f"No courses found for schedule with id {schedule[0].schedule_id}")
 
     return sort_course_list(course_list)
 
