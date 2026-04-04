@@ -61,3 +61,4 @@ def save(db: Session, faculty: Faculty) -> Faculty:
 def delete_with_dependencies(db: Session, faculty: Faculty) -> None:
     db.delete(faculty)
     db.commit()
+

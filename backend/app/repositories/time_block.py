@@ -12,3 +12,7 @@ def time_block_exists(db: Session, time_block_id: int) -> bool:
         .first()
         is not None
     )
+
+
+def get_by_id(db: Session, time_block_id: int) -> TimeBlock:
+    return db.query(TimeBlock.time_block_id == time_block_id).first()

@@ -68,3 +68,10 @@ def replace_faculty_assignments(
     ).delete()
     for nuid in faculty_nuids:
         db.add(FacultyAssignment(faculty_nuid=nuid, section_id=section_id))
+
+
+def get_by_instructor(db: Session, instructor_id: int) -> list[FacultyAssignment]:
+    assignments = db.query(FacultyAssignment).filter(
+        FacultyAssignment.faculty_nuid == instructor_id).all
+    return assignments
+

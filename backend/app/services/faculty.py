@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.faculty import Faculty
+from app.models.time_block import TimeBlock
 from app.repositories import faculty as faculty_repo
 from app.schemas.faculty import (
     FacultyCreate,
@@ -8,6 +9,10 @@ from app.schemas.faculty import (
     FacultyResponse,
     FacultyUpdate,
 )
+from app.core.enums import PreferenceLevel
+from app.repositories import section as section_repo
+from app.repositories import course as course_repo
+from app.repositories import time_block as time_block_repo
 from app.schemas.section import CoursePreferenceInfo, MeetingPreferenceInfo
 
 
@@ -27,7 +32,8 @@ def _faculty_to_response(faculty: Faculty) -> FacultyResponse:
 def get_faculty(
     db: Session, campus: str | None = None, active_only: bool = False
 ) -> list[FacultyResponse]:
-    faculty_list = faculty_repo.get_all(db, campus=campus, active_only=active_only)
+    faculty_list = faculty_repo.get_all(
+        db, campus=campus, active_only=active_only)
     return [_faculty_to_response(f) for f in faculty_list]
 
 
@@ -123,3 +129,81 @@ def get_faculty_profile(db: Session, nuid: int) -> FacultyProfileResponse | None
             for mp in faculty.meeting_preferences
         ],
     )
+
+
+def format_time_block(meeting_days, start_time, end_time):
+    def fmt(t: time) -> str:
+        period = "a" if t.hour < 12 else "p"
+        hour = t.hour % 12 or 12
+        return f"{hour}:{t.minute:02d}{period}"
+
+    return f"{meeting_days} {fmt(start_time)}-{fmt(end_time)}"
+
+
+def time_block_to_string(time_block_id: int) -> str:
+    time_block = time_block_repo.get_by_id(time_block_id)
+    meeting_time = format_time_block(
+        time_block.meeting_days, time_block.start_time, time_block.end_time)
+    return meeting_time
+
+
+def normalize_buckets(course_preferences: list[CoursePreferenceInfo], meeting_preferences: list[MeetingPreferenceInfo]) -> FacultyProfileResponse:
+    eager = []
+    ready = []
+    willing = []
+    unwilling = []
+    
+    for cp in course_preferences:
+        if cp.preference == PreferenceLevel.EAGER:
+            eager.append(cp)
+        elif cp.preference == PreferenceLevel.READY:
+            ready.append(cp)
+        elif cp.preference == PreferenceLevel.WILLING:
+            willing.append(cp)
+        elif cp.preference == PreferenceLevel.NOT_INTERESTED:
+            return 
+    return
+
+
+def process_assignmnets(db: Session, previous_assignmets: list[FacultyAssignment], nuid: int) -> FacultyProfileResponse:
+    course_preferences = []
+    meeting_preferences = []
+    faculty = faculty_repo.get_by_nuid(db, nuid)
+    for assignment in previous_assignmets:
+        section = section_repo.get_by_id(db, assignment.section_id)
+        course = course_repo.get_by_id(db, section.course_id)
+        course_preferences.append(
+            CoursePreferenceInfo(
+                course_id=section.course_id,
+                course_name=course.name,
+                preference=PreferenceLevel.EAGER
+            )
+        )
+        meeting_time = time_block_to_string(section.time_block_id)
+        meeting_preferences.append(
+            MeetingPreferenceInfo(
+                meeting_time=meeting_time,
+                preference=PreferenceLevel.EAGER
+            )
+        )
+    return FacultyProfileResponse(
+        nuid=faculty.nuid,
+        first_name=faculty.first_name,
+        last_name=faculty.last_name,
+        email=faculty.email,
+        title=faculty.title,
+        campus=faculty.campus,
+        active=faculty.active,
+        course_preferences=course_preferences,
+        meeting_preferences=meeting_preferences,
+    )
+
+
+def build_profile(db: Session, nuid: int) -> FacultyProfileResponse:
+    existing_profile = get_faculty_profile(db, nuid)
+    if existing_profile:
+        return normalize_buckets(existing_profile.course_preferences,
+                                 existing_profile.meeting_preferences)
+    else:
+        previous_assignmets = section_repo.get_by_instructor(nuid)
+        return proccess_assignments(db, previous_assignmets, nuid)

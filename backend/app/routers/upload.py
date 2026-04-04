@@ -152,15 +152,6 @@ def parse_file(file, schema, db):
         return
 
 
-def format_time_block(meeting_days, start_time, end_time):
-    def fmt(t: time) -> str:
-        period = "a" if t.hour < 12 else "p"
-        hour = t.hour % 12 or 12
-        return f"{hour}:{t.minute:02d}{period}"
-
-    return f"{meeting_days} {fmt(start_time)}-{fmt(end_time)}"
-
-
 def parse_time_preferences(db, reader):
     inserts = []
     updates = []
