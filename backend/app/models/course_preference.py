@@ -27,12 +27,8 @@ class CoursePreference(Base):
     course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
 
     # Relationships
-    faculty: Mapped["Faculty"] = relationship(
-        "Faculty", back_populates="course_preferences"
-    )
-    course: Mapped["Course"] = relationship(
-        "Course", back_populates="course_preferences"
-    )
+    faculty: Mapped["Faculty"] = relationship("Faculty", back_populates="course_preferences")
+    course: Mapped["Course"] = relationship("Course", back_populates="course_preferences")
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

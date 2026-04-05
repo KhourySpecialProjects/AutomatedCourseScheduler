@@ -27,9 +27,7 @@ class User(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
-    section_locks: Mapped[list["SectionLock"]] = relationship(
-        "SectionLock", back_populates="user"
-    )
+    section_locks: Mapped[list["SectionLock"]] = relationship("SectionLock", back_populates="user")
     comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="user")
 
     # Timestamps

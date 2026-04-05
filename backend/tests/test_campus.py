@@ -199,9 +199,7 @@ def test_service_get_by_id_returns_campus():
     from app.services import campus as campus_service
 
     mock_db = MagicMock()
-    with patch(
-        "app.services.campus.campus_repo.get_by_id", return_value=MOCK_CAMPUSES[0]
-    ):
+    with patch("app.services.campus.campus_repo.get_by_id", return_value=MOCK_CAMPUSES[0]):
         result = campus_service.get_by_id(mock_db, 1)
     assert result == MOCK_CAMPUSES[0]
 
