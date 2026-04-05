@@ -45,7 +45,5 @@ class Schedule(Base):
         DateTime, server_default=func.now(), onupdate=func.now()
     )
 
-    complete: Mapped[bool] = mapped_column(Boolean, default=False)
-
     # Deletion
     active: Mapped[bool] = mapped_column(Boolean, default=True)
