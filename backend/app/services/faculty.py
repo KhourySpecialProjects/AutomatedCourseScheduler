@@ -152,7 +152,7 @@ def normalize_buckets(course_preferences: list[CoursePreferenceInfo], meeting_pr
     ready = []
     willing = []
     unwilling = []
-    
+
     for cp in course_preferences:
         if cp.preference == PreferenceLevel.EAGER:
             eager.append(cp)
@@ -161,7 +161,7 @@ def normalize_buckets(course_preferences: list[CoursePreferenceInfo], meeting_pr
         elif cp.preference == PreferenceLevel.WILLING:
             willing.append(cp)
         elif cp.preference == PreferenceLevel.NOT_INTERESTED:
-            return 
+            unwilling.append(cp)
     return
 
 
