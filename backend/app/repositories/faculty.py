@@ -4,9 +4,7 @@ from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
 
 
-def get_all(
-    db: Session, campus: str | None = None, active_only: bool = False
-) -> list[Faculty]:
+def get_all(db: Session, campus: str | None = None, active_only: bool = False) -> list[Faculty]:
     query = db.query(Faculty)
     if campus is not None:
         query = query.filter(Faculty.campus == campus)
@@ -39,9 +37,7 @@ def get_by_nuid_with_preferences(db: Session, nuid: int) -> Faculty | None:
 
 
 def faculty_exists(db: Session, faculty_nuid: int) -> bool:
-    return (
-        db.query(Faculty.nuid).filter(Faculty.nuid == faculty_nuid).first() is not None
-    )
+    return db.query(Faculty.nuid).filter(Faculty.nuid == faculty_nuid).first() is not None
 
 
 def create(db: Session, faculty: Faculty) -> Faculty:

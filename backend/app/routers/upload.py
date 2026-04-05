@@ -44,9 +44,7 @@ def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
         else:
             return UploadResponse(
                 status="success",
-                message=(
-                    "File does not contain any non-existing courses. Nothing inserted."
-                ),
+                message=("File does not contain any non-existing courses. Nothing inserted."),
                 records_processed=len(to_insert),
                 records_successful=len(to_insert),
             )
@@ -63,9 +61,7 @@ def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
 
 
 @router.post("/faculty-preferences", response_model=UploadResponse)
-def upload_faculty_preferences(
-    file: UploadFile = File(...), db: Session = Depends(get_db)
-):
+def upload_faculty_preferences(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """Upload a CSV file containing faculty preference data."""
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a .csv")
@@ -94,9 +90,7 @@ def upload_faculty_preferences(
 
 
 @router.post("/time-preferences", response_model=UploadResponse)
-def upload_time_preferences(
-    file: UploadFile = File(...), db: Session = Depends(get_db)
-):
+def upload_time_preferences(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """Upload a CSV file containing faculty time preference data."""
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a .csv")
@@ -133,8 +127,7 @@ def parse_file(file, schema, db):
         raise HTTPException(
             status_code=422,
             detail=(
-                f"Invalid column names {reader.fieldnames}. "
-                f"Expected {headers_ok.get('expected')}"
+                f"Invalid column names {reader.fieldnames}. Expected {headers_ok.get('expected')}"
             ),
         )
 
@@ -164,8 +157,7 @@ def parse_time_preferences(db, reader):
             segments = validated.normalize_meeting_time()
             for days, start_time, end_time in segments:
                 logger.info(
-                    f"Row {i}: parsed segment — days={days}, "
-                    f"start={start_time}, end={end_time}"
+                    f"Row {i}: parsed segment — days={days}, start={start_time}, end={end_time}"
                 )
 
                 time_block = (
@@ -178,11 +170,7 @@ def parse_time_preferences(db, reader):
                     .first()
                 )
 
-                faculty = (
-                    db.query(Faculty)
-                    .filter(Faculty.nuid == validated.facultyId)
-                    .first()
-                )
+                faculty = db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
 
                 if not time_block:
                     time_block = TimeBlock(
@@ -236,13 +224,9 @@ def parse_course_offerings(db, reader):
         try:
             normalized = normalize_headers(row, COURSE_OFFERINGS)
             validated = CourseOfferingsSchema(**normalized)
-            existing = (
-                db.query(Course).filter(Course.name == validated.courseName).first()
-            )
+            existing = db.query(Course).filter(Course.name == validated.courseName).first()
             if existing:
-                logger.info(
-                    f"Row {i}: course '{validated.courseName}' already exists, skipping"
-                )
+                logger.info(f"Row {i}: course '{validated.courseName}' already exists, skipping")
                 continue
             db_entry = validated.translate()
             table_entries.append(db_entry)
@@ -264,9 +248,7 @@ def parse_course_preferences(db, reader):
             normalized = normalize_headers(row, COURSE_PREFERENCES)
             validated = CoursePreferencesSchema(**normalized)
             course = db.query(Course).filter(Course.name == validated.course).first()
-            faculty = (
-                db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
-            )
+            faculty = db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
             if not course:
                 errors.append(f"Row {i}: course '{validated.course}' not found")
             elif not faculty:

@@ -60,12 +60,8 @@ def delete(db: Session, section: Section) -> None:
     db.commit()
 
 
-def replace_faculty_assignments(
-    db: Session, section_id: int, faculty_nuids: list[int]
-) -> None:
-    db.query(FacultyAssignment).filter(
-        FacultyAssignment.section_id == section_id
-    ).delete()
+def replace_faculty_assignments(db: Session, section_id: int, faculty_nuids: list[int]) -> None:
+    db.query(FacultyAssignment).filter(FacultyAssignment.section_id == section_id).delete()
     for nuid in faculty_nuids:
         db.add(FacultyAssignment(faculty_nuid=nuid, section_id=section_id))
 

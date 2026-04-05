@@ -27,9 +27,7 @@ def get_courses(
 @router.get("/{course_id}", response_model=CourseResponse)
 def get_course(
     course_id: int,
-    schedule_id: int | None = Query(
-        None, description="Section count for this schedule only"
-    ),
+    schedule_id: int | None = Query(None, description="Section count for this schedule only"),
     db: Session = Depends(get_db),
 ):
     "Retrieve a course by ID with section count."

@@ -39,9 +39,7 @@ class MeetingPreferencesSchema(BaseModel):
     like 'T 11:45a-1:25p, R 2:50p-4:30p'."""
 
     def normalize_meeting_time(self) -> list[tuple[str, time, time]]:
-        segment_pattern = re.compile(
-            r"([A-Z]+)\s+(\d{1,2}:\d{2})([ap])-(\d{1,2}:\d{2})([ap])"
-        )
+        segment_pattern = re.compile(r"([A-Z]+)\s+(\d{1,2}:\d{2})([ap])-(\d{1,2}:\d{2})([ap])")
         segments = segment_pattern.findall(self.meetingTime)
         if not segments:
             raise ValueError(f"Unrecognized meeting time format: '{self.meetingTime}'")
