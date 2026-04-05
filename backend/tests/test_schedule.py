@@ -5,7 +5,7 @@ Endpoints covered:
   POST   /schedules                  — create a blank schedule shell
   GET    /schedules                  — list all, optional filters
   GET    /schedules/{id}             — get one by ID
-  PUT    /schedules/{id}             — update name / complete flag
+  PUT    /schedules/{id}             — update name / draft flag
   DELETE /schedules/{id}             — soft delete
 
 Sections endpoint (GET /schedules/{id}/sections) is tested in test_sections.py.
@@ -143,7 +143,6 @@ def test_create_schedule_response_shape(client, db_session):
         "semester_id",
         "draft",
         "campus",
-        "complete",
         "active",
         "course_list",
     }
@@ -180,7 +179,6 @@ def test_create_schedule_defaults(client, db_session):
     )
     data = response.json()
     assert data["draft"] is True
-    assert data["complete"] is False
     assert data["course_list"] == []
 
 
@@ -394,7 +392,6 @@ def test_get_schedules_response_shape(client, db_session):
         "semester_id",
         "draft",
         "campus",
-        "complete",
         "active",
     }
     assert expected_keys.issubset(set(data.keys()))
@@ -410,7 +407,6 @@ def test_get_schedules_correct_values(client, db_session):
     assert data["name"] == "Fall 2024"
     assert data["campus"] == campus.campus_id
     assert data["semester_id"] == semester.semester_id
-    assert data["complete"] is False
     assert data["draft"] is True
 
 
@@ -497,7 +493,6 @@ def test_get_schedule_by_id_response_shape(client, db_session):
         "semester_id",
         "draft",
         "campus",
-        "complete",
         "active",
     }
     assert expected_keys.issubset(set(data.keys()))
@@ -526,7 +521,7 @@ def test_update_schedule_name(client, db_session):
     assert response.json()["name"] == "New Name"
 
 
-def test_update_schedule_complete_flag(client, db_session):
+def test_update_schedule_empty_put(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
@@ -534,7 +529,7 @@ def test_update_schedule_complete_flag(client, db_session):
     assert response.status_code == 200
 
 
-def test_update_schedule_partial_name_preserves_complete(client, db_session):
+def test_update_schedule_partial_name(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = _make_schedule(
@@ -549,7 +544,7 @@ def test_update_schedule_partial_name_preserves_complete(client, db_session):
     assert data["name"] == "Updated"
 
 
-def test_update_schedule_partial_complete_preserves_name(client, db_session):
+def test_update_schedule_no_body_preserves_name(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = _make_schedule(

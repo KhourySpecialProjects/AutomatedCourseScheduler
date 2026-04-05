@@ -11,7 +11,6 @@ class ScheduleResponse(BaseModel):
     semester_id: int
     draft: bool
     campus: int
-    complete: bool
     active: bool
     course_list: list[CourseResponse] = []
 
