@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.settings import settings
@@ -17,15 +18,20 @@ class SectionLockConflictError(Exception):
 
 
 def acquire_lock(db: Session, section_id: int, user_id: int) -> SectionLock:
-    """Acquire a lock on a section for editing.
+    """
+    Acquire a lock on a section for editing and auto-releases any other lock the user
+    currently holds onto.
 
-    Three cases:
-    - No lock or expired lock -> insert new lock
-    - Lock held by another user -> raise SectionLockConflictError
-    - Lock held by same user -> refresh expires_at
+    Args:
+        db: Database connection.
+        section_id: ID of the section to lock.
+        user_id: ID of the user acquiring the lock.
 
-    Also auto-releases any other lock the user currently holds upon successfully
-    acquiring a lock.
+    Returns:
+        The acquired or refreshed SectionLock.
+
+    Raises:
+        SectionLockConflictError: If the section is locked by another user.
     """
     now = datetime.now(datetime.UTC)
     existing_lock = section_lock_repo.get_by_section_id(db, section_id)
@@ -60,3 +66,47 @@ def acquire_lock(db: Session, section_id: int, user_id: int) -> SectionLock:
     )
     # TODO: broadcast lock acquired once SSIP-70 is ready
     return section_lock_repo.create(db, new_lock)
+
+
+def release_lock(db: Session, section_id: int, user_id: int) -> None:
+    """
+    Release a lock on a section.
+
+    Args:
+        db: Database session.
+        section_id: ID of the section to unlock.
+        user_id: ID of the user releasing the lock.
+
+    Raises:
+        PermissionError: If the caller does not own the lock.
+    """
+    existing_lock = section_lock_repo.get_by_section_id(db, section_id)
+
+    if existing_lock is None or existing_lock.locked_by != user_id:
+        raise PermissionError("User does not own this lock")
+
+    section_lock_repo.delete(db, existing_lock)
+    # TODO: broadcast lock_released once SSIP-70 is ready
+
+
+def verify_lock(db: Session, section_id: int, user_id: int) -> None:
+    """
+    Verify that the caller owns the active lock on a section.
+
+    Args:
+        db: Database session.
+        section_id: ID of the section to verify.
+        user_id: ID of the user to verify ownership for.
+
+    Raises:
+        HTTPException: 403 if the caller does not own an active lock.
+    """
+    now = datetime.now(datetime.UTC)
+    existing_lock = section_lock_repo.get_by_section_id(db, section_id)
+
+    if (
+        existing_lock is None
+        or existing_lock.expires_at < now
+        or existing_lock.locked_by != user_id
+    ):
+        raise HTTPException(status_code=403, detail="User does not own this lock")

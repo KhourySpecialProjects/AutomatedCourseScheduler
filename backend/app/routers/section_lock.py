@@ -18,7 +18,17 @@ def acquire_lock(
     user_id: int,
     db: Session = Depends(get_db),
 ):
-    """Acquire a lock on a section for editing."""
+    """
+    Acquire a lock on a section for editing.
+
+    Args:
+        section_id: ID of the section to lock.
+        user_id: ID of the user acquiring the lock.
+        db: Database session.
+
+    Raises:
+        HTTPException: 423 if the section is locked by another user.
+    """
     try:
         return section_lock_service.acquire_lock(db, section_id, user_id)
     except SectionLockConflictError as e:
@@ -29,3 +39,25 @@ def acquire_lock(
                 "expires_at": str(e.lock.expires_at),
             },
         ) from e
+
+
+def release_lock(
+    section_id: int,
+    # TODO: replace user_id with current user from auth once SSIP-61/62 is ready
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    """Release a lock on a section.
+
+    Args:
+        section_id: ID of the section to unlock.
+        user_id: ID of the user releasing the lock.
+        db: Database session.
+
+    Raises:
+        HTTPException: 403 if the caller does not own an active lock.
+    """
+    try:
+        section_lock_service.release_lock(db, section_id, user_id)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
