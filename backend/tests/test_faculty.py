@@ -15,6 +15,7 @@ from app.models import (
 )
 from app.models.campus import Campus as CampusModel
 from app.models.semester import Semester as SemesterModel
+from app.services import faculty as faculty_service
 
 
 def _make_campus(db, name="Boston"):
@@ -416,3 +417,144 @@ def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
 def test_delete_faculty_not_found_returns_404(client, db_session):
     response = client.delete("/faculty/99999")
     assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# build_profile
+# ---------------------------------------------------------------------------
+
+
+def _make_faculty(db, nuid=1001):
+    faculty = Faculty(
+        nuid=nuid,
+        first_name="Jane",
+        last_name="Doe",
+        email=f"faculty{nuid}@example.com",
+        campus="Boston",
+    )
+    db.add(faculty)
+    db.flush()
+    return faculty
+
+
+def _make_course(db, name="Algorithms"):
+    course = Course(name=name, description="desc", credits=4)
+    db.add(course)
+    db.flush()
+    return course
+
+
+def _make_section(db, schedule_id, course_id, time_block_id):
+    section = Section(
+        schedule_id=schedule_id,
+        time_block_id=time_block_id,
+        course_id=course_id,
+        section_number=1,
+        capacity=20,
+    )
+    db.add(section)
+    db.flush()
+    return section
+
+
+class TestBuildProfile:
+    def test_returns_existing_preferences_when_present(self, db_session):
+        """Faculty with explicit preferences: build_profile returns those preferences."""
+        campus = _make_campus(db_session)
+        tb = _make_time_block(db_session, campus.campus_id)
+        faculty = _make_faculty(db_session)
+        course = _make_course(db_session)
+        semester = _make_semester(db_session, season="Fall", year=2026)
+
+        db_session.add(CoursePreference(
+            faculty_nuid=faculty.nuid,
+            course_id=course.course_id,
+            preference=PreferenceLevel.EAGER,
+        ))
+        db_session.add(MeetingPreference(
+            faculty_nuid=faculty.nuid,
+            meeting_time=tb.time_block_id,
+            preference=PreferenceLevel.READY,
+        ))
+        db_session.commit()
+
+        profile = faculty_service.build_profile(db_session, faculty.nuid, semester.semester_id)
+
+        assert profile.needsAdminReview is False
+        assert len(profile.course_preferences) == 1
+        assert profile.course_preferences[0].course_id == course.course_id
+        assert profile.course_preferences[0].preference == PreferenceLevel.EAGER
+        assert len(profile.meeting_preferences) == 1
+
+    def test_promotes_ready_to_eager_when_no_eager_preferences(self, db_session):
+        """Normalization: if no EAGER courses exist, READY courses are promoted to EAGER."""
+        campus = _make_campus(db_session)
+        _make_time_block(db_session, campus.campus_id)
+        faculty = _make_faculty(db_session)
+        course1 = _make_course(db_session, name="Algorithms")
+        course2 = _make_course(db_session, name="OS")
+        semester = _make_semester(db_session, season="Fall", year=2026)
+
+        db_session.add(CoursePreference(
+            faculty_nuid=faculty.nuid,
+            course_id=course1.course_id,
+            preference=PreferenceLevel.READY,
+        ))
+        db_session.add(CoursePreference(
+            faculty_nuid=faculty.nuid,
+            course_id=course2.course_id,
+            preference=PreferenceLevel.WILLING,
+        ))
+        db_session.commit()
+
+        profile = faculty_service.build_profile(db_session, faculty.nuid, semester.semester_id)
+
+        eager_ids = {cp.course_id for cp in profile.course_preferences if cp.preference == PreferenceLevel.EAGER}
+        ready_ids = {cp.course_id for cp in profile.course_preferences if cp.preference == PreferenceLevel.READY}
+        assert course1.course_id in eager_ids
+        assert course2.course_id in ready_ids
+
+    def test_derives_preferences_from_previous_assignments(self, db_session):
+        """No explicit preferences + previous assignments: profile derived from assignment history."""
+        campus = _make_campus(db_session)
+        tb = _make_time_block(db_session, campus.campus_id)
+        faculty = _make_faculty(db_session)
+        course = _make_course(db_session)
+
+        sem_prev = _make_semester(db_session, season="Fall", year=2025)
+        sem_curr = _make_semester(db_session, season="Fall", year=2026)
+
+        schedule = Schedule(
+            name="F25",
+            semester_id=sem_prev.semester_id,
+            campus=campus.campus_id,
+            draft=False,
+        )
+        db_session.add(schedule)
+        db_session.flush()
+
+        section = _make_section(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
+        db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id))
+        db_session.commit()
+
+        profile = faculty_service.build_profile(db_session, faculty.nuid, sem_curr.semester_id)
+
+        assert profile.needsAdminReview is False
+        assert len(profile.course_preferences) == 1
+        assert profile.course_preferences[0].course_id == course.course_id
+        assert profile.course_preferences[0].preference == PreferenceLevel.EAGER
+        assert len(profile.meeting_preferences) == 1
+        assert profile.meeting_preferences[0].preference == PreferenceLevel.EAGER
+
+    def test_returns_empty_profile_with_needs_admin_review_when_no_data(self, db_session):
+        """No preferences and no previous assignments: empty profile flagged for admin review."""
+        faculty = _make_faculty(db_session)
+        semester = _make_semester(db_session, season="Fall", year=2026)
+        # No Fall 2025 semester exists, so get_last_year returns None -> no assignments found
+        db_session.commit()
+
+        profile = faculty_service.build_profile(db_session, faculty.nuid, semester.semester_id)
+
+        assert profile.needsAdminReview is True
+        assert profile.course_preferences == []
+        assert profile.meeting_preferences == []

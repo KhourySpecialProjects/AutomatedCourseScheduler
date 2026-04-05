@@ -6,6 +6,7 @@ from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
 from app.models.faculty_assignment import FacultyAssignment
 from app.models.section import Section
+from app.models.schedule import Schedule 
 
 
 def get_all(db: Session) -> list[Section]:
@@ -66,8 +67,9 @@ def replace_faculty_assignments(db: Session, section_id: int, faculty_nuids: lis
         db.add(FacultyAssignment(faculty_nuid=nuid, section_id=section_id))
 
 
-def get_by_instructor(db: Session, instructor_id: int) -> list[FacultyAssignment]:
-    assignments = db.query(FacultyAssignment).filter(
-        FacultyAssignment.faculty_nuid == instructor_id).all
+def get_by_instructor(db: Session, instructor_id: int, semester_id: int) -> list[FacultyAssignment]:
+    assignments = db.query(FacultyAssignment).join(Section).join(Schedule).filter(
+        FacultyAssignment.faculty_nuid == instructor_id, 
+        Schedule.semester_id == semester_id).all()
     return assignments
 
