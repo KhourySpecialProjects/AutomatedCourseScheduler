@@ -26,7 +26,9 @@ def invite_user(db: Session, nuid: int, role: str) -> InviteResult:
     On first login Auth0 redirects back to the app; get_or_link_user matches
     the new Auth0 sub to this record by email and backfills the sub.
     """
-    from app.repositories import faculty as faculty_repo  # avoid circular at module level
+    from app.repositories import (
+        faculty as faculty_repo,  # avoid circular at module level
+    )
 
     faculty = faculty_repo.get_by_nuid(db, nuid)
     if faculty is None:
@@ -55,6 +57,10 @@ def invite_user(db: Session, nuid: int, role: str) -> InviteResult:
         user=UserResponse.model_validate(user),
         signup_url=signup_url,
     )
+
+
+def get_user_by_id(db: Session, user_id: int) -> User | None:
+    return user_repo.get_by_id(db, user_id)
 
 
 def get_all_users(db: Session) -> list[User]:

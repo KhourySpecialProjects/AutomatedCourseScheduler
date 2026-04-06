@@ -44,3 +44,16 @@ def list_users(
 def get_me(current_user: User = Depends(get_db_user)):
     """Return the profile of the currently authenticated user."""
     return current_user
+
+
+@router.get("/users/{user_id}", response_model=UserResponse)
+def get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Return a single user by ID. Requires admin role."""
+    user = user_service.get_user_by_id(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail=f"User with id {user_id} not found")
+    return user

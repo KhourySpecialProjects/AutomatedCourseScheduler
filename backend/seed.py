@@ -632,7 +632,10 @@ def seed(db: Session) -> None:
     print(f"  {len(assignments)} faculty assignments")
     print(f"  {len(preferences)} course preferences")
     print(f"  {len(meeting_prefs)} meeting preferences")
-    print(f"  {len(seed_admins)} seed admin users (fake emails — run bootstrap_admin.py for real login)")
+    print(
+        f"  {len(seed_admins)} seed admin users (fake emails"\
+        f" — run bootstrap_admin.py for real login)"
+    )
 
 
 if __name__ == "__main__":

@@ -29,10 +29,11 @@ def _make_user(db, nuid=1):
         first_name="Test",
         last_name="User",
         email=f"user{nuid}@test.com",
-        phone_number="1234567890",
+        role="admin"
     )
     db.add(user)
     db.commit()
+    db.refresh(user)
     return user
 
 

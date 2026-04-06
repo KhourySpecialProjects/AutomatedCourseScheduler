@@ -15,6 +15,10 @@ def get_by_nuid(db: Session, nuid: int) -> User | None:
     return db.query(User).filter(User.nuid == nuid).first()
 
 
+def get_by_id(db: Session, user_id: int) -> User | None:
+    return db.query(User).filter(User.id == user_id).first()
+
+
 def get_all(db: Session) -> list[User]:
     return db.query(User).order_by(User.last_name, User.first_name).all()
 
