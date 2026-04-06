@@ -40,7 +40,7 @@ async def get_db_user(
     endpoint with the bearer token to get the email, match it to a User record,
     and persist the sub for all subsequent requests.
     """
-    from app.services.user_service import get_or_link_user
+    from backend.app.services.user import get_or_link_user
 
     sub = claims["sub"]
     token = request.headers.get("Authorization", "").removeprefix("Bearer ")

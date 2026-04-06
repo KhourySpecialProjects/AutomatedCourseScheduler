@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class UserResponse(BaseModel):
-    id: int
+    user_id: int
     nuid: int
     first_name: str
     last_name: str
