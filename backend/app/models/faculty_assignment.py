@@ -24,12 +24,8 @@ class FacultyAssignment(Base):
     section_id: Mapped[int] = mapped_column(Integer, ForeignKey("section.section_id"))
 
     # Relationships
-    faculty: Mapped["Faculty"] = relationship(
-        "Faculty", back_populates="faculty_assignments"
-    )
-    section: Mapped["Section"] = relationship(
-        "Section", back_populates="faculty_assignments"
-    )
+    faculty: Mapped["Faculty"] = relationship("Faculty", back_populates="faculty_assignments")
+    section: Mapped["Section"] = relationship("Section", back_populates="faculty_assignments")
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

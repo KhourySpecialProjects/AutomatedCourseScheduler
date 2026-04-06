@@ -206,9 +206,7 @@ def test_post_reply_success(client, db_session):
     assert response.status_code == 201
 
     db_session.expire_all()
-    reply = (
-        db_session.query(Comment).filter(Comment.content == "This is a reply").first()
-    )
+    reply = db_session.query(Comment).filter(Comment.content == "This is a reply").first()
     assert reply is not None
     assert reply.parent_id == parent.comment_id
 

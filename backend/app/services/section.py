@@ -106,9 +106,7 @@ def _validate_create_refs(db: Session, section: SectionCreate) -> None:
 
 def _validate_update_refs(db: Session, section: SectionUpdate) -> None:
     fields = section.model_fields_set
-    if section.course_id is not None and not course_repo.course_exists(
-        db, section.course_id
-    ):
+    if section.course_id is not None and not course_repo.course_exists(db, section.course_id):
         raise ValueError("CourseID is invalid")
     if section.time_block_id is not None and not time_block_repo.time_block_exists(
         db, section.time_block_id
@@ -138,9 +136,7 @@ def create_section(db: Session, section: SectionCreate) -> Section:
     return section_repo.create(db, section_obj)
 
 
-def update_section(
-    db: Session, section_id: int, section: SectionUpdate
-) -> Section | None:
+def update_section(db: Session, section_id: int, section: SectionUpdate) -> Section | None:
     section_obj = section_repo.get_by_id(db, section_id)
     if section_obj is None:
         return None

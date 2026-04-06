@@ -22,9 +22,7 @@ class Comment(Base):
     content: Mapped[str] = mapped_column(String(200))
     section_id: Mapped[int] = mapped_column(Integer, ForeignKey("section.section_id"))
     resolved: Mapped[bool] = mapped_column(Boolean, default=False)
-    parent_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("comment.comment_id")
-    )
+    parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("comment.comment_id"))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships

@@ -11,9 +11,7 @@ def get_all(db: Session) -> list[Comment]:
 
 
 def get_by_section(db: Session, section_id: int) -> list[Comment]:
-    stmt = (
-        select(Comment).join(Section.comments).where(Comment.section_id == section_id)
-    )
+    stmt = select(Comment).join(Section.comments).where(Comment.section_id == section_id)
     results = db.scalars(stmt).all()
     return results
 

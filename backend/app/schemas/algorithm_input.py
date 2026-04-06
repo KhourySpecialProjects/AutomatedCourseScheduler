@@ -15,19 +15,13 @@ class AlgorithmInput(BaseModel):
     OfferedCourses: list[CourseResponse] = Field(
         ..., description="Courses to schedule this semester"
     )
-    CoursePreferences: list[int] = Field(
-        ..., description="Faculty course preference IDs"
-    )
-    TimePreferences: list[int] = Field(
-        ..., description="Faculty time block preference IDs"
-    )
+    CoursePreferences: list[int] = Field(..., description="Faculty course preference IDs")
+    TimePreferences: list[int] = Field(..., description="Faculty time block preference IDs")
     TimeBlocks: list[int] = Field(..., description="Available time block IDs")
     ConflictGroups: list[ConflictGroup] = Field(
         default=[], description="Course groups that should not overlap"
     )
-    AllFaculty: list[FacultyResponse] = Field(
-        ..., description="Available faculty this semester"
-    )
+    AllFaculty: list[FacultyResponse] = Field(..., description="Available faculty this semester")
     Parameters: AlgorithmParameters = Field(
         default_factory=AlgorithmParameters,
         description="Tunable algorithm parameters",

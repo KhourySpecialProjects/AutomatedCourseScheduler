@@ -383,12 +383,8 @@ def seed(db: Session) -> None:
     }
 
     assignments = []
-    section_to_course_idx = {
-        s: spec[0] for s, spec in zip(sections, section_specs, strict=True)
-    }
-    section_to_sec_num = {
-        s: spec[2] for s, spec in zip(sections, section_specs, strict=True)
-    }
+    section_to_course_idx = {s: spec[0] for s, spec in zip(sections, section_specs, strict=True)}
+    section_to_sec_num = {s: spec[2] for s, spec in zip(sections, section_specs, strict=True)}
 
     for section in sections:
         course_idx = section_to_course_idx[section]

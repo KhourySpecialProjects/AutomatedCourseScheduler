@@ -36,9 +36,7 @@ def _make_semester(db, season="Fall", year=2024):
 def _seed_schedule_course_timeblock(db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
-    schedule = Schedule(
-        name="F24", semester_id=semester.semester_id, campus=campus.campus_id
-    )
+    schedule = Schedule(name="F24", semester_id=semester.semester_id, campus=campus.campus_id)
     course = Course(name="CS 2500", description="Fundamentals", credits=4)
     db_session.add_all([schedule, course])
     db_session.flush()
@@ -164,9 +162,7 @@ def test_get_rich_sections_nested_shape(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
 
-    schedule = Schedule(
-        name="Sched", semester_id=semester.semester_id, campus=campus.campus_id
-    )
+    schedule = Schedule(name="Sched", semester_id=semester.semester_id, campus=campus.campus_id)
     course = Course(name="Intro CS", description="Fun", credits=4)
     db_session.add_all([schedule, course])
     db_session.flush()
@@ -198,9 +194,7 @@ def test_get_rich_sections_nested_shape(client, db_session):
     db_session.add(section)
     db_session.flush()
 
-    db_session.add(
-        FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id)
-    )
+    db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id))
     db_session.add(
         CoursePreference(
             faculty_nuid=faculty.nuid,
@@ -369,9 +363,7 @@ def test_patch_section_invalid_time_block_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-    response = client.patch(
-        f"/sections/{section.section_id}", json={"time_block_id": 99999}
-    )
+    response = client.patch(f"/sections/{section.section_id}", json={"time_block_id": 99999})
     assert response.status_code == 400
     assert response.json()["detail"] == "TimeBlockID is invalid"
 
@@ -387,9 +379,7 @@ def test_patch_section_invalid_course_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-    response = client.patch(
-        f"/sections/{section.section_id}", json={"course_id": 99999}
-    )
+    response = client.patch(f"/sections/{section.section_id}", json={"course_id": 99999})
     assert response.status_code == 400
     assert response.json()["detail"] == "CourseID is invalid"
 
@@ -440,11 +430,7 @@ def test_patch_section_clear_nullable_fields(client, db_session):
     )
     assert response.status_code == 200
 
-    reloaded = (
-        db_session.query(Section)
-        .filter(Section.section_id == target.section_id)
-        .first()
-    )
+    reloaded = db_session.query(Section).filter(Section.section_id == target.section_id).first()
     assert reloaded is not None
     assert reloaded.room is None
     assert reloaded.crosslisted_section_id is None
@@ -476,14 +462,10 @@ def test_patch_section_replace_faculty_assignments(client, db_session):
     )
     db_session.add_all([section, f1, f2])
     db_session.flush()
-    db_session.add(
-        FacultyAssignment(faculty_nuid=f1.nuid, section_id=section.section_id)
-    )
+    db_session.add(FacultyAssignment(faculty_nuid=f1.nuid, section_id=section.section_id))
     db_session.commit()
 
-    response = client.patch(
-        f"/sections/{section.section_id}", json={"faculty_nuids": [f2.nuid]}
-    )
+    response = client.patch(f"/sections/{section.section_id}", json={"faculty_nuids": [f2.nuid]})
     assert response.status_code == 200
 
     assignments = (
@@ -506,9 +488,7 @@ def test_patch_section_invalid_faculty_assignments_returns_400(client, db_sessio
     )
     db_session.add(section)
     db_session.commit()
-    response = client.patch(
-        f"/sections/{section.section_id}", json={"faculty_nuids": [99999]}
-    )
+    response = client.patch(f"/sections/{section.section_id}", json={"faculty_nuids": [99999]})
     assert response.status_code == 400
     assert response.json()["detail"] == "FacultyNUIDs is invalid"
 
@@ -533,11 +513,7 @@ def test_delete_section_success(client, db_session):
     response = client.delete(f"/sections/{section.section_id}")
     assert response.status_code == 204
 
-    check = (
-        db_session.query(Section)
-        .filter(Section.section_id == section.section_id)
-        .first()
-    )
+    check = db_session.query(Section).filter(Section.section_id == section.section_id).first()
     assert check is None
 
 

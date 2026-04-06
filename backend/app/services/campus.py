@@ -22,9 +22,7 @@ def create(db: Session, campus_data) -> dict:
 
 
 def update(db: Session, campus_id: int, campus_data) -> dict:
-    campus = campus_repo.update(
-        db, campus_id, campus_data.model_dump(exclude_unset=True)
-    )
+    campus = campus_repo.update(db, campus_id, campus_data.model_dump(exclude_unset=True))
     if campus is None:
         raise HTTPException(status_code=404, detail="Campus not found")
     return campus

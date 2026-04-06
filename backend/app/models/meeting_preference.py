@@ -24,14 +24,10 @@ class MeetingPreference(Base):
 
     # Foreign Keys
     faculty_nuid: Mapped[int] = mapped_column(Integer, ForeignKey("faculty.nuid"))
-    meeting_time: Mapped[int] = mapped_column(
-        Integer, ForeignKey("time_block.time_block_id")
-    )
+    meeting_time: Mapped[int] = mapped_column(Integer, ForeignKey("time_block.time_block_id"))
 
     # Relationships
-    faculty: Mapped["Faculty"] = relationship(
-        "Faculty", back_populates="meeting_preferences"
-    )
+    faculty: Mapped["Faculty"] = relationship("Faculty", back_populates="meeting_preferences")
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

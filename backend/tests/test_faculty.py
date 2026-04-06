@@ -380,7 +380,6 @@ def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
         semester_id=semester.semester_id,
         campus=campus.campus_id,
         draft=True,
-        complete=False,
     )
     db_session.add(schedule)
     db_session.flush()
@@ -407,9 +406,7 @@ def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
             preference=PreferenceLevel.READY,
         )
     )
-    db_session.add(
-        FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id)
-    )
+    db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id))
     db_session.commit()
 
     assert client.delete(f"/faculty/{faculty.nuid}").status_code == 204
