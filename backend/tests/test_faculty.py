@@ -202,6 +202,7 @@ def test_get_faculty_profile_with_preferences(client, db_session):
     assert data["course_preferences"][0]["preference"] == "Eager to teach"
     assert len(data["meeting_preferences"]) == 1
     assert data["meeting_preferences"][0]["preference"] == "Ready to teach"
+    assert data["meeting_preferences"][0]["time_block_id"] == tb.time_block_id
 
 
 def test_get_faculty_not_found(client, db_session):

@@ -115,7 +115,7 @@ def get_faculty_profile(db: Session, nuid: int) -> FacultyProfileResponse | None
         ],
         meeting_preferences=[
             MeetingPreferenceInfo(
-                meeting_time=str(mp.meeting_time),
+                time_block_id=mp.meeting_time,
                 preference=mp.preference.value,
             )
             for mp in faculty.meeting_preferences
