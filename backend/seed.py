@@ -27,6 +27,7 @@ from app.models.schedule_log import ScheduleLog
 from app.models.section import Section
 from app.models.semester import Semester
 from app.models.time_block import TimeBlock
+from app.models.user import User
 
 # Allow running from the backend/ directory without installing the package.
 sys.path.insert(0, os.path.dirname(__file__))
@@ -584,6 +585,42 @@ def seed(db: Session) -> None:
     ]
     db.add_all(meeting_prefs)
 
+    # ------------------------------------------------------------------
+    # Seed admins (representative dev data — emails are fake so Auth0
+    # login won't work for these. Run bootstrap_admin.py to insert a
+    # real admin with your own NUID and email for end-to-end testing.)
+    # ------------------------------------------------------------------
+    seed_admins = [
+        User(
+            nuid=faculty_list[0].nuid,
+            first_name=faculty_list[0].first_name,
+            last_name=faculty_list[0].last_name,
+            email=faculty_list[0].email,
+            role="admin",
+            auth0_sub=None,
+            active=True,
+        ),
+        User(
+            nuid=faculty_list[1].nuid,
+            first_name=faculty_list[1].first_name,
+            last_name=faculty_list[1].last_name,
+            email=faculty_list[1].email,
+            role="admin",
+            auth0_sub=None,
+            active=True,
+        ),
+        User(
+            nuid=faculty_list[2].nuid,
+            first_name=faculty_list[2].first_name,
+            last_name=faculty_list[2].last_name,
+            email=faculty_list[2].email,
+            role="admin",
+            auth0_sub=None,
+            active=True,
+        ),
+    ]
+    db.add_all(seed_admins)
+
     db.commit()
     print("Seed complete.")
     print(f"  1 campus ('{boston.name}')")
@@ -595,6 +632,7 @@ def seed(db: Session) -> None:
     print(f"  {len(assignments)} faculty assignments")
     print(f"  {len(preferences)} course preferences")
     print(f"  {len(meeting_prefs)} meeting preferences")
+    print(f"  {len(seed_admins)} seed admin users (fake emails — run bootstrap_admin.py for real login)")
 
 
 if __name__ == "__main__":
