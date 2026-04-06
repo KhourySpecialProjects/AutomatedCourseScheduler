@@ -2,14 +2,12 @@
 
 from sqlalchemy.orm import Session
 
+from app.models.schedule import Schedule
 from app.models.semester import Semester
 
 
 def semester_exists(db: Session, semester_id: int) -> bool:
-    return (
-        db.query(Semester).filter(Semester.semester_id == semester_id).first()
-        is not None
-    )
+    return db.query(Semester).filter(Semester.semester_id == semester_id).first() is not None
 
 
 def get_all(db: Session) -> list[Semester]:
@@ -29,9 +27,7 @@ def create(db: Session, data: dict) -> Semester:
 
 
 def update(db: Session, semester_id: int, data: dict) -> Semester | None:
-    rows_updated = (
-        db.query(Semester).filter(Semester.semester_id == semester_id).update(data)
-    )
+    rows_updated = db.query(Semester).filter(Semester.semester_id == semester_id).update(data)
     db.commit()
     if rows_updated == 0:
         return None
@@ -45,3 +41,32 @@ def delete(db: Session, semester_id: int) -> bool:
     semester.active = False
     db.commit()
     return True
+
+
+def get_schedules(db: Session, semester: Semester, campus_id: int | None) -> list[Schedule]:
+    schedules = (
+        db.query(Schedule)
+        .filter(
+            Schedule.semester_id == semester.semester_id,
+            Schedule.campus == campus_id,
+            Schedule.active,
+        )
+        .all()
+    )
+    if not schedules:
+        raise ValueError(
+            f"No schedules found for semester {semester.semester_id} and campus {campus_id}"
+        )
+
+    return schedules
+
+
+def get_last_year(db: Session, semester_id: int) -> int | None:
+    semester = get_by_id(db, semester_id)
+    last_year = (
+        db.query(Semester)
+        .filter(Semester.season == semester.season, Semester.year == semester.year - 1)
+        .first()
+    )
+
+    return last_year.semester_id if last_year is not None else None

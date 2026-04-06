@@ -30,12 +30,8 @@ class Section(Base):
     room: Mapped[str | None] = mapped_column(String(10))
 
     # Foreign Keys
-    schedule_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("schedule.schedule_id")
-    )
-    time_block_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("time_block.time_block_id")
-    )
+    schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("schedule.schedule_id"))
+    time_block_id: Mapped[int] = mapped_column(Integer, ForeignKey("time_block.time_block_id"))
     course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
     crosslisted_section_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("section.section_id"), unique=True

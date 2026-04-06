@@ -23,9 +23,7 @@ from app.routers.upload import (
     parse_file,
 )
 
-COURSE_PREFERENCES_CSV = os.path.join(
-    os.path.dirname(__file__), "course_preferences.csv"
-)
+COURSE_PREFERENCES_CSV = os.path.join(os.path.dirname(__file__), "course_preferences.csv")
 COURSE_OFFERINGS_CSV = os.path.join(os.path.dirname(__file__), "course_offerings.csv")
 
 mock_course = Course()
@@ -70,9 +68,7 @@ def test_parse_file_offerings_valid():
         "CS 2500,4,This course provides an overview of CS 2500 concepts.\n"
     )
 
-    offerings_result = parse_file(
-        make_upload_file(offerings_csv), COURSE_OFFERINGS, mock_db
-    )
+    offerings_result = parse_file(make_upload_file(offerings_csv), COURSE_OFFERINGS, mock_db)
 
     assert len(offerings_result) == 1
     assert offerings_result[0]["name"] == "CS 2500"
@@ -294,9 +290,7 @@ def test_upload_faculty_preferences():
     with TestClient(app) as client:
         response = client.post(
             "/upload/faculty-preferences",
-            files={
-                "file": ("preferences.csv", csv_content.encode("utf-8"), "text/csv")
-            },
+            files={"file": ("preferences.csv", csv_content.encode("utf-8"), "text/csv")},
         )
 
     app.dependency_overrides.clear()
@@ -363,9 +357,7 @@ def test_validate_headers_preferences_valid():
         "Faculty Name,Faculty ID,Course,Semester,Preference\n"
         "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
     )
-    result = parse_file(
-        make_upload_file(csv_content), COURSE_PREFERENCES, mock_db_local
-    )
+    result = parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db_local)
     assert isinstance(result, dict)
 
 

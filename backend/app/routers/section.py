@@ -24,9 +24,7 @@ def create_section(section: SectionCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{section_id}", response_model=SectionResponse)
-def update_section(
-    section_id: int, section: SectionUpdate, db: Session = Depends(get_db)
-):
+def update_section(section_id: int, section: SectionUpdate, db: Session = Depends(get_db)):
     """Update an existing section."""
     try:
         updated = section_service.update_section(db, section_id, section)

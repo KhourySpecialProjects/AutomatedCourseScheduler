@@ -33,15 +33,10 @@ class Schedule(Base):
     )
     draft: Mapped[bool] = mapped_column(Boolean, default=True)
     campus: Mapped[int] = mapped_column(ForeignKey("campus.campus_id"), nullable=False)
-    complete: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
-    sections: Mapped[list["Section"]] = relationship(
-        "Section", back_populates="schedule"
-    )
-    schedule_log: Mapped["ScheduleLog"] = relationship(
-        "ScheduleLog", back_populates="schedule"
-    )
+    sections: Mapped[list["Section"]] = relationship("Section", back_populates="schedule")
+    schedule_log: Mapped["ScheduleLog"] = relationship("ScheduleLog", back_populates="schedule")
     semester: Mapped["Semester"] = relationship("Semester", back_populates="schedules")
 
     # Timestamps
