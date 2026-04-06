@@ -32,7 +32,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(50))  # "admin" or "viewer"
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    # Relationships — Comment and SectionLock reference user.nuid
+    # Relationships — Comment and SectionLock reference user.id
     section_locks: Mapped[list["SectionLock"]] = relationship(
         "SectionLock", back_populates="user"
     )

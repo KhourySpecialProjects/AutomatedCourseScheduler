@@ -6,7 +6,8 @@ from app.core.settings import settings
 
 
 def build_signup_url(email: str) -> str:
-    """Return an /authorize URL that drops the user directly into the Auth0 sign-up form."""
+    """Return an /authorize URL that drops the user
+    directly into the Auth0 sign-up form."""
     params = urlencode(
         {
             "client_id": settings.AUTH0_SPA_CLIENT_ID,

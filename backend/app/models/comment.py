@@ -18,7 +18,7 @@ class Comment(Base):
     __tablename__ = "comment"
 
     comment_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.nuid"))
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"))
     content: Mapped[str] = mapped_column(String(200))
     section_id: Mapped[int] = mapped_column(Integer, ForeignKey("section.section_id"))
     resolved: Mapped[bool] = mapped_column(Boolean, default=False)

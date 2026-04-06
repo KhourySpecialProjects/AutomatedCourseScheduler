@@ -23,7 +23,7 @@ def bootstrap(nuid: int, first_name: str, last_name: str, email: str) -> None:
         by_nuid = db.query(User).filter(User.nuid == nuid).first()
         if by_nuid:
             print(
-                f"A user with NUID {nuid} already exists"\
+                f"A user with NUID {nuid} already exists"
                 f"(role: {by_nuid.role}, email: {by_nuid.email})"
             )
             sys.exit(0)
@@ -46,8 +46,8 @@ def bootstrap(nuid: int, first_name: str, last_name: str, email: str) -> None:
         db.commit()
         print(f"Admin created: {first_name} {last_name} <{email}> NUID={nuid}")
         print(
-            "Next: log in via the frontend. Your auth0_sub will be linked automatically" \
-            " on the first request to GET /api/users/me."
+            "Next: log in via the frontend. Your auth0_sub will be linked "
+            "automatically on the first request to GET /api/users/me."
         )
 
 
@@ -64,3 +64,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     bootstrap(args.nuid, args.first_name, args.last_name, args.email)
+
+# docker compose exec api python bootstrap_admin.py --nuid 12345678 --first-name Jane --last-name Doe --email j.doe@northeastern.edu
