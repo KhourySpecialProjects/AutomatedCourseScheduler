@@ -41,6 +41,7 @@ def acquire_lock(
         ) from e
 
 
+@router.post("/{section_id}/unlock")
 def release_lock(
     section_id: int,
     # TODO: replace user_id with current user from auth once SSIP-61/62 is ready

@@ -1,6 +1,6 @@
 """Section lock service — business logic."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -33,7 +33,7 @@ def acquire_lock(db: Session, section_id: int, user_id: int) -> SectionLock:
     Raises:
         SectionLockConflictError: If the section is locked by another user.
     """
-    now = datetime.now(datetime.UTC)
+    now = datetime.now(UTC).replace(tzinfo=None)
     existing_lock = section_lock_repo.get_by_section_id(db, section_id)
 
     # lock exists and is active
@@ -101,7 +101,7 @@ def verify_lock(db: Session, section_id: int, user_id: int) -> None:
     Raises:
         HTTPException: 403 if the caller does not own an active lock.
     """
-    now = datetime.now(datetime.UTC)
+    now = datetime.now(UTC).replace(tzinfo=None)
     existing_lock = section_lock_repo.get_by_section_id(db, section_id)
 
     if (
