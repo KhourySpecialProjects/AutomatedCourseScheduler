@@ -1,6 +1,6 @@
 """Schedule router."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -11,9 +11,11 @@ from app.schemas.schedule import (
 )
 from app.schemas.section import SectionResponse, SectionRichResponse
 from app.schemas.section_lock import ScheduleActiveLockResponse
+from app.services import course as course_service
 from app.services import schedule as schedule_service
 from app.services import section as section_service
 from app.services import section_lock as section_lock_service
+from app.services import semester as semester_service
 from app.services.section import ScheduleNotFoundError
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
@@ -31,7 +33,21 @@ def get_schedules(
 @router.post("", response_model=ScheduleResponse, status_code=201)
 def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
     """Create a new schedule draft."""
-    return schedule_service.create(db, schedule)
+
+    created = schedule_service.create(db, schedule)
+    previous_year = semester_service.get_last_year(db, created.semester_id)
+    if previous_year is None:
+        course_list = []
+    else:
+        try:
+            course_list = course_service.generate_course_list(
+                db, previous_year, schedule.new_courses, schedule.campus
+            )
+        except ValueError as e:
+            course_list = []
+            raise HTTPException(status_code=404, detail=e.args[0]) from e
+
+    return schedule_service.add_course_list(db, created, course_list)
 
 
 @router.get("/{schedule_id}", response_model=ScheduleResponse)
@@ -62,10 +78,12 @@ def get_schedule_sections_rich(schedule_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse)
 def update_schedule(
-    schedule_id: int, schedule: ScheduleUpdate, db: Session = Depends(get_db)
+    schedule_id: int,
+    schedule: ScheduleUpdate = Body(default=None),
+    db: Session = Depends(get_db),
 ):
     """Update schedule metadata (name, complete status, etc.)."""
-    return schedule_service.update(db, schedule_id, schedule)
+    return schedule_service.update(db, schedule_id, schedule or ScheduleUpdate())
 
 
 @router.delete("/{schedule_id}", status_code=204)

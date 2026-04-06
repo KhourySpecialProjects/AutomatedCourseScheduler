@@ -26,9 +26,7 @@ class TimeBlock(Base):
     block_group: Mapped[str | None] = mapped_column(String(1))
 
     # Relationships
-    sections: Mapped[list["Section"]] = relationship(
-        "Section", back_populates="time_block"
-    )
+    sections: Mapped[list["Section"]] = relationship("Section", back_populates="time_block")
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

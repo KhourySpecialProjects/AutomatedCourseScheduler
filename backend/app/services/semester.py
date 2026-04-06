@@ -39,3 +39,7 @@ def delete(db: Session, schedule_id: int) -> None:
     success = semester_repo.delete(db, schedule_id)
     if not success:
         raise HTTPException(status_code=404, detail="Semester not found")
+
+
+def get_last_year(db: Session, semester_id: int) -> int | None:
+    return semester_repo.get_last_year(db, semester_id)
