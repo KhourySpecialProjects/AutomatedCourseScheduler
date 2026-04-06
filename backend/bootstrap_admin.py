@@ -66,5 +66,5 @@ if __name__ == "__main__":
     bootstrap(args.nuid, args.first_name, args.last_name, args.email)
 
 # To inject yourself as admin:
-# docker compose exec api python bootstrap_admin.py 
+# docker compose exec api python bootstrap_admin.py
 # --nuid 12345678 --first-name Jane --last-name Doe --email j.doe@northeastern.edu
