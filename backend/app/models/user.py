@@ -21,7 +21,7 @@ class User(Base):
 
     __tablename__ = "user"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     auth0_sub: Mapped[str | None] = mapped_column(String(128), unique=True, nullable=True)
     nuid: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
     first_name: Mapped[str] = mapped_column(String(100))
@@ -30,6 +30,6 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(50))  # "admin" or "viewer"
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    # Relationships — Comment and SectionLock reference user.id
+    # Relationships — Comment and SectionLock reference user.user_id
     section_locks: Mapped[list["SectionLock"]] = relationship("SectionLock", back_populates="user")
     comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="user")
