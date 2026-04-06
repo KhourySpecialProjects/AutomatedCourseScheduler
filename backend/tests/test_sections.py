@@ -228,7 +228,7 @@ def test_get_rich_sections_nested_shape(client, db_session):
     assert len(inst["course_preferences"]) == 1
     assert inst["course_preferences"][0]["course_name"] == "Intro CS"
     assert len(inst["meeting_preferences"]) == 1
-    assert inst["meeting_preferences"][0]["meeting_time"] == str(tb.time_block_id)
+    assert inst["meeting_preferences"][0]["time_block_id"] == tb.time_block_id
 
 
 # ---------------------------------------------------------------------------
