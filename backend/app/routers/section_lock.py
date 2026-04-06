@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.models.user import User
 from app.schemas.section_lock import SectionLockResponse
 from app.services import section_lock as section_lock_service
 from app.services.section_lock import SectionLockConflictError
@@ -27,8 +28,16 @@ def acquire_lock(
         db: Database session.
 
     Raises:
+        HTTPException: 403 if the user does not have the ADMIN role.
         HTTPException: 423 if the section is locked by another user.
     """
+    db_user = db.query(User).filter(User.nuid == user_id).first()
+
+    if not db_user or db_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=403, detail="Only ADMIN role users may acquire locks"
+        )
+
     try:
         return section_lock_service.acquire_lock(db, section_id, user_id)
     except SectionLockConflictError as e:
