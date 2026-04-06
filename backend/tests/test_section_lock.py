@@ -45,9 +45,7 @@ def _make_user(db, nuid=1, role="ADMIN"):
 def _make_section(db, season="Fall"):
     campus = _make_campus(db)
     semester = _make_semester(db, season=season)
-    schedule = Schedule(
-        name="F24", semester_id=semester.semester_id, campus=campus.campus_id
-    )
+    schedule = Schedule(name="F24", semester_id=semester.semester_id, campus=campus.campus_id)
     course = Course(name="CS 2500", description="Fundamentals", credits=4)
     db.add_all([schedule, course])
     db.flush()
@@ -123,9 +121,7 @@ def test_previous_lock_releases(client: TestClient, db_session: Session) -> None
     client.post(f"/sections/{section2.section_id}/lock?user_id={user.nuid}")
 
     lock = (
-        db_session.query(SectionLock)
-        .filter(SectionLock.section_id == section1.section_id)
-        .first()
+        db_session.query(SectionLock).filter(SectionLock.section_id == section1.section_id).first()
     )
     assert lock is None
 
@@ -153,24 +149,18 @@ def test_unlock_success(client: TestClient, db_session: Session) -> None:
     client.post(f"/sections/{section.section_id}/unlock?user_id={user.nuid}")
 
     lock = (
-        db_session.query(SectionLock)
-        .filter(SectionLock.section_id == section.section_id)
-        .first()
+        db_session.query(SectionLock).filter(SectionLock.section_id == section.section_id).first()
     )
     assert lock is None
 
 
-def test_unlock_lock_with_different_owner(
-    client: TestClient, db_session: Session
-) -> None:
+def test_unlock_lock_with_different_owner(client: TestClient, db_session: Session) -> None:
     user1 = _make_user(db_session, nuid=1)
     user2 = _make_user(db_session, nuid=2)
     section = _make_section(db_session)
 
     client.post(f"/sections/{section.section_id}/lock?user_id={user1.nuid}")
-    response = client.post(
-        f"/sections/{section.section_id}/unlock?user_id={user2.nuid}"
-    )
+    response = client.post(f"/sections/{section.section_id}/unlock?user_id={user2.nuid}")
 
     assert response.status_code == 403
 

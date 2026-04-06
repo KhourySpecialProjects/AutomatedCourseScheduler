@@ -34,9 +34,7 @@ def acquire_lock(
     db_user = db.query(User).filter(User.nuid == user_id).first()
 
     if not db_user or db_user.role != "ADMIN":
-        raise HTTPException(
-            status_code=403, detail="Only ADMIN role users may acquire locks"
-        )
+        raise HTTPException(status_code=403, detail="Only ADMIN role users may acquire locks")
 
     try:
         return section_lock_service.acquire_lock(db, section_id, user_id)

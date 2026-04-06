@@ -42,9 +42,7 @@ def acquire_lock(db: Session, section_id: int, user_id: int) -> SectionLock:
     if existing_lock and existing_lock.expires_at > now:
         # if same user, refresh the timer
         if existing_lock.locked_by == user_id:
-            existing_lock.expires_at = now + timedelta(
-                minutes=settings.LOCK_TIMEOUT_MINUTES
-            )
+            existing_lock.expires_at = now + timedelta(minutes=settings.LOCK_TIMEOUT_MINUTES)
             return section_lock_repo.save(db, existing_lock)
         # if different user, raise exception
         raise SectionLockConflictError(existing_lock)
