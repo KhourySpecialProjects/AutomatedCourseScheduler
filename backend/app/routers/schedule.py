@@ -10,8 +10,10 @@ from app.schemas.schedule import (
     ScheduleUpdate,
 )
 from app.schemas.section import SectionResponse, SectionRichResponse
+from app.schemas.section_lock import ScheduleActiveLockResponse
 from app.services import schedule as schedule_service
 from app.services import section as section_service
+from app.services import section_lock as section_lock_service
 from app.services.section import ScheduleNotFoundError
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
@@ -77,3 +79,20 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
     """Export a finalized schedule in CourseLeaf-compatible CSV format."""
     # TODO: Implement CSV export
     raise HTTPException(status_code=501, detail="Not implemented yet")
+
+
+@router.get("/{schedule_id}/locks", response_model=list[ScheduleActiveLockResponse])
+def get_schedule_locks(
+    schedule_id: int, db: Session = Depends(get_db)
+) -> list[ScheduleActiveLockResponse]:
+    """
+    Get all active locks for a schedule.
+
+    Args:
+        schedule_id: ID of the schedule to query locks for.
+        db: Database session.
+
+    Returns:
+        List of active locks with user display name included.
+    """
+    return section_lock_service.get_active_locks_for_schedule(db, schedule_id)

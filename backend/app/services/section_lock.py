@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.core.settings import settings
 from app.models.section_lock import SectionLock
+from app.models.user import User
 from app.repositories import section_lock as section_lock_repo
+from app.schemas.section_lock import ScheduleActiveLockResponse
 
 
 class SectionLockConflictError(Exception):
@@ -110,3 +112,33 @@ def verify_lock(db: Session, section_id: int, user_id: int) -> None:
         or existing_lock.locked_by != user_id
     ):
         raise HTTPException(status_code=403, detail="User does not own this lock")
+
+
+def get_active_locks_for_schedule(
+    db: Session, schedule_id: int
+) -> list[ScheduleActiveLockResponse]:
+    """
+    Return all active locks for a schedule with user display names.
+
+    Args:
+        db: Database session.
+        schedule_id: ID of the schedule to query locks for.
+
+    Returns:
+        List of active locks with user display name included.
+    """
+    locks = section_lock_repo.get_active_by_schedule(db, schedule_id)
+    result = []
+    for lock in locks:
+        user = db.query(User).filter(User.nuid == lock.locked_by).first()
+        if not user:
+            continue
+        result.append(
+            ScheduleActiveLockResponse(
+                section_id=lock.section_id,
+                locked_by=lock.locked_by,
+                display_name=f"{user.first_name} {user.last_name}",
+                expires_at=lock.expires_at,
+            )
+        )
+    return result
