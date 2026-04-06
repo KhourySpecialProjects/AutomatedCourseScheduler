@@ -25,9 +25,7 @@ class SectionLock(Base):
     section_lock_id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
     # Foreign Keys
-    section_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("section.section_id"), unique=True
-    )
+    section_id: Mapped[int] = mapped_column(Integer, ForeignKey("section.section_id"), unique=True)
     locked_by: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"))
 
     # Relationships

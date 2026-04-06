@@ -53,14 +53,10 @@ def bootstrap(nuid: int, first_name: str, last_name: str, email: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Bootstrap the first real admin user.")
-    parser.add_argument(
-        "--nuid", type=int, required=True, help="Your Northeastern NUID"
-    )
+    parser.add_argument("--nuid", type=int, required=True, help="Your Northeastern NUID")
     parser.add_argument("--first-name", required=True)
     parser.add_argument("--last-name", required=True)
-    parser.add_argument(
-        "--email", required=True, help="Must match your Auth0 login email"
-    )
+    parser.add_argument("--email", required=True, help="Must match your Auth0 login email")
     args = parser.parse_args()
 
     bootstrap(args.nuid, args.first_name, args.last_name, args.email)

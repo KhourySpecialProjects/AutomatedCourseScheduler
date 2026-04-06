@@ -50,9 +50,7 @@ async def get_db_user(
     except LookupError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to resolve user: {exc}"
-        ) from exc
+        raise HTTPException(status_code=500, detail=f"Failed to resolve user: {exc}") from exc
 
 
 async def require_admin(user: User = Depends(get_db_user)) -> User:
