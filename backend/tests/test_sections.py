@@ -1,4 +1,5 @@
 from datetime import time
+from unittest.mock import patch
 
 from app.core.enums import PreferenceLevel
 from app.models import (
@@ -327,16 +328,17 @@ def test_patch_section_success(client, db_session):
     db_session.add(section)
     db_session.commit()
 
-    response = client.patch(
-        f"/sections/{section.section_id}",
-        json={
-            "time_block_id": new_time_block.time_block_id,
-            "course_id": new_course.course_id,
-            "capacity": 40,
-            "room": "WVH108",
-            "crosslisted_section_id": crosslisted_target.section_id,
-        },
-    )
+    with patch("app.routers.section.verify_lock"):
+        response = client.patch(
+            f"/sections/{section.section_id}",
+            json={
+                "time_block_id": new_time_block.time_block_id,
+                "course_id": new_course.course_id,
+                "capacity": 40,
+                "room": "WVH108",
+                "crosslisted_section_id": crosslisted_target.section_id,
+            },
+        )
     assert response.status_code == 200
     data = response.json()
     assert data["schedule_id"] == schedule.schedule_id
@@ -347,7 +349,8 @@ def test_patch_section_success(client, db_session):
 
 
 def test_patch_section_not_found_returns_404(client, db_session):
-    response = client.patch("/sections/99999", json={"capacity": 10})
+    with patch("app.routers.section.verify_lock"):
+        response = client.patch("/sections/99999", json={"capacity": 10})
     assert response.status_code == 404
     assert response.json()["detail"] == "Section not found"
 
@@ -363,7 +366,8 @@ def test_patch_section_invalid_time_block_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-    response = client.patch(f"/sections/{section.section_id}", json={"time_block_id": 99999})
+    with patch("app.routers.section.verify_lock"):
+        response = client.patch(f"/sections/{section.section_id}", json={"time_block_id": 99999})
     assert response.status_code == 400
     assert response.json()["detail"] == "TimeBlockID is invalid"
 
@@ -379,7 +383,8 @@ def test_patch_section_invalid_course_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-    response = client.patch(f"/sections/{section.section_id}", json={"course_id": 99999})
+    with patch("app.routers.section.verify_lock"):
+        response = client.patch(f"/sections/{section.section_id}", json={"course_id": 99999})
     assert response.status_code == 400
     assert response.json()["detail"] == "CourseID is invalid"
 
@@ -395,9 +400,10 @@ def test_patch_section_invalid_crosslisted_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-    response = client.patch(
-        f"/sections/{section.section_id}", json={"crosslisted_section_id": 99999}
-    )
+    with patch("app.routers.section.verify_lock"):
+        response = client.patch(
+            f"/sections/{section.section_id}", json={"crosslisted_section_id": 99999}
+        )
     assert response.status_code == 400
     assert response.json()["detail"] == "CrosslistedSectionID is invalid"
 
@@ -424,10 +430,11 @@ def test_patch_section_clear_nullable_fields(client, db_session):
     target.crosslisted_section_id = other.section_id
     db_session.commit()
 
-    response = client.patch(
-        f"/sections/{target.section_id}",
-        json={"room": None, "crosslisted_section_id": None},
-    )
+    with patch("app.routers.section.verify_lock"):
+        response = client.patch(
+            f"/sections/{target.section_id}",
+            json={"room": None, "crosslisted_section_id": None},
+        )
     assert response.status_code == 200
 
     reloaded = db_session.query(Section).filter(Section.section_id == target.section_id).first()
@@ -465,7 +472,10 @@ def test_patch_section_replace_faculty_assignments(client, db_session):
     db_session.add(FacultyAssignment(faculty_nuid=f1.nuid, section_id=section.section_id))
     db_session.commit()
 
-    response = client.patch(f"/sections/{section.section_id}", json={"faculty_nuids": [f2.nuid]})
+    with patch("app.routers.section.verify_lock"):
+        response = client.patch(
+            f"/sections/{section.section_id}", json={"faculty_nuids": [f2.nuid]}
+        )
     assert response.status_code == 200
 
     assignments = (
@@ -488,7 +498,8 @@ def test_patch_section_invalid_faculty_assignments_returns_400(client, db_sessio
     )
     db_session.add(section)
     db_session.commit()
-    response = client.patch(f"/sections/{section.section_id}", json={"faculty_nuids": [99999]})
+    with patch("app.routers.section.verify_lock"):
+        response = client.patch(f"/sections/{section.section_id}", json={"faculty_nuids": [99999]})
     assert response.status_code == 400
     assert response.json()["detail"] == "FacultyNUIDs is invalid"
 
@@ -521,3 +532,26 @@ def test_delete_section_not_found_returns_404(client, db_session):
     response = client.delete("/sections/99999")
     assert response.status_code == 404
     assert response.json()["detail"] == "Section not found"
+
+
+# ---------------------------------------------------------------------------
+# PATCH /sections/{id} — lock enforcement
+# ---------------------------------------------------------------------------
+
+
+def test_patch_section_without_lock_returns_403(client, db_session):
+    """PATCH must be rejected when the caller does not hold an active lock."""
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
+    section = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=25,
+        section_number=1,
+    )
+    db_session.add(section)
+    db_session.commit()
+
+    # No lock acquired — verify_lock runs for real and should reject
+    response = client.patch(f"/sections/{section.section_id}", json={"capacity": 30})
+    assert response.status_code == 403

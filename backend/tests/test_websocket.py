@@ -1,5 +1,6 @@
 """Integration tests for the /ws/{schedule_id} WebSocket endpoint."""
 
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -7,6 +8,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.models import Schedule
 from app.models.campus import Campus
+from app.models.section_lock import SectionLock
 from app.models.semester import Semester
 from app.services.connection_manager import manager
 
@@ -166,3 +168,36 @@ def test_multiple_messages_each_trigger_broadcast(client, db_session):
                 ws.send_json({"action": "refresh"})
                 payload = ws.receive_json()
                 assert payload["type"] == "schedule"
+
+
+# ---------------------------------------------------------------------------
+# Disconnect — lock release
+# ---------------------------------------------------------------------------
+
+
+def test_disconnect_releases_section_lock(client, db_session):
+    """When a user disconnects, any lock they hold should be released immediately."""
+    schedule = _make_schedule(db_session)
+    user = _mock_user(user_id=42)
+
+    now = datetime.now(UTC).replace(tzinfo=None)
+    lock = SectionLock(
+        section_id=1,
+        locked_by=42,
+        expires_at=now + timedelta(minutes=2),
+    )
+    db_session.add(lock)
+    db_session.commit()
+
+    with (
+        patch("app.routers.websocket.get_sub", return_value="auth0|abc"),
+        patch("app.routers.websocket.get_or_link_user", return_value=user),
+        patch("app.services.section.get_rich_sections", return_value=[]),
+    ):
+        with client.websocket_connect(f"/ws/{schedule.schedule_id}?token=good") as ws:
+            ws.send_json({"action": "refresh"})
+            ws.receive_json()
+
+    db_session.expire_all()
+    remaining = db_session.query(SectionLock).filter(SectionLock.locked_by == 42).first()
+    assert remaining is None

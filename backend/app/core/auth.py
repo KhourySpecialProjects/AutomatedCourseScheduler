@@ -55,6 +55,6 @@ async def get_db_user(
 
 async def require_admin(user: User = Depends(get_db_user)) -> User:
     """Guards a route to admin-role users only."""
-    if user.role != "admin":
+    if user.role != "ADMIN":
         raise HTTPException(status_code=403, detail="Admin access required")
     return user

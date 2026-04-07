@@ -29,7 +29,7 @@ def _make_user(db, nuid=1):
         first_name="Test",
         last_name="User",
         email=f"user{nuid}@test.com",
-        role="admin",
+        role="ADMIN",
     )
     db.add(user)
     db.commit()
