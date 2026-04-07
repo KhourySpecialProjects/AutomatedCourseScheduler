@@ -14,6 +14,7 @@ from app.routers import (
     section_lock,
     time_block,
     upload,
+    users,
 )
 
 load_dotenv()
@@ -63,6 +64,7 @@ app.include_router(campus.router, dependencies=[Depends(get_current_user)])
 app.include_router(upload.router, dependencies=[Depends(get_current_user)])
 app.include_router(comment.router, dependencies=[Depends(get_current_user)])
 app.include_router(section_lock.router, dependencies=[Depends(get_current_user)])
+app.include_router(users.router)
 
 
 @app.get("/")
