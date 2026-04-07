@@ -409,8 +409,7 @@ def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
             preference=PreferenceLevel.READY,
         )
     )
-    db_session.add(FacultyAssignment(
-        faculty_nuid=faculty.nuid, section_id=section.section_id))
+    db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id))
     db_session.commit()
 
     assert client.delete(f"/faculty/{faculty.nuid}").status_code == 204
@@ -551,8 +550,7 @@ class TestBuildProfile:
         section = _make_section_with_time_block(
             db_session, schedule.schedule_id, course.course_id, tb.time_block_id
         )
-        db_session.add(FacultyAssignment(
-            faculty_nuid=faculty.nuid, section_id=section.section_id))
+        db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id))
         db_session.commit()
 
         profile = faculty_service.build_profile(db_session, faculty.nuid)
@@ -609,10 +607,8 @@ class TestGetAverageMaxLoad:
             return schedule_map[schedule_id]
 
         with (
-            patch("app.services.faculty.section_repo.get_by_id",
-                  side_effect=mock_get_section),
-            patch("app.services.faculty.schedule_repo.get_by_id",
-                  side_effect=mock_get_schedule),
+            patch("app.services.faculty.section_repo.get_by_id", side_effect=mock_get_section),
+            patch("app.services.faculty.schedule_repo.get_by_id", side_effect=mock_get_schedule),
         ):
             return faculty_service.get_average_max_load(db, assignments)
 
@@ -630,8 +626,7 @@ class TestGetAverageMaxLoad:
             3: _make_section(3, 101),
             4: _make_section(4, 101),
         }
-        schedules = {100: _make_schedule(
-            100, 10), 101: _make_schedule(101, 11)}
+        schedules = {100: _make_schedule(100, 10), 101: _make_schedule(101, 11)}
 
         assert self._run(assignments, sections, schedules) == 2
 
@@ -651,15 +646,13 @@ class TestGetAverageMaxLoad:
             4: _make_section(4, 101),
             5: _make_section(5, 101),
         }
-        schedules = {100: _make_schedule(
-            100, 10), 101: _make_schedule(101, 11)}
+        schedules = {100: _make_schedule(100, 10), 101: _make_schedule(101, 11)}
 
         assert self._run(assignments, sections, schedules) == 3
 
     def test_single_semester(self):
         """All sections in one semester → average equals that count."""
-        assignments = [_make_assignment(
-            1), _make_assignment(2), _make_assignment(3)]
+        assignments = [_make_assignment(1), _make_assignment(2), _make_assignment(3)]
         sections = {i: _make_section(i, 100) for i in [1, 2, 3]}
         schedules = {100: _make_schedule(100, 10)}
 
@@ -667,10 +660,8 @@ class TestGetAverageMaxLoad:
 
     def test_one_section_per_semester(self):
         """1 section across 3 semesters → average 1."""
-        assignments = [_make_assignment(
-            1), _make_assignment(2), _make_assignment(3)]
-        sections = {1: _make_section(1, 100), 2: _make_section(
-            2, 101), 3: _make_section(3, 102)}
+        assignments = [_make_assignment(1), _make_assignment(2), _make_assignment(3)]
+        sections = {1: _make_section(1, 100), 2: _make_section(2, 101), 3: _make_section(3, 102)}
         schedules = {
             100: _make_schedule(100, 10),
             101: _make_schedule(101, 11),
