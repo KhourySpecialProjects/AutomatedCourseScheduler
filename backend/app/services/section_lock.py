@@ -128,7 +128,7 @@ def get_active_locks_for_schedule(
     locks = section_lock_repo.get_active_by_schedule(db, schedule_id)
     result = []
     for lock in locks:
-        user = db.query(User).filter(User.nuid == lock.locked_by).first()
+        user = db.query(User).filter(User.user_id == lock.locked_by).first()
         if not user:
             continue
         result.append(

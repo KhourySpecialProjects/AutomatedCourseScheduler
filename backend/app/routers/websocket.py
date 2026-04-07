@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.repositories import section_lock as section_lock_repo
 from app.schemas.section import SectionRichResponse
 from app.services import section as section_service
 from app.services.connection_manager import manager
@@ -26,7 +27,7 @@ async def websocket_schedule(
         return
 
     try:
-        user = get_or_link_user(db, sub, token)
+        user = await get_or_link_user(db, sub, token)
     except (LookupError, ValueError):
         await websocket.close(code=4001)
         return
@@ -52,6 +53,9 @@ async def websocket_schedule(
             await manager.broadcast(schedule_id, payload)
     except WebSocketDisconnect:
         manager.disconnect(schedule_id, websocket)
+        user_lock = section_lock_repo.get_by_user_id(db, user_id)
+        if user_lock:
+            section_lock_repo.delete(db, user_lock)
 
 
 # test using:

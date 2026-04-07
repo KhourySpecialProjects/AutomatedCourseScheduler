@@ -3,13 +3,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_admin
 from app.core.database import get_db
+from app.models.user import User
 from app.schemas.section import (
     SectionCreate,
     SectionResponse,
     SectionUpdate,
 )
 from app.services import section as section_service
+from app.services import verify_lock
 
 router = APIRouter(prefix="/sections", tags=["sections"])
 
@@ -24,8 +27,14 @@ def create_section(section: SectionCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{section_id}", response_model=SectionResponse)
-def update_section(section_id: int, section: SectionUpdate, db: Session = Depends(get_db)):
-    """Update an existing section."""
+def update_section(
+    section_id: int,
+    section: SectionUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Update an existing section. Caller must hold the active lock on this section."""
+    verify_lock(db, section_id, current_user.user_id)
     try:
         updated = section_service.update_section(db, section_id, section)
     except ValueError as e:
