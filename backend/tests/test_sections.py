@@ -1,5 +1,4 @@
 from datetime import time
-from unittest.mock import patch
 
 from app.core.enums import PreferenceLevel
 from app.models import (
@@ -327,18 +326,16 @@ def test_patch_section_success(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-
-    with patch("app.routers.section.verify_lock"):
-        response = client.patch(
-            f"/sections/{section.section_id}",
-            json={
-                "time_block_id": new_time_block.time_block_id,
-                "course_id": new_course.course_id,
-                "capacity": 40,
-                "room": "WVH108",
-                "crosslisted_section_id": crosslisted_target.section_id,
-            },
-        )
+    response = client.patch(
+        f"/sections/{section.section_id}",
+        json={
+            "time_block_id": new_time_block.time_block_id,
+            "course_id": new_course.course_id,
+            "capacity": 40,
+            "room": "WVH108",
+            "crosslisted_section_id": crosslisted_target.section_id,
+        },
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["schedule_id"] == schedule.schedule_id
@@ -349,8 +346,7 @@ def test_patch_section_success(client, db_session):
 
 
 def test_patch_section_not_found_returns_404(client, db_session):
-    with patch("app.routers.section.verify_lock"):
-        response = client.patch("/sections/99999", json={"capacity": 10})
+    response = client.patch("/sections/99999", json={"capacity": 10})
     assert response.status_code == 404
     assert response.json()["detail"] == "Section not found"
 
@@ -366,8 +362,8 @@ def test_patch_section_invalid_time_block_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-    with patch("app.routers.section.verify_lock"):
-        response = client.patch(f"/sections/{section.section_id}", json={"time_block_id": 99999})
+
+    response = client.patch(f"/sections/{section.section_id}", json={"time_block_id": 99999})
     assert response.status_code == 400
     assert response.json()["detail"] == "TimeBlockID is invalid"
 
@@ -383,8 +379,7 @@ def test_patch_section_invalid_course_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-    with patch("app.routers.section.verify_lock"):
-        response = client.patch(f"/sections/{section.section_id}", json={"course_id": 99999})
+    response = client.patch(f"/sections/{section.section_id}", json={"course_id": 99999})
     assert response.status_code == 400
     assert response.json()["detail"] == "CourseID is invalid"
 
@@ -400,10 +395,9 @@ def test_patch_section_invalid_crosslisted_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-    with patch("app.routers.section.verify_lock"):
-        response = client.patch(
-            f"/sections/{section.section_id}", json={"crosslisted_section_id": 99999}
-        )
+    response = client.patch(
+        f"/sections/{section.section_id}", json={"crosslisted_section_id": 99999}
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "CrosslistedSectionID is invalid"
 
@@ -430,11 +424,10 @@ def test_patch_section_clear_nullable_fields(client, db_session):
     target.crosslisted_section_id = other.section_id
     db_session.commit()
 
-    with patch("app.routers.section.verify_lock"):
-        response = client.patch(
-            f"/sections/{target.section_id}",
-            json={"room": None, "crosslisted_section_id": None},
-        )
+    response = client.patch(
+        f"/sections/{target.section_id}",
+        json={"room": None, "crosslisted_section_id": None},
+    )
     assert response.status_code == 200
 
     reloaded = db_session.query(Section).filter(Section.section_id == target.section_id).first()
@@ -471,11 +464,7 @@ def test_patch_section_replace_faculty_assignments(client, db_session):
     db_session.flush()
     db_session.add(FacultyAssignment(faculty_nuid=f1.nuid, section_id=section.section_id))
     db_session.commit()
-
-    with patch("app.routers.section.verify_lock"):
-        response = client.patch(
-            f"/sections/{section.section_id}", json={"faculty_nuids": [f2.nuid]}
-        )
+    response = client.patch(f"/sections/{section.section_id}", json={"faculty_nuids": [f2.nuid]})
     assert response.status_code == 200
 
     assignments = (
@@ -498,8 +487,7 @@ def test_patch_section_invalid_faculty_assignments_returns_400(client, db_sessio
     )
     db_session.add(section)
     db_session.commit()
-    with patch("app.routers.section.verify_lock"):
-        response = client.patch(f"/sections/{section.section_id}", json={"faculty_nuids": [99999]})
+    response = client.patch(f"/sections/{section.section_id}", json={"faculty_nuids": [99999]})
     assert response.status_code == 400
     assert response.json()["detail"] == "FacultyNUIDs is invalid"
 
@@ -539,8 +527,13 @@ def test_delete_section_not_found_returns_404(client, db_session):
 # ---------------------------------------------------------------------------
 
 
-def test_patch_section_without_lock_returns_403(client, db_session):
-    """PATCH must be rejected when the caller does not hold an active lock."""
+def test_patch_section_acquires_lock_automatically(client, db_session):
+    """PATCH acquires the lock on behalf of the caller — no prior /lock call needed."""
+    from app.core.auth import get_db_user
+    from app.main import app
+    from app.models.section_lock import SectionLock
+    from app.models.user import User
+
     schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
     section = Section(
         schedule_id=schedule.schedule_id,
@@ -550,8 +543,62 @@ def test_patch_section_without_lock_returns_403(client, db_session):
         section_number=1,
     )
     db_session.add(section)
+    db_session.flush()
+    user = User(nuid=9001, first_name="Admin", last_name="User", email="a@test.com", role="ADMIN")
+    db_session.add(user)
     db_session.commit()
 
-    # No lock acquired — verify_lock runs for real and should reject
+    app.dependency_overrides[get_db_user] = lambda: user
     response = client.patch(f"/sections/{section.section_id}", json={"capacity": 30})
-    assert response.status_code == 403
+
+    assert response.status_code == 200
+    lock = (
+        db_session.query(SectionLock).filter(SectionLock.section_id == section.section_id).first()
+    )
+    assert lock is not None
+    assert lock.locked_by == user.user_id
+
+
+def test_patch_section_locked_by_other_user_returns_423(client, db_session):
+    """PATCH returns 423 when another user currently holds the lock."""
+    from datetime import UTC, datetime, timedelta
+
+    from app.core.auth import get_db_user
+    from app.main import app
+    from app.models.section_lock import SectionLock
+    from app.models.user import User
+
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
+    section = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=25,
+        section_number=1,
+    )
+    db_session.add(section)
+    db_session.flush()
+    owner = User(
+        nuid=9001, first_name="Owner", last_name="User", email="owner@test.com", role="ADMIN"
+    )
+    caller = User(
+        nuid=9002, first_name="Caller", last_name="User", email="caller@test.com", role="ADMIN"
+    )
+    db_session.add_all([owner, caller])
+    db_session.commit()
+
+    now = datetime.now(UTC).replace(tzinfo=None)
+    db_session.add(
+        SectionLock(
+            section_id=section.section_id,
+            locked_by=owner.user_id,
+            expires_at=now + timedelta(minutes=2),
+        )
+    )
+    db_session.commit()
+
+    app.dependency_overrides[get_db_user] = lambda: caller
+    response = client.patch(f"/sections/{section.section_id}", json={"capacity": 30})
+
+    assert response.status_code == 423
+    assert response.json()["detail"]["locked_by"] == owner.user_id

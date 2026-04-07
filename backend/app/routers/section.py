@@ -12,7 +12,8 @@ from app.schemas.section import (
     SectionUpdate,
 )
 from app.services import section as section_service
-from app.services import verify_lock
+from app.services import section_lock as section_lock_service
+from app.services.section_lock import SectionLockConflictError
 
 router = APIRouter(prefix="/sections", tags=["sections"])
 
@@ -33,8 +34,17 @@ def update_section(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Update an existing section. Caller must hold the active lock on this section."""
-    verify_lock(db, section_id, current_user.user_id)
+    """Acquire (or refresh) the lock on this section, then apply the update.
+
+    Fails with 423 if another user currently holds the lock.
+    """
+    try:
+        section_lock_service.acquire_lock(db, section_id, current_user.user_id)
+    except SectionLockConflictError as e:
+        raise HTTPException(
+            status_code=423,
+            detail={"locked_by": e.lock.locked_by, "expires_at": str(e.lock.expires_at)},
+        ) from e
     try:
         updated = section_service.update_section(db, section_id, section)
     except ValueError as e:
