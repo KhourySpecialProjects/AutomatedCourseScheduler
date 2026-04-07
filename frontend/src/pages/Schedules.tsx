@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ScheduleSectionRowView from '../components/ScheduleSectionRowView';
-import { useScheduleSections } from '../hooks/useScheduleSections';
+import { useScheduleWebSocket, type WsStatus } from '../hooks/useScheduleWebSocket';
 import { getAutomatedCourseSchedulerAPI, type ScheduleResponse } from '../api/generated';
 
 type ViewMode = 'table' | 'calendar';
@@ -19,6 +19,21 @@ function TableIcon({ active }: { active: boolean }) {
   );
 }
 
+function LiveIndicator({ status }: { status: WsStatus }) {
+  const config = {
+    connected: { dot: 'bg-green-500', text: 'text-green-700', label: 'Live' },
+    connecting: { dot: 'bg-amber-400 animate-pulse', text: 'text-amber-700', label: 'Connecting…' },
+    disconnected: { dot: 'bg-red-400', text: 'text-red-700', label: 'Disconnected' },
+  }[status];
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${config.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dot}`} />
+      {config.label}
+    </span>
+  );
+}
+
 function CalendarIcon({ active }: { active: boolean }) {
   return (
     <svg
@@ -33,7 +48,7 @@ function CalendarIcon({ active }: { active: boolean }) {
 }
 
 function ScheduleView({ scheduleId }: { scheduleId: number }) {
-  const { sections, loading, error } = useScheduleSections(scheduleId);
+  const { sections, loading, status } = useScheduleWebSocket(scheduleId);
   const [viewMode] = useState<ViewMode>('table');
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
 
@@ -62,7 +77,10 @@ function ScheduleView({ scheduleId }: { scheduleId: number }) {
       {/* Header row */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{scheduleName}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">{scheduleName}</h1>
+            <LiveIndicator status={status} />
+          </div>
           {schedule && (
             <p className="mt-0.5 text-sm text-gray-500">Semester {schedule.semester_id}</p>
           )}
@@ -97,17 +115,11 @@ function ScheduleView({ scheduleId }: { scheduleId: number }) {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
           </svg>
-          Loading sections…
+          Connecting…
         </div>
       )}
 
-      {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && (
+      {!loading && (
         <ScheduleSectionRowView sections={sections} scheduleId={scheduleId} />
       )}
     </div>
