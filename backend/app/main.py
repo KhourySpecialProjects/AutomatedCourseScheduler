@@ -71,7 +71,6 @@ app.include_router(user.router)
 app.include_router(websocket.router)
 
 
-
 @app.get("/")
 def root():
     return {"message": "Automated Course Scheduler API"}
