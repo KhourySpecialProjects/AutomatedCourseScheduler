@@ -48,7 +48,7 @@ function CalendarIcon({ active }: { active: boolean }) {
 }
 
 function ScheduleView({ scheduleId }: { scheduleId: number }) {
-  const { sections, loading, status } = useScheduleWebSocket(scheduleId);
+  const { sections, locks, loading, status } = useScheduleWebSocket(scheduleId);
   const [viewMode] = useState<ViewMode>('table');
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
 
@@ -120,7 +120,7 @@ function ScheduleView({ scheduleId }: { scheduleId: number }) {
       )}
 
       {!loading && (
-        <ScheduleSectionRowView sections={sections} scheduleId={scheduleId} />
+        <ScheduleSectionRowView sections={sections} scheduleId={scheduleId} locks={locks} />
       )}
     </div>
   );

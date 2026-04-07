@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import type { SectionRichResponse } from '../api/generated';
+import { getAutomatedCourseSchedulerAPI, type SectionRichResponse } from '../api/generated';
 
 const WS_BASE = import.meta.env.VITE_API_BASE_URL
   ? import.meta.env.VITE_API_BASE_URL.replace(/^http/, 'ws')
@@ -8,8 +8,16 @@ const WS_BASE = import.meta.env.VITE_API_BASE_URL
 
 export type WsStatus = 'connecting' | 'connected' | 'disconnected';
 
+export interface LockInfo {
+  section_id: number;
+  locked_by: number;
+  display_name: string;
+  expires_at: string;
+}
+
 interface UseScheduleWebSocketResult {
   sections: SectionRichResponse[];
+  locks: Map<number, LockInfo>;
   loading: boolean;
   status: WsStatus;
 }
@@ -17,10 +25,24 @@ interface UseScheduleWebSocketResult {
 export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketResult {
   const { getAccessTokenSilently } = useAuth0();
   const [sections, setSections] = useState<SectionRichResponse[]>([]);
+  const [locks, setLocks] = useState<Map<number, LockInfo>>(new Map());
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<WsStatus>('connecting');
-  // Stable ref so event handlers always see the latest list without re-subscribing
   const sectionsRef = useRef<SectionRichResponse[]>([]);
+  const locksRef = useRef<Map<number, LockInfo>>(new Map());
+
+  // Fetch initial lock state (locks are not broadcast on connect, only on change)
+  useEffect(() => {
+    const { getScheduleLocksSchedulesScheduleIdLocksGet } = getAutomatedCourseSchedulerAPI();
+    getScheduleLocksSchedulesScheduleIdLocksGet(scheduleId).then((activeLocks) => {
+      const map = new Map<number, LockInfo>();
+      for (const l of activeLocks) {
+        map.set(l.section_id, l);
+      }
+      locksRef.current = map;
+      setLocks(new Map(map));
+    }).catch(() => {});
+  }, [scheduleId]);
 
   useEffect(() => {
     let ws: WebSocket | null = null;
@@ -48,7 +70,6 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
         if (cancelled) { ws?.close(); return; }
         attempts = 0;
         setStatus('connected');
-        // Ask the server for the current section list
         ws?.send(JSON.stringify({ action: 'init' }));
       };
 
@@ -92,6 +113,24 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
               (s) => s.section_id !== section_id,
             );
             setSections(sectionsRef.current);
+            // Clear any lock for the deleted section
+            locksRef.current = new Map(locksRef.current);
+            locksRef.current.delete(section_id);
+            setLocks(new Map(locksRef.current));
+            break;
+          }
+          case 'lock_acquired': {
+            const lockInfo = msg.payload as LockInfo;
+            locksRef.current = new Map(locksRef.current);
+            locksRef.current.set(lockInfo.section_id, lockInfo);
+            setLocks(new Map(locksRef.current));
+            break;
+          }
+          case 'lock_released': {
+            const { section_id } = msg.payload as { section_id: number };
+            locksRef.current = new Map(locksRef.current);
+            locksRef.current.delete(section_id);
+            setLocks(new Map(locksRef.current));
             break;
           }
         }
@@ -117,7 +156,7 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
       if (reconnectTimer) clearTimeout(reconnectTimer);
       ws?.close();
     };
-  }, [scheduleId]); // getAccessTokenSilently is stable; scheduleId drives reconnects
+  }, [scheduleId]); // getAccessTokenSilently is stable
 
-  return { sections, loading, status };
+  return { sections, locks, loading, status };
 }
