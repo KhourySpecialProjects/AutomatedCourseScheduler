@@ -67,7 +67,7 @@ def get_all_users(db: Session) -> list[User]:
     return user_repo.get_all(db)
 
 
-def get_or_link_user(db: Session, sub: str, access_token: str) -> User:
+async def get_or_link_user(db: Session, sub: str, access_token: str) -> User:
     """Resolve the current authenticated user from the DB.
 
     On first login the auth0_sub is null; we match by email via the Auth0
@@ -82,11 +82,12 @@ def get_or_link_user(db: Session, sub: str, access_token: str) -> User:
         return user
 
     # First login: look up email from Auth0 userinfo
-    resp = httpx.get(
-        f"https://{settings.AUTH0_DOMAIN}/userinfo",
-        headers={"Authorization": f"Bearer {access_token}"},
-        timeout=10,
-    )
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"https://{settings.AUTH0_DOMAIN}/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        )
     resp.raise_for_status()
     email = resp.json().get("email")
     if not email:

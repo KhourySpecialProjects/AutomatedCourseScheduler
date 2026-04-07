@@ -46,7 +46,7 @@ async def get_db_user(
     token = request.headers.get("Authorization", "").removeprefix("Bearer ")
 
     try:
-        return get_or_link_user(db, sub, token)
+        return await get_or_link_user(db, sub, token)
     except LookupError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except Exception as exc:
