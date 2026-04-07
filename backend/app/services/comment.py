@@ -28,7 +28,7 @@ def get_comments(db: Session, section_id: int) -> list[CommentResponse]:
 def post_comment(db: Session, commentIn: CommentSchema) -> CommentResponse:
     errors = []
     section = section_repo.get_by_id(db, commentIn.section_id)
-    user = user_repo.get_user(db, commentIn.user_id)
+    user = user_repo.get_by_id(db, commentIn.user_id)
 
     if not user:
         errors.append(f"User with id '{commentIn.user_id}' not found")
@@ -46,7 +46,7 @@ def post_comment(db: Session, commentIn: CommentSchema) -> CommentResponse:
 def post_reply(db: Session, replyIn: CommentSchema, parent_id: int) -> CommentResponse:
     errors = []
     section = section_repo.get_by_id(db, replyIn.section_id)
-    user = user_repo.get_user(db, replyIn.user_id)
+    user = user_repo.get_by_id(db, replyIn.user_id)
     parent_comment = comment_repo.get_by_id(db, parent_id)
 
     if not user:
