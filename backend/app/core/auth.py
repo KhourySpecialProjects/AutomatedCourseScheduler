@@ -33,6 +33,7 @@ async def get_current_user(claims: dict = Depends(_verifier)) -> dict:
 # async def get_current_user() -> dict:
 #     return {"sub": "dev-user"}
 
+
 async def get_db_user(
     request: Request,
     claims: dict = Depends(get_current_user),
@@ -54,8 +55,7 @@ async def get_db_user(
     except LookupError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to resolve user: {exc}") from exc
+        raise HTTPException(status_code=500, detail=f"Failed to resolve user: {exc}") from exc
 
 
 async def require_admin(user: User = Depends(get_db_user)) -> User:
