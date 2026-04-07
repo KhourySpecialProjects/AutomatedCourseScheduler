@@ -2,8 +2,11 @@
 
 from dataclasses import dataclass
 
+import requests
+from jose import jwt
 from sqlalchemy.orm import Session
 
+from app.core.settings import settings
 from app.models.user import User
 from app.repositories import user as user_repo
 from app.schemas.user import UserResponse
@@ -98,3 +101,26 @@ def get_or_link_user(db: Session, sub: str, access_token: str) -> User:
 
     user_repo.set_auth0_sub(db, user, sub)
     return user
+
+
+_jwks = None
+
+
+def get_jwks():
+    global _jwks
+    if _jwks is None:
+        _jwks = requests.get(f"https://{settings.AUTH0_DOMAIN}/.well-known/jwks.json").json()
+    return _jwks
+
+
+def get_sub(token: str) -> str:
+    header = jwt.get_unverified_header(token)
+    key = next(k for k in get_jwks()["keys"] if k["kid"] == header["kid"])
+    payload = jwt.decode(
+        token,
+        key,
+        algorithms=["RS256"],
+        audience=settings.AUTH0_AUDIENCE,
+        issuer=f"https://{settings.AUTH0_DOMAIN}/",
+    )
+    return payload["sub"]

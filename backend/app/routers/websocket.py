@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.services import schedule as schedule_service
-from app.services import user as user_service
+from app.schemas.section import SectionRichResponse
+from app.services import section as section_service
 from app.services.connection_manager import manager
+from app.services.user import get_or_link_user, get_sub
 
 router = APIRouter(prefix="/ws", tags=["websockets"])
 
@@ -18,8 +19,18 @@ async def websocket_schedule(
     token: str,
     db: Session = Depends(get_db),
 ):
-    user = user_service.get_or_link_user(db, "", token)
-    # user = db.query(User).filter(User.auth0_sub == auth0_sub).first()
+    try:
+        sub = get_sub(token)
+    except Exception:
+        await websocket.close(code=4001)
+        return
+
+    try:
+        user = get_or_link_user(db, sub, token)
+    except (LookupError, ValueError):
+        await websocket.close(code=4001)
+        return
+
     if not user:
         await websocket.close(code=4001)
         return
@@ -27,21 +38,21 @@ async def websocket_schedule(
 
     await manager.connect(schedule_id, user_id, websocket)
 
-    # schedule = schedule_service.get_by_id(db, schedule_id)
-    # await websocket.send_json({
-    #     "type": "schedule",
-    #     "payload": ScheduleResponse.model_validate(schedule).model_dump()
-    # })
-
     try:
         while True:
             data = await websocket.receive_json()
-            schedule = await schedule_service.get_by_id(schedule_id)
-            await websocket.send_json({"type": "schedule", "payload": schedule})
-            await manager.broadcast(schedule_id, data)
+            data.get("action")  # for now ignore action - just return schedule data
+
+            db.expire_all()
+            sections = section_service.get_rich_sections(db, schedule_id)
+            payload = {
+                "type": "schedule",
+                "payload": [SectionRichResponse.model_validate(s).model_dump() for s in sections],
+            }
+            await manager.broadcast(schedule_id, payload)
     except WebSocketDisconnect:
-        await manager.disconnect(user.user_id)
+        manager.disconnect(schedule_id, user_id)
 
 
 # test using:
-# websocat "ws://localhost:8000/ws/1?token=ey..."
+# websocat "ws://localhost:8000/ws/1?token="
