@@ -19,9 +19,9 @@ class ConnectionManager:
             self.connections.pop(schedule_id, None)
         return user_id
 
-    async def broadcast(self, schedule_id: int, message: str):
-        for connection in self.connections[schedule_id].keys():
-            await connection.send_text(message)
+    async def broadcast(self, schedule_id: int, message: dict):
+        for connection in self.connections.get(schedule_id, {}).keys():
+            await connection.send_json(message)
 
 
 manager = ConnectionManager()
