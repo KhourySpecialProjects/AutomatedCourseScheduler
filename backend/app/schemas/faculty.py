@@ -59,9 +59,9 @@ class FacultyProfileResponse(BaseModel):
     last_name: str
     email: str
     title: str | None = None
-    campus: str
+    campus: int
     active: bool
-    MaxLoad: int | None = None
-    needsAdminReview: bool = False 
+    maxLoad: int | None = None
+    needsAdminReview: bool = False
     course_preferences: list[CoursePreferenceInfo]
     meeting_preferences: list[MeetingPreferenceInfo]

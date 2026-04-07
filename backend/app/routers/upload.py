@@ -44,7 +44,8 @@ def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
         else:
             return UploadResponse(
                 status="success",
-                message=("File does not contain any non-existing courses. Nothing inserted."),
+                message=(
+                    "File does not contain any non-existing courses. Nothing inserted."),
                 records_processed=len(to_insert),
                 records_successful=len(to_insert),
             )
@@ -86,6 +87,7 @@ def upload_faculty_preferences(file: UploadFile = File(...), db: Session = Depen
         message="Faculty preferences updated successfully",
         records_processed=len(to_insert) + len(to_update),
         records_successful=len(to_insert) + len(to_update),
+        available_faculty=result.get("available_faculty")
     )
 
 
@@ -115,6 +117,7 @@ def upload_time_preferences(file: UploadFile = File(...), db: Session = Depends(
         message="Faculty meeting preferences updated successfully",
         records_processed=len(to_insert) + len(to_update),
         records_successful=len(to_insert) + len(to_update),
+        avilable_faculty=result.get("available_faculty")
     )
 
 
@@ -149,10 +152,12 @@ def parse_time_preferences(db, reader):
     inserts = []
     updates = []
     errors = []
+    faculty_ids = set()
     for i, row in enumerate(reader):
         try:
             normalized = normalize_headers(row, TIME_PREFERENCES)
             validated = MeetingPreferencesSchema(**normalized)
+            faculty_ids.add(validated.facultyId)
 
             segments = validated.normalize_meeting_time()
             for days, start_time, end_time in segments:
@@ -170,7 +175,8 @@ def parse_time_preferences(db, reader):
                     .first()
                 )
 
-                faculty = db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
+                faculty = db.query(Faculty).filter(
+                    Faculty.nuid == validated.facultyId).first()
 
                 if not time_block:
                     time_block = TimeBlock(
@@ -214,7 +220,7 @@ def parse_time_preferences(db, reader):
     if errors:
         raise HTTPException(status_code=422, detail=errors)
 
-    return {"inserts": inserts, "updates": updates}
+    return {"inserts": inserts, "updates": updates, "available_faculty": list(faculty_ids)}
 
 
 def parse_course_offerings(db, reader):
@@ -224,9 +230,11 @@ def parse_course_offerings(db, reader):
         try:
             normalized = normalize_headers(row, COURSE_OFFERINGS)
             validated = CourseOfferingsSchema(**normalized)
-            existing = db.query(Course).filter(Course.name == validated.courseName).first()
+            existing = db.query(Course).filter(
+                Course.name == validated.courseName).first()
             if existing:
-                logger.info(f"Row {i}: course '{validated.courseName}' already exists, skipping")
+                logger.info(
+                    f"Row {i}: course '{validated.courseName}' already exists, skipping")
                 continue
             db_entry = validated.translate()
             table_entries.append(db_entry)
@@ -243,14 +251,19 @@ def parse_course_preferences(db, reader):
     inserts = []
     updates = []
     errors = []
+    faculty_ids = set()
     for i, row in enumerate(reader):
         try:
             normalized = normalize_headers(row, COURSE_PREFERENCES)
             validated = CoursePreferencesSchema(**normalized)
-            course = db.query(Course).filter(Course.name == validated.course).first()
-            faculty = db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
+            faculty_ids.add(validated.facultyId)
+            course = db.query(Course).filter(
+                Course.name == validated.course).first()
+            faculty = db.query(Faculty).filter(
+                Faculty.nuid == validated.facultyId).first()
             if not course:
-                errors.append(f"Row {i}: course '{validated.course}' not found")
+                errors.append(
+                    f"Row {i}: course '{validated.course}' not found")
             elif not faculty:
                 errors.append(
                     f"Row {i}: faculty '{validated.facultyName}' "
@@ -279,10 +292,12 @@ def parse_course_preferences(db, reader):
         except ValidationError as e:
             errors.append(f"Row {i}: {e.errors()}")
 
+    print(faculty_ids)
+
     if errors:
         raise HTTPException(status_code=422, detail=errors)
 
-    return {"inserts": inserts, "updates": updates}
+    return {"inserts": inserts, "updates": updates, "available_faculty": list(faculty_ids)}
 
 
 def validate_headers(headers, schema):
