@@ -51,7 +51,7 @@ async def websocket_schedule(
             }
             await manager.broadcast(schedule_id, payload)
     except WebSocketDisconnect:
-        manager.disconnect(schedule_id, user_id)
+        manager.disconnect(schedule_id, websocket)
 
 
 # test using:
