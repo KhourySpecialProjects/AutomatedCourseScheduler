@@ -15,7 +15,7 @@ export interface LockInfo {
   expires_at: string;
 }
 
-interface UseScheduleWebSocketResult {
+export interface UseScheduleWebSocketResult {
   sections: SectionRichResponse[];
   locks: Map<number, LockInfo>;
   loading: boolean;
