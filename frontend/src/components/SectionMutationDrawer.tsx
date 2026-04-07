@@ -53,11 +53,13 @@ export default function SectionMutationDrawer(props: Props) {
   // Remote data
   const [courses, setCourses] = useState<CourseResponse[]>([]);
   const [faculty, setFaculty] = useState<FacultyResponse[]>([]);
+  const [scheduleSections, setScheduleSections] = useState<SectionRichResponse[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   // Submission state
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
@@ -68,12 +70,52 @@ export default function SectionMutationDrawer(props: Props) {
       api.getFacultyFacultyGet(
         campusName ? { campus: campusName, active_only: true } : { active_only: true },
       ),
-    ]).then(([courseResult, facultyResult]) => {
+      // Schedule sections, to detect double-booking conflicts
+      api.getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet(scheduleId),
+    ]).then(([courseResult, facultyResult, sectionsResult]) => {
       if (courseResult.status === 'fulfilled') setCourses(courseResult.value);
       if (facultyResult.status === 'fulfilled') setFaculty(facultyResult.value);
+      if (sectionsResult.status === 'fulfilled') setScheduleSections(sectionsResult.value);
       setLoadingData(false);
     });
-  }, [campusName]);
+  }, [campusName, scheduleId]);
+
+  useEffect(() => {
+    if (timeBlockId === null) {
+      setWarning(null);
+      return;
+    }
+    if (selectedNuids.length === 0) {
+      setWarning(null);
+      return;
+    }
+
+    const selected = new Set(selectedNuids);
+    const conflicts = scheduleSections
+      .filter((s) => (section ? s.section_id !== section.section_id : true))
+      .filter((s) => s.time_block.time_block_id === timeBlockId)
+      .flatMap((s) =>
+        s.instructors
+          .filter((i) => selected.has(i.nuid))
+          .map((i) => ({
+            nuid: i.nuid,
+            name: `${i.first_name} ${i.last_name}`.trim(),
+            course: s.course.name,
+            sectionNo: s.section_number,
+          })),
+      );
+
+    if (conflicts.length === 0) {
+      setWarning(null);
+      return;
+    }
+
+    const lines = conflicts
+      .map((c) => `${c.name || `NUID ${c.nuid}`} is already assigned to ${c.course} §${c.sectionNo}`)
+      .slice(0, 4);
+    const more = conflicts.length > 4 ? ` (+${conflicts.length - 4} more)` : '';
+    setWarning(`Professor double-booked: ${lines.join('; ')}${more}`);
+  }, [scheduleSections, section, selectedNuids, timeBlockId]);
 
   // Build typed SelectOption arrays once data is loaded
   const courseOptions: SelectOption<number>[] = courses.map((c) => ({
@@ -246,6 +288,11 @@ export default function SectionMutationDrawer(props: Props) {
                   onChange={setSelectedNuids}
                   placeholder="Add instructors…"
                 />
+                {warning && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                    {warning}
+                  </div>
+                )}
               </div>
 
               {error && (
