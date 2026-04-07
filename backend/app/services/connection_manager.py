@@ -19,6 +19,15 @@ class ConnectionManager:
             self.connections.pop(schedule_id, None)
         return user_id
 
+    async def disconnect_all(self, schedule_id: int):
+        """Close and remove all connections for a schedule (e.g. on schedule deletion)."""
+        connections = list(self.connections.pop(schedule_id, {}).keys())
+        for connection in connections:
+            try:
+                await connection.close()
+            except Exception:
+                pass
+
     async def broadcast(self, schedule_id: int, message: dict):
         dead = []
         for connection in list(self.connections.get(schedule_id, {}).keys()):

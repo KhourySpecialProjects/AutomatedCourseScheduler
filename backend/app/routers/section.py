@@ -9,6 +9,7 @@ from app.models.user import User
 from app.schemas.section import (
     SectionCreate,
     SectionResponse,
+    SectionRichResponse,
     SectionUpdate,
 )
 from app.services import section as section_service
@@ -20,12 +21,25 @@ router = APIRouter(prefix="/sections", tags=["sections"])
 
 
 @router.post("", response_model=SectionResponse, status_code=201)
-def create_section(section: SectionCreate, db: Session = Depends(get_db)):
+async def create_section(section: SectionCreate, db: Session = Depends(get_db)):
     """Create a new section in a schedule."""
     try:
-        return section_service.create_section(db, section)
+        created = section_service.create_section(db, section)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+    rich_sections = section_service.get_rich_sections(db, created.schedule_id)
+    rich_section = next((s for s in rich_sections if s.section_id == created.section_id), None)
+    if rich_section:
+        await manager.broadcast(
+            created.schedule_id,
+            {
+                "type": "section_created",
+                "payload": SectionRichResponse.model_validate(rich_section).model_dump(mode="json"),
+            },
+        )
+
+    return created
 
 
 @router.patch("/{section_id}", response_model=SectionResponse)
@@ -73,9 +87,15 @@ async def update_section(
 
 
 @router.delete("/{section_id}", status_code=204)
-def delete_section(section_id: int, db: Session = Depends(get_db)):
+async def delete_section(section_id: int, db: Session = Depends(get_db)):
     """Delete a section from a schedule."""
-    deleted = section_service.delete_section(db, section_id)
-    if not deleted:
+    section = section_service.get_by_id(db, section_id)
+    if not section:
         raise HTTPException(status_code=404, detail="Section not found")
-    return None
+
+    section_service.delete_section(db, section_id)
+
+    await manager.broadcast(
+        section.schedule_id,
+        {"type": "section_deleted", "payload": {"section_id": section_id}},
+    )
