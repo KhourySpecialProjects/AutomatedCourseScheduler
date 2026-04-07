@@ -20,6 +20,6 @@ async def get_current_user(claims: dict = Depends(_verifier)) -> dict:
     return claims
 
 
-# Uncomment to bypass auth for local dev/testing (re-comment before committing):
-async def get_current_user() -> dict:
-    return {"sub": "dev-user"}
+# # Uncomment to bypass auth for local dev/testing (re-comment before committing):
+# async def get_current_user() -> dict:
+#     return {"sub": "dev-user"}
