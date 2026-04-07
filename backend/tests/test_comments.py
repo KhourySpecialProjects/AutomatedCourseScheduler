@@ -29,10 +29,11 @@ def _make_user(db, nuid=1):
         first_name="Test",
         last_name="User",
         email=f"user{nuid}@test.com",
-        phone_number="1234567890",
+        role="admin",
     )
     db.add(user)
     db.commit()
+    db.refresh(user)
     return user
 
 
@@ -87,7 +88,7 @@ def test_post_comment_success(client, db_session):
     response = client.post(
         "/comments",
         json={
-            "user_id": user.nuid,
+            "user_id": user.id,
             "section_id": section.section_id,
             "parent_id": None,
             "content": "Looks good to me",
@@ -96,7 +97,7 @@ def test_post_comment_success(client, db_session):
 
     assert response.status_code == 201
     data = response.json()
-    assert data["user_id"] == user.nuid
+    assert data["user_id"] == user.id
     assert data["section_id"] == section.section_id
     assert data["content"] == "Looks good to me"
     assert data["resolved"] is False
@@ -111,7 +112,7 @@ def test_post_comment_persisted_to_db(client, db_session):
     client.post(
         "/comments",
         json={
-            "user_id": user.nuid,
+            "user_id": user.id,
             "section_id": section.section_id,
             "parent_id": None,
             "content": "Persisted comment",
@@ -122,7 +123,7 @@ def test_post_comment_persisted_to_db(client, db_session):
     comment = db_session.query(Comment).first()
     assert comment is not None
     assert comment.content == "Persisted comment"
-    assert comment.user_id == user.nuid
+    assert comment.user_id == user.id
     assert comment.section_id == section.section_id
 
 
@@ -155,7 +156,7 @@ def test_post_comment_section_not_found(client, db_session):
     response = client.post(
         "/comments",
         json={
-            "user_id": user.nuid,
+            "user_id": user.id,
             "section_id": 9999,
             "parent_id": None,
             "content": "Section-less comment",
@@ -191,12 +192,12 @@ def test_post_comment_user_and_section_not_found(client, db_session):
 def test_post_reply_success(client, db_session):
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
-    parent = _make_comment(db_session, user.nuid, section.section_id, "Parent comment")
+    parent = _make_comment(db_session, user.id, section.section_id, "Parent comment")
 
     response = client.post(
         f"/comments/{parent.comment_id}",
         json={
-            "user_id": user.nuid,
+            "user_id": user.id,
             "section_id": section.section_id,
             "content": "This is a reply",
         },
@@ -217,7 +218,7 @@ def test_post_reply_invalid_parent_returns_422(client, db_session):
     response = client.post(
         "/comments/9999",
         json={
-            "user_id": user.nuid,
+            "user_id": user.id,
             "section_id": section.section_id,
             "content": "Reply to nowhere",
         },
@@ -249,8 +250,8 @@ def test_get_comments_section_with_no_comments_returns_empty_list(client, db_ses
 def test_get_comments_returns_comments_for_section(client, db_session):
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
-    _make_comment(db_session, user.nuid, section.section_id, "First comment")
-    _make_comment(db_session, user.nuid, section.section_id, "Second comment")
+    _make_comment(db_session, user.id, section.section_id, "First comment")
+    _make_comment(db_session, user.id, section.section_id, "Second comment")
 
     response = client.get(f"/comments/{section.section_id}")
 
@@ -272,8 +273,8 @@ def test_get_comments_only_returns_comments_for_requested_section(client, db_ses
     schedule_id = _make_schedule(db_session).schedule_id
     section_a = _make_section(db_session, schedule_id)
     section_b = _make_section(db_session, schedule_id)
-    _make_comment(db_session, user.nuid, section_a.section_id, "Comment on A")
-    _make_comment(db_session, user.nuid, section_b.section_id, "Comment on B")
+    _make_comment(db_session, user.id, section_a.section_id, "Comment on A")
+    _make_comment(db_session, user.id, section_b.section_id, "Comment on B")
 
     response = client.get(f"/comments/{section_a.section_id}")
 
@@ -291,7 +292,7 @@ def test_get_comments_only_returns_comments_for_requested_section(client, db_ses
 def test_delete_comment_success(client, db_session):
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
-    comment = _make_comment(db_session, user.nuid, section.section_id)
+    comment = _make_comment(db_session, user.id, section.section_id)
 
     response = client.delete(f"/comments/{comment.comment_id}")
 
@@ -315,7 +316,7 @@ def test_delete_comment_not_found_returns_404(client, db_session):
 def test_resolve_comment_success(client, db_session):
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
-    comment = _make_comment(db_session, user.nuid, section.section_id)
+    comment = _make_comment(db_session, user.id, section.section_id)
     assert comment.resolved is False
 
     response = client.put(f"/comments/{comment.comment_id}")
