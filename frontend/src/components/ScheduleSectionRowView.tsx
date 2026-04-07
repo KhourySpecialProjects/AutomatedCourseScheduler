@@ -14,6 +14,7 @@ interface Props {
   sections: SectionRichResponse[];
   scheduleId: number;
   locks: Map<number, LockInfo>;
+  campusName: string | null;
 }
 
 function hasConflict(section: SectionRichResponse): boolean {
@@ -66,7 +67,7 @@ function LockBadge({ lock }: { lock: LockInfo }) {
   );
 }
 
-export default function ScheduleSectionRowView({ sections, scheduleId, locks }: Props) {
+export default function ScheduleSectionRowView({ sections, scheduleId, locks, campusName }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('course');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [filterText, setFilterText] = useState('');
@@ -378,8 +379,8 @@ export default function ScheduleSectionRowView({ sections, scheduleId, locks }: 
           scheduleId={scheduleId}
           section={editingSection}
           timeBlocks={timeBlocks}
+          campusName={campusName}
           onClose={handleEditClose}
-          onDeleteSuccess={() => setEditingSection(null)}
         />
       )}
 
@@ -389,6 +390,7 @@ export default function ScheduleSectionRowView({ sections, scheduleId, locks }: 
           mode="create"
           scheduleId={scheduleId}
           timeBlocks={timeBlocks}
+          campusName={campusName}
           onClose={() => setCreating(false)}
         />
       )}

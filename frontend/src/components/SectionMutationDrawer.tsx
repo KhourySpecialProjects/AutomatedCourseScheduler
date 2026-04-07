@@ -6,10 +6,13 @@ import {
   type SectionRichResponse,
   type TimeBlockInfo,
 } from '../api/generated';
+import SearchableSelect, { type SelectOption } from './SearchableSelect';
+import MultiSearchableSelect from './MultiSearchableSelect';
 
 interface BaseProps {
   scheduleId: number;
   timeBlocks: TimeBlockInfo[];
+  campusName: string | null;
   onClose: () => void;
 }
 
@@ -20,39 +23,32 @@ interface CreateProps extends BaseProps {
 interface EditProps extends BaseProps {
   mode: 'edit';
   section: SectionRichResponse;
-  onDeleteSuccess: () => void;
 }
 
 type Props = CreateProps | EditProps;
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
       {children}
     </label>
   );
 }
 
-function FieldError({ msg }: { msg: string | null }) {
-  if (!msg) return null;
-  return <p className="mt-1 text-xs text-red-600">{msg}</p>;
-}
-
 export default function SectionMutationDrawer(props: Props) {
-  const { scheduleId, timeBlocks, onClose } = props;
+  const { scheduleId, timeBlocks, campusName, onClose } = props;
   const isEdit = props.mode === 'edit';
   const section = isEdit ? props.section : null;
 
   // Form state
-  const [courseId, setCourseId] = useState<number | ''>(section?.course.course_id ?? '');
-  const [timeBlockId, setTimeBlockId] = useState<number | ''>(section?.time_block.time_block_id ?? '');
+  const [courseId, setCourseId] = useState<number | null>(section?.course.course_id ?? null);
+  const [timeBlockId, setTimeBlockId] = useState<number | null>(section?.time_block.time_block_id ?? null);
   const [capacity, setCapacity] = useState<number | ''>(section?.capacity ?? '');
   const [sectionNumber, setSectionNumber] = useState<number | ''>(section?.section_number ?? '');
   const [room, setRoom] = useState(section?.room ?? '');
-  const [selectedNuids, setSelectedNuids] = useState<Set<number>>(
-    new Set(section?.instructors.map((i) => i.nuid) ?? []),
+  const [selectedNuids, setSelectedNuids] = useState<number[]>(
+    section?.instructors.map((i) => i.nuid) ?? [],
   );
-  const [facultySearch, setFacultySearch] = useState('');
 
   // Remote data
   const [courses, setCourses] = useState<CourseResponse[]>([]);
@@ -62,44 +58,44 @@ export default function SectionMutationDrawer(props: Props) {
   // Submission state
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
-    Promise.all([
+    Promise.allSettled([
+      // All catalog courses — "must already exist" means in the catalog, not in this schedule
       api.getCoursesCoursesGet(),
-      api.getFacultyFacultyGet(),
-    ]).then(([c, f]) => {
-      setCourses(c);
-      setFaculty(f);
+      // Faculty scoped to this campus; active only
+      api.getFacultyFacultyGet(
+        campusName ? { campus: campusName, active_only: true } : { active_only: true },
+      ),
+    ]).then(([courseResult, facultyResult]) => {
+      if (courseResult.status === 'fulfilled') setCourses(courseResult.value);
+      if (facultyResult.status === 'fulfilled') setFaculty(facultyResult.value);
       setLoadingData(false);
-    }).catch(() => setLoadingData(false));
-  }, []);
-
-  function toggleNuid(nuid: number) {
-    setSelectedNuids((prev) => {
-      const next = new Set(prev);
-      if (next.has(nuid)) next.delete(nuid);
-      else next.add(nuid);
-      return next;
     });
-  }
+  }, [campusName]);
 
-  const filteredFaculty = facultySearch.trim()
-    ? faculty.filter((f) => {
-        const q = facultySearch.toLowerCase();
-        return (
-          f.FirstName?.toLowerCase().includes(q) ||
-          f.LastName?.toLowerCase().includes(q) ||
-          f.Email?.toLowerCase().includes(q)
-        );
-      })
-    : faculty;
+  // Build typed SelectOption arrays once data is loaded
+  const courseOptions: SelectOption<number>[] = courses.map((c) => ({
+    value: c.CourseID,
+    label: c.CourseName ?? `Course ${c.CourseID}`,
+    sublabel: [c.CourseSubject, c.CourseNo].filter(Boolean).join(' ') || undefined,
+  }));
+
+  const timeBlockOptions: SelectOption<number>[] = timeBlocks.map((tb) => ({
+    value: tb.time_block_id,
+    label: `${tb.days}  ${tb.start_time} – ${tb.end_time}`,
+  }));
+
+  const facultyOptions: SelectOption<number>[] = faculty.map((f) => ({
+    value: f.NUID,
+    label: `${f.FirstName ?? ''} ${f.LastName ?? ''}`.trim(),
+    sublabel: f.Title ?? undefined,
+  }));
 
   async function handleSave() {
     setError(null);
-    if (courseId === '' || timeBlockId === '' || capacity === '') {
+    if (courseId === null || timeBlockId === null || capacity === '') {
       setError('Course, time block, and capacity are required.');
       return;
     }
@@ -114,17 +110,17 @@ export default function SectionMutationDrawer(props: Props) {
     try {
       if (isEdit && section) {
         await api.updateSectionSectionsSectionIdPatch(section.section_id, {
-          course_id: courseId as number,
-          time_block_id: timeBlockId as number,
+          course_id: courseId,
+          time_block_id: timeBlockId,
           capacity: capacity as number,
           room: room || null,
-          faculty_nuids: [...selectedNuids],
+          faculty_nuids: selectedNuids,
         });
       } else {
         await api.createSectionSectionsPost({
           schedule_id: scheduleId,
-          course_id: courseId as number,
-          time_block_id: timeBlockId as number,
+          course_id: courseId,
+          time_block_id: timeBlockId,
           capacity: capacity as number,
           section_number: sectionNumber as number,
         });
@@ -138,21 +134,6 @@ export default function SectionMutationDrawer(props: Props) {
         setError('Failed to save. Please try again.');
       }
       setSaving(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (!section) return;
-    setDeleting(true);
-    const api = getAutomatedCourseSchedulerAPI();
-    try {
-      await api.deleteSectionSectionsSectionIdDelete(section.section_id);
-      (props as EditProps).onDeleteSuccess();
-      onClose();
-    } catch {
-      setError('Failed to delete section.');
-      setDeleting(false);
-      setConfirmDelete(false);
     }
   }
 
@@ -196,36 +177,23 @@ export default function SectionMutationDrawer(props: Props) {
               {/* Course */}
               <div>
                 <Label>Course</Label>
-                <select
+                <SearchableSelect
+                  options={courseOptions}
                   value={courseId}
-                  onChange={(e) => setCourseId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">Select a course…</option>
-                  {courses.map((c) => (
-                    <option key={c.CourseID} value={c.CourseID}>
-                      {c.CourseName ?? `Course ${c.CourseID}`}
-                      {c.CourseSubject ? ` (${c.CourseSubject}${c.CourseNo ? ` ${c.CourseNo}` : ''})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setCourseId}
+                  placeholder="Select a course…"
+                />
               </div>
 
               {/* Time Block */}
               <div>
                 <Label>Time Block</Label>
-                <select
+                <SearchableSelect
+                  options={timeBlockOptions}
                   value={timeBlockId}
-                  onChange={(e) => setTimeBlockId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">Select a time block…</option>
-                  {timeBlocks.map((tb) => (
-                    <option key={tb.time_block_id} value={tb.time_block_id}>
-                      {tb.days} {tb.start_time} – {tb.end_time}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setTimeBlockId}
+                  placeholder="Select a time block…"
+                />
               </div>
 
               {/* Capacity + Section # */}
@@ -271,42 +239,13 @@ export default function SectionMutationDrawer(props: Props) {
 
               {/* Faculty */}
               <div>
-                <Label>Faculty</Label>
-                <input
-                  type="text"
-                  value={facultySearch}
-                  onChange={(e) => setFacultySearch(e.target.value)}
-                  placeholder="Search faculty…"
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                <Label>Instructors</Label>
+                <MultiSearchableSelect
+                  options={facultyOptions}
+                  value={selectedNuids}
+                  onChange={setSelectedNuids}
+                  placeholder="Add instructors…"
                 />
-                <div className="border border-gray-200 rounded-lg max-h-48 overflow-y-auto divide-y divide-gray-50">
-                  {filteredFaculty.length === 0 ? (
-                    <p className="px-3 py-2 text-xs text-gray-400">No faculty found.</p>
-                  ) : (
-                    filteredFaculty.map((f) => {
-                      const checked = selectedNuids.has(f.NUID);
-                      return (
-                        <label
-                          key={f.NUID}
-                          className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleNuid(f.NUID)}
-                            className="accent-indigo-600"
-                          />
-                          <span className="text-sm text-gray-800">
-                            {f.FirstName} {f.LastName}
-                          </span>
-                          {f.Title && (
-                            <span className="text-xs text-gray-400 ml-auto shrink-0">{f.Title}</span>
-                          )}
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
               </div>
 
               {error && (
@@ -320,36 +259,18 @@ export default function SectionMutationDrawer(props: Props) {
 
         {/* Footer */}
         <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between gap-3">
-          {/* Delete (edit mode only) */}
+          {/* Delete placeholder (edit mode only) */}
           {isEdit && (
-            confirmDelete ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-red-600">Delete this section?</span>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
-                >
-                  {deleting ? 'Deleting…' : 'Confirm'}
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Delete
-              </button>
-            )
+            <button
+              disabled
+              title="Delete not yet supported"
+              className="flex items-center gap-1.5 text-sm text-red-400 opacity-40 cursor-not-allowed"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete
+            </button>
           )}
 
           {!isEdit && <div />}

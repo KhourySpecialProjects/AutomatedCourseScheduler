@@ -51,11 +51,19 @@ function ScheduleView({ scheduleId }: { scheduleId: number }) {
   const { sections, locks, loading, status } = useScheduleWebSocket(scheduleId);
   const [viewMode] = useState<ViewMode>('table');
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
+  const [campusName, setCampusName] = useState<string | null>(null);
 
   useEffect(() => {
-    const { getScheduleSchedulesScheduleIdGet } = getAutomatedCourseSchedulerAPI();
-    getScheduleSchedulesScheduleIdGet(scheduleId)
-      .then(setSchedule)
+    const api = getAutomatedCourseSchedulerAPI();
+    api.getScheduleSchedulesScheduleIdGet(scheduleId)
+      .then((s) => {
+        setSchedule(s);
+        // Resolve campus name for drawer filtering
+        return api.getAllCampusesCampusesGet().then((campuses) => {
+          const match = campuses.find((c) => c.campus_id === s.campus);
+          if (match) setCampusName(match.name);
+        });
+      })
       .catch(() => {});
   }, [scheduleId]);
 
@@ -120,7 +128,12 @@ function ScheduleView({ scheduleId }: { scheduleId: number }) {
       )}
 
       {!loading && (
-        <ScheduleSectionRowView sections={sections} scheduleId={scheduleId} locks={locks} />
+        <ScheduleSectionRowView
+          sections={sections}
+          scheduleId={scheduleId}
+          locks={locks}
+          campusName={campusName}
+        />
       )}
     </div>
   );
