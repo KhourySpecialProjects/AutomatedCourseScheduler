@@ -7,18 +7,23 @@ Endpoints covered:
   GET    /schedules/{id}             — get one by ID
   PUT    /schedules/{id}             — update name / draft flag
   DELETE /schedules/{id}             — soft delete
+  GET    /schedules/{id}/locks       — get all active locks for a schedule
 
 Sections endpoint (GET /schedules/{id}/sections) is tested in test_sections.py.
 """
 
-from datetime import time
+from datetime import datetime, time, timedelta
 
-from app.models import Schedule
+from sqlalchemy.orm import Session
+from starlette.testclient import TestClient
+
+from app.models import Schedule, TimeBlock
 from app.models.campus import Campus
 from app.models.course import Course as CourseModel
 from app.models.section import Section as SectionModel
+from app.models.section_lock import SectionLock
 from app.models.semester import Semester as SemesterModel
-from app.models.time_block import TimeBlock
+from app.models.user import User
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -48,6 +53,20 @@ def _make_schedule(db, campus_id, semester_id, *, name="Test Schedule"):
     db.add(schedule)
     db.commit()
     return schedule
+
+
+def _make_user(db, nuid):
+    user = User(
+        nuid=nuid,
+        first_name="Test",
+        last_name="User",
+        email=f"user{nuid}@example.com",
+        phone_number="1234567890",
+        role="ADMIN",
+    )
+    db.add(user)
+    db.commit()
+    return user
 
 
 def _make_course(db, name="CS 1800", description="Discrete Structures", credits=4):
@@ -671,3 +690,101 @@ def test_multiple_schedules_same_campus(client, db_session):
     _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S2")
     response = client.get(f"/schedules?campus_id={campus.campus_id}")
     assert len(response.json()) == 2
+
+
+# ---------------------------------------------------------------------------
+# GET /schedules/{id}/locks
+# ---------------------------------------------------------------------------
+
+
+def test_get_schedule_locks_empty(client: TestClient, db_session: Session) -> None:
+    campus = _make_campus(db_session)
+    semester = _make_semester(db_session)
+    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
+
+    response = client.get(f"/schedules/{schedule.schedule_id}/locks")
+
+    assert response.json() == []
+
+
+def test_get_schedule_locks_non_empty(client: TestClient, db_session: Session) -> None:
+    campus = _make_campus(db_session)
+    semester = _make_semester(db_session)
+    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
+    user = _make_user(db_session, nuid=1)
+    course = _make_course(db_session)
+    time_block = _make_time_block(db_session, campus.campus_id)
+    section = _make_section(
+        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id
+    )
+
+    client.post(f"/sections/{section.section_id}/lock?user_id={user.nuid}")
+    response = client.get(f"/schedules/{schedule.schedule_id}/locks")
+
+    assert len(response.json()) == 1
+    data = response.json()[0]
+    assert data["section_id"] == section.section_id
+    assert data["locked_by"] == user.nuid
+    assert data["display_name"] == "Test User"
+    assert "expires_at" in data
+
+
+def test_get_schedule_locks_returns_active(client: TestClient, db_session: Session) -> None:
+    campus = _make_campus(db_session)
+    semester = _make_semester(db_session)
+    schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
+    user1 = _make_user(db_session, nuid=1)
+    user2 = _make_user(db_session, nuid=2)
+    user3 = _make_user(db_session, nuid=3)
+    course = _make_course(db_session)
+    time_block = _make_time_block(db_session, campus.campus_id)
+    section1 = _make_section(
+        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id
+    )
+    section2 = _make_section(
+        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id
+    )
+    section3 = _make_section(
+        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id
+    )
+
+    # two active locks
+    client.post(f"/sections/{section1.section_id}/lock?user_id={user1.nuid}")
+    client.post(f"/sections/{section2.section_id}/lock?user_id={user2.nuid}")
+
+    # one expired lock inserted directly
+    expired_lock = SectionLock(
+        section_id=section3.section_id,
+        locked_by=user3.nuid,
+        expires_at=datetime.now() - timedelta(minutes=10),
+    )
+    db_session.add(expired_lock)
+    db_session.commit()
+
+    response = client.get(f"/schedules/{schedule.schedule_id}/locks")
+
+    assert len(response.json()) == 2
+    locked_by_ids = {lock["locked_by"] for lock in response.json()}
+    assert user1.nuid in locked_by_ids
+    assert user2.nuid in locked_by_ids
+    assert user3.nuid not in locked_by_ids
+
+
+def test_get_schedule_locks_excludes_other_schedules(
+    client: TestClient, db_session: Session
+) -> None:
+    campus = _make_campus(db_session)
+    semester = _make_semester(db_session)
+    schedule1 = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S1")
+    schedule2 = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S2")
+    user = _make_user(db_session, nuid=1)
+    course = _make_course(db_session)
+    time_block = _make_time_block(db_session, campus.campus_id)
+    section = _make_section(
+        db_session, schedule1.schedule_id, course.course_id, time_block.time_block_id
+    )
+
+    client.post(f"/sections/{section.section_id}/lock?user_id={user.nuid}")
+    response = client.get(f"/schedules/{schedule2.schedule_id}/locks")
+
+    assert response.json() == []
