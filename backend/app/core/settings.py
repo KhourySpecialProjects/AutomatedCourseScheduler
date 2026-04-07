@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = ""
     POSTGRES_HOST: str = "db"  # host is set to db but overrided if set in env
     DATABASE_URL: str = ""
+    CORS_ORIGINS: str = "http://localhost:3000"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [x.strip() for x in self.CORS_ORIGINS.split(",") if x.strip()]
 
     @property
     def db_url(self) -> str:
