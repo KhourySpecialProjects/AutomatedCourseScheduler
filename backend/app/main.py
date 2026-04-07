@@ -11,6 +11,7 @@ from app.routers import (
     faculty,
     schedule,
     section,
+    section_lock,
     time_block,
     upload,
     users,
@@ -62,6 +63,7 @@ app.include_router(time_block.router, dependencies=[Depends(get_current_user)])
 app.include_router(campus.router, dependencies=[Depends(get_current_user)])
 app.include_router(upload.router, dependencies=[Depends(get_current_user)])
 app.include_router(comment.router, dependencies=[Depends(get_current_user)])
+app.include_router(section_lock.router, dependencies=[Depends(get_current_user)])
 app.include_router(users.router)
 
 
