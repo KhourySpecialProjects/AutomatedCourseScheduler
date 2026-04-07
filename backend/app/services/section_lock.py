@@ -8,8 +8,10 @@ from sqlalchemy.orm import Session
 from app.core.settings import settings
 from app.models.section_lock import SectionLock
 from app.models.user import User
+from app.repositories import section as section_repo
 from app.repositories import section_lock as section_lock_repo
 from app.schemas.section_lock import ScheduleActiveLockResponse
+from app.services.connection_manager import manager
 
 
 class SectionLockConflictError(Exception):
@@ -19,15 +21,18 @@ class SectionLockConflictError(Exception):
         self.lock = lock
 
 
-def acquire_lock(db: Session, section_id: int, user_id: int) -> SectionLock:
-    """
-    Acquire a lock on a section for editing and auto-releases any other lock the user
-    currently holds onto.
+async def acquire_lock(
+    db: Session, section_id: int, user_id: int, display_name: str
+) -> SectionLock:
+    """Acquire a lock on a section for editing, auto-releasing any other lock the user
+    currently holds. Broadcasts lock_acquired only when a new lock is created (not on
+    refresh of an existing lock by the same user).
 
     Args:
         db: Database connection.
         section_id: ID of the section to lock.
         user_id: ID of the user acquiring the lock.
+        display_name: Full name of the user, included in the broadcast payload.
 
     Returns:
         The acquired or refreshed SectionLock.
@@ -38,39 +43,55 @@ def acquire_lock(db: Session, section_id: int, user_id: int) -> SectionLock:
     now = datetime.now(UTC).replace(tzinfo=None)
     existing_lock = section_lock_repo.get_by_section_id(db, section_id)
 
-    # lock exists and is active
+    # Lock exists and is active — same user just refreshes the TTL, no broadcast needed.
     if existing_lock and existing_lock.expires_at > now:
-        # if same user, refresh the timer
         if existing_lock.locked_by == user_id:
             existing_lock.expires_at = now + timedelta(minutes=settings.LOCK_TIMEOUT_MINUTES)
             return section_lock_repo.save(db, existing_lock)
-        # if different user, raise exception
         raise SectionLockConflictError(existing_lock)
 
-    # lock doesn't exist or lock is expired
-    # auto-release any other lock this user holds on a different section
+    # Auto-release any other lock this user holds on a different section.
     user_existing_lock = section_lock_repo.get_by_user_id(db, user_id)
     if user_existing_lock:
-        # TODO: broadcast lock released once SSIP-70 is ready
+        prev_section = section_repo.get_by_id(db, user_existing_lock.section_id)
         section_lock_repo.delete(db, user_existing_lock)
+        if prev_section:
+            await manager.broadcast(
+                prev_section.schedule_id,
+                {"type": "lock_released", "payload": {"section_id": user_existing_lock.section_id}},
+            )
 
-    # delete expired lock on this section if one exists
+    # Delete expired lock on this section if one exists.
     if existing_lock:
         section_lock_repo.delete(db, existing_lock)
 
-    # insert new lock
     new_lock = SectionLock(
         section_id=section_id,
         locked_by=user_id,
         expires_at=now + timedelta(minutes=settings.LOCK_TIMEOUT_MINUTES),
     )
-    # TODO: broadcast lock acquired once SSIP-70 is ready
-    return section_lock_repo.create(db, new_lock)
+    new_lock = section_lock_repo.create(db, new_lock)
+
+    section = section_repo.get_by_id(db, section_id)
+    if section:
+        await manager.broadcast(
+            section.schedule_id,
+            {
+                "type": "lock_acquired",
+                "payload": {
+                    "section_id": section_id,
+                    "locked_by": user_id,
+                    "display_name": display_name,
+                    "expires_at": new_lock.expires_at.isoformat(),
+                },
+            },
+        )
+
+    return new_lock
 
 
-def release_lock(db: Session, section_id: int, user_id: int) -> None:
-    """
-    Release a lock on a section.
+async def release_lock(db: Session, section_id: int, user_id: int) -> None:
+    """Release a lock on a section and broadcast lock_released to connected clients.
 
     Args:
         db: Database session.
@@ -86,7 +107,13 @@ def release_lock(db: Session, section_id: int, user_id: int) -> None:
         raise PermissionError("User does not own this lock")
 
     section_lock_repo.delete(db, existing_lock)
-    # TODO: broadcast lock_released once SSIP-70 is ready
+
+    section = section_repo.get_by_id(db, section_id)
+    if section:
+        await manager.broadcast(
+            section.schedule_id,
+            {"type": "lock_released", "payload": {"section_id": section_id}},
+        )
 
 
 def verify_lock(db: Session, section_id: int, user_id: int) -> None:

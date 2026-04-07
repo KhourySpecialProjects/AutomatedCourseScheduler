@@ -14,24 +14,22 @@ router = APIRouter(prefix="/sections", tags=["section_locks"])
 
 
 @router.post("/{section_id}/lock", response_model=SectionLockResponse)
-def acquire_lock(
+async def acquire_lock(
     section_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
     """Acquire a lock on a section for editing.
 
-    Args:
-        section_id: ID of the section to lock.
-        db: Database session.
-        current_user: Authenticated admin user resolved from JWT.
-
     Raises:
         HTTPException: 403 if the caller does not have the admin role.
         HTTPException: 423 if the section is locked by another user.
     """
+    display_name = f"{current_user.first_name} {current_user.last_name}"
     try:
-        return section_lock_service.acquire_lock(db, section_id, current_user.user_id)
+        return await section_lock_service.acquire_lock(
+            db, section_id, current_user.user_id, display_name
+        )
     except SectionLockConflictError as e:
         raise HTTPException(
             status_code=423,
@@ -43,22 +41,17 @@ def acquire_lock(
 
 
 @router.post("/{section_id}/unlock")
-def release_lock(
+async def release_lock(
     section_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
     """Release a lock on a section.
 
-    Args:
-        section_id: ID of the section to unlock.
-        db: Database session.
-        current_user: Authenticated admin user resolved from JWT.
-
     Raises:
         HTTPException: 403 if the caller does not own an active lock.
     """
     try:
-        section_lock_service.release_lock(db, section_id, current_user.user_id)
+        await section_lock_service.release_lock(db, section_id, current_user.user_id)
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e)) from e

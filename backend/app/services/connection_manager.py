@@ -20,8 +20,14 @@ class ConnectionManager:
         return user_id
 
     async def broadcast(self, schedule_id: int, message: dict):
-        for connection in self.connections.get(schedule_id, {}).keys():
-            await connection.send_json(message)
+        dead = []
+        for connection in list(self.connections.get(schedule_id, {}).keys()):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                dead.append(connection)
+        for connection in dead:
+            self.connections.get(schedule_id, {}).pop(connection, None)
 
 
 manager = ConnectionManager()

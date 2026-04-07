@@ -13,6 +13,7 @@ from app.schemas.section import (
 )
 from app.services import section as section_service
 from app.services import section_lock as section_lock_service
+from app.services.connection_manager import manager
 from app.services.section_lock import SectionLockConflictError
 
 router = APIRouter(prefix="/sections", tags=["sections"])
@@ -28,7 +29,7 @@ def create_section(section: SectionCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{section_id}", response_model=SectionResponse)
-def update_section(
+async def update_section(
     section_id: int,
     section: SectionUpdate,
     db: Session = Depends(get_db),
@@ -37,9 +38,11 @@ def update_section(
     """Acquire (or refresh) the lock on this section, then apply the update.
 
     Fails with 423 if another user currently holds the lock.
+    Broadcasts section_updated to connected clients on success.
     """
+    display_name = f"{current_user.first_name} {current_user.last_name}"
     try:
-        section_lock_service.acquire_lock(db, section_id, current_user.user_id)
+        await section_lock_service.acquire_lock(db, section_id, current_user.user_id, display_name)
     except SectionLockConflictError as e:
         raise HTTPException(
             status_code=423,
@@ -51,6 +54,21 @@ def update_section(
         raise HTTPException(status_code=400, detail=str(e)) from e
     if updated is None:
         raise HTTPException(status_code=404, detail="Section not found")
+
+    rich_sections = section_service.get_rich_sections(db, updated.schedule_id)
+    rich_section = next((s for s in rich_sections if s.section_id == section_id), None)
+    if rich_section:
+        await manager.broadcast(
+            updated.schedule_id,
+            {
+                "type": "section_updated",
+                "payload": {
+                    "section_id": section_id,
+                    "data": rich_section.model_dump(mode="json"),
+                },
+            },
+        )
+
     return updated
 
 

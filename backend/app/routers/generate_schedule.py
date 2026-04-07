@@ -23,6 +23,10 @@ def run_algorithm(
     # - raise 409 if any schedule is currently RUNNING
     # - set schedule.status = RUNNING, started_at = now(), db.commit()
 
+    # TODO (websocket): when run_algorithm_task completes, broadcast to connected clients:
+    #   type: "schedule_regenerated", payload: all rich sections for the generated schedule_id
+    #   This requires passing db + schedule_id into the background task and calling
+    #   manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": [...]})
     background_tasks.add_task(run_algorithm_task, request.parameters)
     return {"status": "running"}
 
@@ -41,5 +45,9 @@ def regenerate_algorithm(
     # - raise 400 if schedule has no existing sections (nothing to regenerate around)
     # - set schedule.status = RUNNING, started_at = now(), db.commit()
 
+    # TODO (websocket): when run_regenerate_task completes, broadcast to connected clients:
+    #   type: "schedule_regenerated", payload: all rich sections for schedule_id
+    #   This requires passing db + schedule_id into the background task and calling
+    #   manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": [...]})
     background_tasks.add_task(run_regenerate_task, schedule_id, request.parameters)
     return {"schedule_id": schedule_id, "status": "running"}
