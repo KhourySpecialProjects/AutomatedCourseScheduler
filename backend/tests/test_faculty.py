@@ -1,6 +1,7 @@
 """Tests for faculty router: GET /faculty and GET /faculty/{id}."""
 
 from datetime import time
+from unittest.mock import MagicMock, patch
 
 from app.core.enums import PreferenceLevel
 from app.models import (
@@ -136,13 +137,14 @@ def test_get_faculty_filter_active_only(client, db_session):
 
 
 def test_get_faculty_profile(client, db_session):
+    campus = _make_campus(db_session)
     faculty = Faculty(
         nuid=1001,
         first_name="Jane",
         last_name="Doe",
         email="jane@example.com",
         title="Professor",
-        campus="Boston",
+        campus=campus.campus_id,
     )
     db_session.add(faculty)
     db_session.commit()
@@ -155,7 +157,7 @@ def test_get_faculty_profile(client, db_session):
     assert data["last_name"] == "Doe"
     assert data["email"] == "jane@example.com"
     assert data["title"] == "Professor"
-    assert data["campus"] == "Boston"
+    assert data["campus"] == 1
     assert "course_preferences" in data
     assert "meeting_preferences" in data
 
@@ -164,14 +166,14 @@ def test_get_faculty_profile_with_preferences(client, db_session):
     course = Course(name="Algorithms", description="Algo", credits=4)
     db_session.add(course)
     db_session.flush()
-
+    campus = _make_campus(db_session)
     faculty = Faculty(
         nuid=2001,
         first_name="John",
         last_name="Smith",
         email="john@example.com",
         title="Associate Professor",
-        campus="Boston",
+        campus=campus.campus_id,
     )
     db_session.add(faculty)
     db_session.flush()
@@ -424,13 +426,13 @@ def test_delete_faculty_not_found_returns_404(client, db_session):
 # ---------------------------------------------------------------------------
 
 
-def _make_faculty(db, nuid=1001):
+def _make_faculty(db, campus_id, nuid=1001):
     faculty = Faculty(
         nuid=nuid,
         first_name="Jane",
         last_name="Doe",
         email=f"faculty{nuid}@example.com",
-        campus="Boston",
+        campus=campus_id,
     )
     db.add(faculty)
     db.flush()
@@ -444,7 +446,7 @@ def _make_course(db, name="Algorithms"):
     return course
 
 
-def _make_section(db, schedule_id, course_id, time_block_id):
+def _make_section_with_time_block(db, schedule_id, course_id, time_block_id):
     section = Section(
         schedule_id=schedule_id,
         time_block_id=time_block_id,
@@ -462,23 +464,26 @@ class TestBuildProfile:
         """Faculty with explicit preferences: build_profile returns those preferences."""
         campus = _make_campus(db_session)
         tb = _make_time_block(db_session, campus.campus_id)
-        faculty = _make_faculty(db_session)
+        faculty = _make_faculty(db_session, campus.campus_id)
         course = _make_course(db_session)
-        semester = _make_semester(db_session, season="Fall", year=2026)
 
-        db_session.add(CoursePreference(
-            faculty_nuid=faculty.nuid,
-            course_id=course.course_id,
-            preference=PreferenceLevel.EAGER,
-        ))
-        db_session.add(MeetingPreference(
-            faculty_nuid=faculty.nuid,
-            meeting_time=tb.time_block_id,
-            preference=PreferenceLevel.READY,
-        ))
+        db_session.add(
+            CoursePreference(
+                faculty_nuid=faculty.nuid,
+                course_id=course.course_id,
+                preference=PreferenceLevel.EAGER,
+            )
+        )
+        db_session.add(
+            MeetingPreference(
+                faculty_nuid=faculty.nuid,
+                meeting_time=tb.time_block_id,
+                preference=PreferenceLevel.READY,
+            )
+        )
         db_session.commit()
 
-        profile = faculty_service.build_profile(db_session, faculty.nuid, semester.semester_id)
+        profile = faculty_service.build_profile(db_session, faculty.nuid)
 
         assert profile.needsAdminReview is False
         assert len(profile.course_preferences) == 1
@@ -490,39 +495,48 @@ class TestBuildProfile:
         """Normalization: if no EAGER courses exist, READY courses are promoted to EAGER."""
         campus = _make_campus(db_session)
         _make_time_block(db_session, campus.campus_id)
-        faculty = _make_faculty(db_session)
+        faculty = _make_faculty(db_session, campus.campus_id)
         course1 = _make_course(db_session, name="Algorithms")
         course2 = _make_course(db_session, name="OS")
-        semester = _make_semester(db_session, season="Fall", year=2026)
 
-        db_session.add(CoursePreference(
-            faculty_nuid=faculty.nuid,
-            course_id=course1.course_id,
-            preference=PreferenceLevel.READY,
-        ))
-        db_session.add(CoursePreference(
-            faculty_nuid=faculty.nuid,
-            course_id=course2.course_id,
-            preference=PreferenceLevel.WILLING,
-        ))
+        db_session.add(
+            CoursePreference(
+                faculty_nuid=faculty.nuid,
+                course_id=course1.course_id,
+                preference=PreferenceLevel.READY,
+            )
+        )
+        db_session.add(
+            CoursePreference(
+                faculty_nuid=faculty.nuid,
+                course_id=course2.course_id,
+                preference=PreferenceLevel.WILLING,
+            )
+        )
         db_session.commit()
 
-        profile = faculty_service.build_profile(db_session, faculty.nuid, semester.semester_id)
+        profile = faculty_service.build_profile(db_session, faculty.nuid)
 
-        eager_ids = {cp.course_id for cp in profile.course_preferences if cp.preference == PreferenceLevel.EAGER}
-        ready_ids = {cp.course_id for cp in profile.course_preferences if cp.preference == PreferenceLevel.READY}
+        eager_ids = {
+            cp.course_id
+            for cp in profile.course_preferences
+            if cp.preference == PreferenceLevel.EAGER
+        }
+        ready_ids = {
+            cp.course_id
+            for cp in profile.course_preferences
+            if cp.preference == PreferenceLevel.READY
+        }
         assert course1.course_id in eager_ids
         assert course2.course_id in ready_ids
 
     def test_derives_preferences_from_previous_assignments(self, db_session):
-        """No explicit preferences + previous assignments: profile derived from assignment history."""
         campus = _make_campus(db_session)
         tb = _make_time_block(db_session, campus.campus_id)
-        faculty = _make_faculty(db_session)
+        faculty = _make_faculty(db_session, campus.campus_id)
         course = _make_course(db_session)
 
         sem_prev = _make_semester(db_session, season="Fall", year=2025)
-        sem_curr = _make_semester(db_session, season="Fall", year=2026)
 
         schedule = Schedule(
             name="F25",
@@ -533,11 +547,13 @@ class TestBuildProfile:
         db_session.add(schedule)
         db_session.flush()
 
-        section = _make_section(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
+        section = _make_section_with_time_block(
+            db_session, schedule.schedule_id, course.course_id, tb.time_block_id
+        )
         db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id))
         db_session.commit()
 
-        profile = faculty_service.build_profile(db_session, faculty.nuid, sem_curr.semester_id)
+        profile = faculty_service.build_profile(db_session, faculty.nuid)
 
         assert profile.needsAdminReview is False
         assert len(profile.course_preferences) == 1
@@ -548,13 +564,108 @@ class TestBuildProfile:
 
     def test_returns_empty_profile_with_needs_admin_review_when_no_data(self, db_session):
         """No preferences and no previous assignments: empty profile flagged for admin review."""
-        faculty = _make_faculty(db_session)
-        semester = _make_semester(db_session, season="Fall", year=2026)
-        # No Fall 2025 semester exists, so get_last_year returns None -> no assignments found
+        campus = _make_campus(db_session)
+        faculty = _make_faculty(db_session, campus.campus_id)
         db_session.commit()
 
-        profile = faculty_service.build_profile(db_session, faculty.nuid, semester.semester_id)
+        profile = faculty_service.build_profile(db_session, faculty.nuid)
 
         assert profile.needsAdminReview is True
         assert profile.course_preferences == []
         assert profile.meeting_preferences == []
+
+
+def _make_assignment(section_id):
+    a = FacultyAssignment()
+    a.section_id = section_id
+    return a
+
+
+def _make_section(section_id, schedule_id):
+    s = Section()
+    s.section_id = section_id
+    s.schedule_id = schedule_id
+    return s
+
+
+def _make_schedule(schedule_id, semester_id):
+    sc = Schedule()
+    sc.schedule_id = schedule_id
+    sc.semester_id = semester_id
+    return sc
+
+
+class TestGetAverageMaxLoad:
+    def _run(self, assignments, section_map, schedule_map):
+        """Helper: patches repos and calls get_average_max_load."""
+        db = MagicMock()
+
+        def mock_get_section(db, section_id):
+            return section_map[section_id]
+
+        def mock_get_schedule(db, schedule_id):
+            return schedule_map[schedule_id]
+
+        with (
+            patch("app.services.faculty.section_repo.get_by_id", side_effect=mock_get_section),
+            patch("app.services.faculty.schedule_repo.get_by_id", side_effect=mock_get_schedule),
+        ):
+            return faculty_service.get_average_max_load(db, assignments)
+
+    def test_equal_load_each_semester(self):
+        """2 sections in each of 2 semesters → average 2."""
+        assignments = [
+            _make_assignment(1),
+            _make_assignment(2),  # semester 10
+            _make_assignment(3),
+            _make_assignment(4),  # semester 11
+        ]
+        sections = {
+            1: _make_section(1, 100),
+            2: _make_section(2, 100),
+            3: _make_section(3, 101),
+            4: _make_section(4, 101),
+        }
+        schedules = {100: _make_schedule(100, 10), 101: _make_schedule(101, 11)}
+
+        assert self._run(assignments, sections, schedules) == 2
+
+    def test_unequal_load_rounds_correctly(self):
+        """3 sections in semester 1, 2 in semester 2 → average 2.5 → rounds to 3."""
+        assignments = [
+            _make_assignment(1),
+            _make_assignment(2),
+            _make_assignment(3),  # semester 10
+            _make_assignment(4),
+            _make_assignment(5),  # semester 11
+        ]
+        sections = {
+            1: _make_section(1, 100),
+            2: _make_section(2, 100),
+            3: _make_section(3, 100),
+            4: _make_section(4, 101),
+            5: _make_section(5, 101),
+        }
+        schedules = {100: _make_schedule(100, 10), 101: _make_schedule(101, 11)}
+
+        assert self._run(assignments, sections, schedules) == 3
+
+    def test_single_semester(self):
+        """All sections in one semester → average equals that count."""
+        assignments = [_make_assignment(1), _make_assignment(2), _make_assignment(3)]
+        sections = {i: _make_section(i, 100) for i in [1, 2, 3]}
+        schedules = {100: _make_schedule(100, 10)}
+
+        assert self._run(assignments, sections, schedules) == 3
+
+    def test_one_section_per_semester(self):
+        """1 section across 3 semesters → average 1."""
+        assignments = [_make_assignment(1), _make_assignment(2), _make_assignment(3)]
+        sections = {1: _make_section(1, 100), 2: _make_section(2, 101), 3: _make_section(3, 102)}
+        schedules = {
+            100: _make_schedule(100, 10),
+            101: _make_schedule(101, 11),
+            102: _make_schedule(102, 12),
+        }
+
+        assert self._run(assignments, sections, schedules) == 1

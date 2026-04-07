@@ -1,16 +1,17 @@
 """Faculty router."""
-from fastapi import Body
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
-from app.services import faculty as faculty_service
 from app.schemas.faculty import (
     FacultyCreate,
     FacultyProfileResponse,
     FacultyResponse,
     FacultyUpdate,
 )
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from app.services import faculty as faculty_service
 
 
 class BuildProfilesRequest(BaseModel):
@@ -23,8 +24,7 @@ router = APIRouter(prefix="/faculty", tags=["faculty"])
 @router.get("", response_model=list[FacultyResponse])
 def get_faculty(
     campus: str | None = Query(None, description="Filter by campus name"),
-    active_only: bool = Query(
-        False, description="Filter to only active faculty"),
+    active_only: bool = Query(False, description="Filter to only active faculty"),
     db: Session = Depends(get_db),
 ):
     """Retrieve all faculty members."""
@@ -43,9 +43,10 @@ def create_faculty(faculty: FacultyCreate, db: Session = Depends(get_db)):
 @router.get("/{nuid}", response_model=FacultyProfileResponse)
 def get_faculty_profile(nuid: int, db: Session = Depends(get_db)):
     "Retrieve faculty profile with course and time preferences."
-    faculty = faculty_service.get_faculty_profile(db, nuid)
-    if faculty is None:
-        raise HTTPException(status_code=404, detail="Faculty not found")
+    try:
+        faculty = faculty_service.get_faculty_profile(db, nuid)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
     return faculty
 
 
@@ -73,8 +74,7 @@ def delete_faculty(nuid: int, db: Session = Depends(get_db)):
 @router.post("/build_profiles", status_code=200, response_model=list[FacultyProfileResponse])
 def build_profiles(available_faculty: list[int] = Body(...), db: Session = Depends(get_db)):
     try:
-        profiles = faculty_service.build_all_profiles(
-            db, available_faculty)
+        profiles = faculty_service.build_all_profiles(db, available_faculty)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=e.args) from e
     return profiles

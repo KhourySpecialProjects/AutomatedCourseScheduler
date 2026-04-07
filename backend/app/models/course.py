@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -24,15 +24,13 @@ class Course(Base):
     # priority: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
-    sections: Mapped[list["Section"]] = relationship(
-        "Section", back_populates="course")
+    sections: Mapped[list["Section"]] = relationship("Section", back_populates="course")
     course_preferences: Mapped[list["CoursePreference"]] = relationship(
         "CoursePreference", back_populates="course"
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )

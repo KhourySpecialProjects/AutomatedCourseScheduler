@@ -1,22 +1,23 @@
-from datetime import time
-from sqlalchemy.orm import Session
 import logging
+import math
+from datetime import time
 
+from sqlalchemy.orm import Session
+
+from app.core.enums import PreferenceLevel
 from app.models.faculty import Faculty
 from app.models.faculty_assignment import FacultyAssignment
-from app.models.time_block import TimeBlock
+from app.repositories import course as course_repo
 from app.repositories import faculty as faculty_repo
+from app.repositories import schedule as schedule_repo
+from app.repositories import section as section_repo
+from app.repositories import time_block as time_block_repo
 from app.schemas.faculty import (
     FacultyCreate,
     FacultyProfileResponse,
     FacultyResponse,
     FacultyUpdate,
 )
-from app.core.enums import PreferenceLevel
-from app.repositories import section as section_repo
-from app.repositories import course as course_repo
-from app.repositories import time_block as time_block_repo
-from app.repositories import semester as semester_repo
 from app.schemas.section import CoursePreferenceInfo, MeetingPreferenceInfo
 
 logger = logging.getLogger(__name__)
@@ -38,8 +39,7 @@ def _faculty_to_response(faculty: Faculty) -> FacultyResponse:
 def get_faculty(
     db: Session, campus: str | None = None, active_only: bool = False
 ) -> list[FacultyResponse]:
-    faculty_list = faculty_repo.get_all(
-        db, campus=campus, active_only=active_only)
+    faculty_list = faculty_repo.get_all(db, campus=campus, active_only=active_only)
     return [_faculty_to_response(f) for f in faculty_list]
 
 
@@ -106,46 +106,11 @@ def delete_faculty(db: Session, nuid: int) -> bool:
 
 
 def get_faculty_profile(db: Session, nuid: int) -> FacultyProfileResponse | None:
-    logger.error("IN GET FACULTY PROFILE")
     faculty = faculty_repo.get_by_nuid_with_preferences(db, nuid)
-    logger.error(f"FOUND FACULTY {faculty}")
     if faculty is None:
-        logger.error("FACULTY NOT FOUND")
-        return None
-    logger.error("ABOUT TO RETURN")
-    course_preferences = [
-        CoursePreferenceInfo(
-            course_id=cp.course_id,
-            course_name=cp.course.name,
-            preference=cp.preference.value,
-        )
-        for cp in faculty.course_preferences
-    ]
-    meeting_preferences = [
-        MeetingPreferenceInfo(
-            meeting_time=time_block_to_string(db, mp.meeting_time),
-            preference=mp.preference.value,
-        )
-        for mp in faculty.meeting_preferences
-    ]
-    try:
-        response = FacultyProfileResponse(
-            nuid=faculty.nuid,
-            first_name=faculty.first_name,
-            last_name=faculty.last_name,
-            email=faculty.email,
-            title=faculty.title,
-            campus=faculty.campus,
-            active=faculty.active,
-            course_preferences=course_preferences,
-            meeting_preferences=meeting_preferences
-        )
-    except Exception as e:
-        logger.error(f"FAILED TO BUILD RESPONSE: {e}")
-        raise
-    previous_assignmets = section_repo.get_by_instructor(db, nuid)
-    logger.error(f"PREVIOUS ASSIGNMENTS {previous_assignmets}")
-    logger.error(f"FACULTY RESPONSE {response}")
+        raise ValueError(f"Faculty with id {nuid} not found")
+
+    previous_assignments = section_repo.get_by_instructor(db, nuid)
     return FacultyProfileResponse(
         nuid=faculty.nuid,
         first_name=faculty.first_name,
@@ -154,7 +119,7 @@ def get_faculty_profile(db: Session, nuid: int) -> FacultyProfileResponse | None
         title=faculty.title,
         campus=faculty.campus,
         active=faculty.active,
-        maxLoad=len(previous_assignmets),
+        maxLoad=get_average_max_load(db, previous_assignments) if previous_assignments else 3,
         course_preferences=[
             CoursePreferenceInfo(
                 course_id=cp.course_id,
@@ -185,7 +150,8 @@ def format_time_block(meeting_days, start_time, end_time):
 def time_block_to_string(db: Session, time_block_id: int) -> str:
     time_block = time_block_repo.get_by_id(db, time_block_id)
     meeting_time = format_time_block(
-        time_block.meeting_days, time_block.start_time, time_block.end_time)
+        time_block.meeting_days, time_block.start_time, time_block.end_time
+    )
     return meeting_time
 
 
@@ -207,19 +173,15 @@ def normalize_buckets(facultyProfile: FacultyProfileResponse) -> FacultyProfileR
     meeting_time_tiers = [
         meeting_time_buckets[PreferenceLevel.EAGER],
         meeting_time_buckets[PreferenceLevel.READY],
-        meeting_time_buckets[PreferenceLevel.WILLING]
+        meeting_time_buckets[PreferenceLevel.WILLING],
     ]
     meeting_time_filled = [t for t in meeting_time_tiers if t]
 
     course_eager = course_filled[0] if len(course_filled) > 0 else []
     course_ready = course_filled[1] if len(course_filled) > 1 else []
-    course_unwilling = course_buckets[PreferenceLevel.NOT_INTERESTED]
 
-    meeting_eager = meeting_time_filled[0] if len(
-        meeting_time_filled) > 0 else []
-    meeting_ready = meeting_time_filled[1] if len(
-        meeting_time_filled) > 1 else []
-    meeting_unwilling = meeting_time_buckets[PreferenceLevel.NOT_INTERESTED]
+    meeting_eager = meeting_time_filled[0] if len(meeting_time_filled) > 0 else []
+    meeting_ready = meeting_time_filled[1] if len(meeting_time_filled) > 1 else []
 
     for cp in course_eager:
         cp.preference = PreferenceLevel.EAGER
@@ -234,8 +196,28 @@ def normalize_buckets(facultyProfile: FacultyProfileResponse) -> FacultyProfileR
     return facultyProfile
 
 
-def process_assignments(db: Session, previous_assignmets: list[FacultyAssignment], nuid: int, faculty: Faculty) -> FacultyProfileResponse:
-    logger.error(f"in process assignments")
+def get_average_max_load(db: Session, previous_assignmets: list[FacultyAssignment]) -> int:
+    semester_counts = {}
+    logger.error(f"PREVIOUS ASSIGNMENTS: {previous_assignmets}")
+    for assignment in previous_assignmets:
+        section = section_repo.get_by_id(db, assignment.section_id)
+        schedule = schedule_repo.get_by_id(db, section.schedule_id)
+        semester = schedule.semester_id
+        if semester not in semester_counts.keys():
+            semester_counts[semester] = 1
+        else:
+            semester_counts[semester] += 1
+    total_sems = len(semester_counts)
+    total_sections = 0
+    for sem_count in semester_counts.values():
+        total_sections += sem_count
+    print(total_sections / total_sems)
+    return math.floor((total_sections / total_sems) + 0.5)
+
+
+def process_assignments(
+    db: Session, previous_assignmets: list[FacultyAssignment], nuid: int, faculty: Faculty
+) -> FacultyProfileResponse:
     course_preferences = []
     meeting_preferences = []
     unique_courses = []
@@ -249,19 +231,15 @@ def process_assignments(db: Session, previous_assignmets: list[FacultyAssignment
                 CoursePreferenceInfo(
                     course_id=section.course_id,
                     course_name=course.name,
-                    preference=PreferenceLevel.EAGER
+                    preference=PreferenceLevel.EAGER,
                 )
             )
         meeting_time = time_block_to_string(db, section.time_block_id)
         if meeting_time not in unique_meeting_times:
             unique_meeting_times.append(meeting_time)
             meeting_preferences.append(
-                MeetingPreferenceInfo(
-                    meeting_time=meeting_time,
-                    preference=PreferenceLevel.EAGER
-                )
+                MeetingPreferenceInfo(meeting_time=meeting_time, preference=PreferenceLevel.EAGER)
             )
-    logger.error(f"MAXLOAD {len(previous_assignmets)}")
     return FacultyProfileResponse(
         nuid=faculty.nuid,
         first_name=faculty.first_name,
@@ -270,24 +248,23 @@ def process_assignments(db: Session, previous_assignmets: list[FacultyAssignment
         title=faculty.title,
         campus=faculty.campus,
         active=faculty.active,
-        maxLoad=len(previous_assignmets),
+        maxLoad=get_average_max_load(db, previous_assignmets),
         course_preferences=course_preferences,
         meeting_preferences=meeting_preferences,
     )
 
 
-def build_profile(db: Session, nuid: int) -> FacultyProfileResponse:
-    logger.error("IN BUILD PROFILE")
+def build_profile(db: Session, nuid: int) -> FacultyProfileResponse | None:
     existing_profile = get_faculty_profile(db, nuid)
-    logger.error("ABOUT TO QUERY DB")
-    faculty = faculty_repo.get_by_nuid(db, nuid)
-    logger.error(f"right before if {existing_profile}")
-    if existing_profile and (existing_profile.course_preferences or existing_profile.meeting_preferences):
-        logger.error(f"profile found {existing_profile}")
+    if existing_profile and (
+        existing_profile.course_preferences or existing_profile.meeting_preferences
+    ):
         return normalize_buckets(existing_profile)
     else:
+        faculty = faculty_repo.get_by_nuid(db, nuid)
+        if not faculty:
+            return None
         previous_assignmets = section_repo.get_by_instructor(db, nuid)
-        logger.error(f"else case {previous_assignmets}")
         if previous_assignmets:
             return process_assignments(db, previous_assignmets, nuid, faculty)
         else:
@@ -303,20 +280,17 @@ def build_profile(db: Session, nuid: int) -> FacultyProfileResponse:
                 needsAdminReview=True,
                 course_preferences=[],
                 meeting_preferences=[],
-            )  # TODO send some kind of broadcast explaining why faculty review is required ie. "No historical data or explicit preferences"
+            )  # TODO send some kind of broadcast explaining why faculty review is required
 
 
 def build_all_profiles(db: Session, faculty_ids: list[int]) -> list[FacultyProfileResponse]:
     profiles = []
     errors = []
     for faculty in faculty_ids:
-        logger.error(f"PROCESSING FACULTY: {faculty}")
         profile = build_profile(db, faculty)
-        logger.error(f"PROFILE BUILT: {profile}")
         if not profile:
             errors.append(f"Faculty with id {faculty} not found")
         profiles.append(profile)
-    logger.error(f"ERRORS {errors}")
     if errors:
         raise ValueError(errors)
 

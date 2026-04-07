@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
@@ -57,4 +57,3 @@ def save(db: Session, faculty: Faculty) -> Faculty:
 def delete_with_dependencies(db: Session, faculty: Faculty) -> None:
     db.delete(faculty)
     db.commit()
-

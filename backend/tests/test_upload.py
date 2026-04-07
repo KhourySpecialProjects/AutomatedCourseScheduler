@@ -23,10 +23,8 @@ from app.routers.upload import (
     parse_file,
 )
 
-COURSE_PREFERENCES_CSV = os.path.join(
-    os.path.dirname(__file__), "course_preferences.csv")
-COURSE_OFFERINGS_CSV = os.path.join(
-    os.path.dirname(__file__), "course_offerings.csv")
+COURSE_PREFERENCES_CSV = os.path.join(os.path.dirname(__file__), "course_preferences.csv")
+COURSE_OFFERINGS_CSV = os.path.join(os.path.dirname(__file__), "course_offerings.csv")
 
 mock_course = Course()
 mock_course.course_id = 42
@@ -70,8 +68,7 @@ def test_parse_file_offerings_valid():
         "CS 2500,4,This course provides an overview of CS 2500 concepts.\n"
     )
 
-    offerings_result = parse_file(make_upload_file(
-        offerings_csv), COURSE_OFFERINGS, mock_db)
+    offerings_result = parse_file(make_upload_file(offerings_csv), COURSE_OFFERINGS, mock_db)
 
     assert len(offerings_result) == 1
     assert offerings_result[0]["name"] == "CS 2500"
@@ -161,8 +158,7 @@ def test_parse_file_preferences_course_not_found():
     mock_db_local.query.side_effect = query_null_course_side_effefct
 
     with pytest.raises(HTTPException) as exc:
-        parse_file(make_upload_file(csv_content),
-                   COURSE_PREFERENCES, mock_db_local)
+        parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db_local)
 
     assert exc.value.status_code == 422
 
@@ -185,8 +181,7 @@ def test_parse_file_preferences_faculty_not_found():
     mock_db_local.query.side_effect = query_null_faculty_side_effect
 
     with pytest.raises(HTTPException) as exc:
-        parse_file(make_upload_file(csv_content),
-                   COURSE_PREFERENCES, mock_db_local)
+        parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db_local)
 
     assert exc.value.status_code == 422
 
@@ -225,8 +220,7 @@ def test_parse_file_from_real_csv_offerings():
     mock_db.query.side_effect = query_side_effect
 
     offerings_result = parse_file(
-        make_upload_file_from_disk(
-            COURSE_OFFERINGS_CSV), COURSE_OFFERINGS, mock_db
+        make_upload_file_from_disk(COURSE_OFFERINGS_CSV), COURSE_OFFERINGS, mock_db
     )
 
     assert all(
@@ -255,8 +249,7 @@ def test_parse_file_from_real_csv_preferences():
     mock_db.query.side_effect = query_side_effect
 
     preferences_result = parse_file(
-        make_upload_file_from_disk(
-            COURSE_PREFERENCES_CSV), COURSE_PREFERENCES, mock_db
+        make_upload_file_from_disk(COURSE_PREFERENCES_CSV), COURSE_PREFERENCES, mock_db
     )
 
     assert isinstance(preferences_result.get("inserts"), list)
@@ -300,8 +293,7 @@ def test_upload_faculty_preferences():
     with TestClient(app) as client:
         response = client.post(
             "/upload/faculty-preferences",
-            files={"file": ("preferences.csv",
-                            csv_content.encode("utf-8"), "text/csv")},
+            files={"file": ("preferences.csv", csv_content.encode("utf-8"), "text/csv")},
         )
 
     app.dependency_overrides.clear()
@@ -334,8 +326,7 @@ def test_upload_course_offerings():
     with TestClient(app) as client:
         response = client.post(
             "/upload/courses",
-            files={
-                "file": ("offerings.csv", csv_content.encode("utf-8"), "text/csv")},
+            files={"file": ("offerings.csv", csv_content.encode("utf-8"), "text/csv")},
         )
 
     app.dependency_overrides.clear()
@@ -369,15 +360,13 @@ def test_validate_headers_preferences_valid():
         "Faculty Name,Faculty ID,Course,Semester,Preference\n"
         "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
     )
-    result = parse_file(make_upload_file(csv_content),
-                        COURSE_PREFERENCES, mock_db_local)
+    result = parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db_local)
     assert isinstance(result, dict)
 
 
 def test_validate_headers_offerings_valid():
     csv_content = "Course,Credit Hours,Description\nCS 2500,4,Intro to CS.\n"
-    result = parse_file(make_upload_file(csv_content),
-                        COURSE_OFFERINGS, mock_db)
+    result = parse_file(make_upload_file(csv_content), COURSE_OFFERINGS, mock_db)
     assert isinstance(result, list)
 
 
@@ -397,8 +386,7 @@ def test_validate_headers_preferences_invalid():
         "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
     )
     with pytest.raises(HTTPException) as exc:
-        parse_file(make_upload_file(csv_content),
-                   COURSE_PREFERENCES, mock_db_local)
+        parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db_local)
     assert exc.value.status_code == 422
 
 
@@ -431,8 +419,7 @@ def test_parse_time_preferences_valid():
         "Fall 2026,Eric Gerber,1002,MWR 8:00a-9:05a,Eager to teach\n"
     )
 
-    result = parse_file(make_upload_file(csv_content),
-                        TIME_PREFERENCES, mock_db_local)
+    result = parse_file(make_upload_file(csv_content), TIME_PREFERENCES, mock_db_local)
     inserts = result.get("inserts")
     available_faculty = result.get("available_faculty")
     assert len(inserts) == 2
@@ -463,8 +450,7 @@ def test_parse_time_preferences_dup_found():
         "Fall 2026,John Smith,1001,MWR 8:00a-9:05a,Eager to teach\n"
     )
 
-    result = parse_file(make_upload_file(csv_content),
-                        TIME_PREFERENCES, mock_db_local)
+    result = parse_file(make_upload_file(csv_content), TIME_PREFERENCES, mock_db_local)
     updates = result.get("updates")
     assert len(updates) == 1
     assert updates[0]["preference_id"] == 5
@@ -480,8 +466,7 @@ def test_parse_time_preferences_invalid_enum():
     mock_db_local = MagicMock()
 
     with pytest.raises(HTTPException) as exc:
-        parse_file(make_upload_file(csv_content),
-                   TIME_PREFERENCES, mock_db_local)
+        parse_file(make_upload_file(csv_content), TIME_PREFERENCES, mock_db_local)
 
     assert exc.value.status_code == 422
 
@@ -495,8 +480,7 @@ def test_parse_time_preferences_invalid_headers():
     mock_db_local = MagicMock()
 
     with pytest.raises(HTTPException) as exc:
-        parse_file(make_upload_file(csv_content),
-                   TIME_PREFERENCES, mock_db_local)
+        parse_file(make_upload_file(csv_content), TIME_PREFERENCES, mock_db_local)
 
     assert exc.value.status_code == 422
 
@@ -527,8 +511,7 @@ def test_upload_time_preferences():
     with TestClient(app) as client:
         response = client.post(
             "/upload/time-preferences",
-            files={"file": ("time_prefs.csv",
-                            csv_content.encode("utf-8"), "text/csv")},
+            files={"file": ("time_prefs.csv", csv_content.encode("utf-8"), "text/csv")},
         )
 
     app.dependency_overrides.clear()

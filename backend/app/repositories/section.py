@@ -1,13 +1,15 @@
 """Section repository — raw DB access."""
 
-from sqlalchemy.orm import Session, joinedload
 from datetime import datetime
+
+from sqlalchemy.orm import Session, joinedload
+
 from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
-from app.models.semester import Semester
 from app.models.faculty_assignment import FacultyAssignment
-from app.models.section import Section
 from app.models.schedule import Schedule
+from app.models.section import Section
+from app.models.semester import Semester
 
 
 def get_all(db: Session) -> list[Section]:
@@ -63,23 +65,24 @@ def delete(db: Session, section: Section) -> None:
 
 
 def replace_faculty_assignments(db: Session, section_id: int, faculty_nuids: list[int]) -> None:
-    db.query(FacultyAssignment).filter(
-        FacultyAssignment.section_id == section_id).delete()
+    db.query(FacultyAssignment).filter(FacultyAssignment.section_id == section_id).delete()
     for nuid in faculty_nuids:
         db.add(FacultyAssignment(faculty_nuid=nuid, section_id=section_id))
 
 
-# def get_by_instructor(db: Session, instructor_id: int, semester_id: int) -> list[FacultyAssignment]:
-#     assignments = db.query(FacultyAssignment).join(Section).join(Schedule).filter(
-#         FacultyAssignment.faculty_nuid == instructor_id,
-#         Schedule.semester_id == semester_id).all()
-#     return assignments
-
 def get_by_instructor(db: Session, instructor_id: int) -> list[FacultyAssignment]:
     current_year = datetime.now().year
-    assignments = db.query(FacultyAssignment).join(Section).join(Schedule).join(Semester).filter(
-        FacultyAssignment.faculty_nuid == instructor_id,
-        Schedule.semester_id == Semester.semester_id,
-        Semester.year >= current_year - 5).all()
+    assignments = (
+        db.query(FacultyAssignment)
+        .join(Section)
+        .join(Schedule)
+        .join(Semester)
+        .filter(
+            FacultyAssignment.faculty_nuid == instructor_id,
+            Schedule.semester_id == Semester.semester_id,
+            Semester.year >= current_year - 5,
+        )
+        .all()
+    )
 
     return assignments
