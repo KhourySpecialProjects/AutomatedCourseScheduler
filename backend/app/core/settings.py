@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     AUTH0_DOMAIN: str = ""
     AUTH0_AUDIENCE: str = ""
 
+    # Auth0 SPA client ID — used to build the signup /authorize URL.
+    AUTH0_SPA_CLIENT_ID: str = ""
+
+    APP_BASE_URL: str = "http://localhost:3000"
+
     @property
     def db_url(self) -> str:
         """Returns DATABASE_URL if provided, otherwise build it manually."""
