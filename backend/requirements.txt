@@ -4,6 +4,7 @@ sqlalchemy
 psycopg2-binary
 python-dotenv
 pytest
+pytest-asyncio
 httpx
 python-multipart
 pydantic==2.12.5
