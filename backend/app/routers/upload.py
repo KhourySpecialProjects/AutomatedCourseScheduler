@@ -115,7 +115,7 @@ def upload_time_preferences(file: UploadFile = File(...), db: Session = Depends(
         message="Faculty meeting preferences updated successfully",
         records_processed=len(to_insert) + len(to_update),
         records_successful=len(to_insert) + len(to_update),
-        avilable_faculty=result.get("available_faculty"),
+        available_faculty=result.get("available_faculty"),
     )
 
 

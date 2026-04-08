@@ -80,7 +80,7 @@ def get_by_instructor(db: Session, instructor_id: int) -> list[FacultyAssignment
         .filter(
             FacultyAssignment.faculty_nuid == instructor_id,
             Schedule.semester_id == Semester.semester_id,
-            Semester.year >= current_year - 5,
+            Semester.year >= current_year - 3,
         )
         .all()
     )
