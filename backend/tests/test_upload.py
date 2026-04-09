@@ -95,15 +95,18 @@ def test_parse_file_preferences_valid():
     preferences_csv = (
         "Faculty Name,Faculty ID,Course,Semester,Preference\n"
         "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
+        "John Doe,1002,CS 3200,Fall 2026,Eager to teach\n"
     )
 
     preferences_result = parse_file(
         make_upload_file(preferences_csv), COURSE_PREFERENCES, mock_db_local
     )
     inserts = preferences_result.get("inserts")
+    available_faculty = preferences_result.get("available_faculty")
     assert inserts[0]["faculty_nuid"] == 1001
     assert inserts[0]["course_id"] == 42
     assert inserts[0]["preference"] == PreferenceLevel.EAGER
+    assert available_faculty[1] == 1002
 
 
 def test_parse_file_preferences_dups_found():
@@ -413,14 +416,17 @@ def test_parse_time_preferences_valid():
     csv_content = (
         "Semester,Faculty Name,Faculty ID,Meetingtime,Preference\n"
         "Fall 2026,John Smith,1001,MWR 8:00a-9:05a,Eager to teach\n"
+        "Fall 2026,Eric Gerber,1002,MWR 8:00a-9:05a,Eager to teach\n"
     )
 
     result = parse_file(make_upload_file(csv_content), TIME_PREFERENCES, mock_db_local)
     inserts = result.get("inserts")
-    assert len(inserts) == 1
+    available_faculty = result.get("available_faculty")
+    assert len(inserts) == 2
     assert inserts[0]["faculty_nuid"] == 1001
     assert inserts[0]["meeting_time"] == 7
     assert inserts[0]["preference"] == PreferenceLevel.EAGER
+    assert available_faculty[1] == 1002
 
 
 def test_parse_time_preferences_dup_found():

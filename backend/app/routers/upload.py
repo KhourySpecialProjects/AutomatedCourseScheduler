@@ -2,7 +2,6 @@
 
 import csv
 import logging
-from datetime import time
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import ValidationError
@@ -86,6 +85,7 @@ def upload_faculty_preferences(file: UploadFile = File(...), db: Session = Depen
         message="Faculty preferences updated successfully",
         records_processed=len(to_insert) + len(to_update),
         records_successful=len(to_insert) + len(to_update),
+        available_faculty=result.get("available_faculty"),
     )
 
 
@@ -115,6 +115,7 @@ def upload_time_preferences(file: UploadFile = File(...), db: Session = Depends(
         message="Faculty meeting preferences updated successfully",
         records_processed=len(to_insert) + len(to_update),
         records_successful=len(to_insert) + len(to_update),
+        available_faculty=result.get("available_faculty"),
     )
 
 
@@ -145,23 +146,16 @@ def parse_file(file, schema, db):
         return
 
 
-def format_time_block(meeting_days, start_time, end_time):
-    def fmt(t: time) -> str:
-        period = "a" if t.hour < 12 else "p"
-        hour = t.hour % 12 or 12
-        return f"{hour}:{t.minute:02d}{period}"
-
-    return f"{meeting_days} {fmt(start_time)}-{fmt(end_time)}"
-
-
 def parse_time_preferences(db, reader):
     inserts = []
     updates = []
     errors = []
+    faculty_ids = set()
     for i, row in enumerate(reader):
         try:
             normalized = normalize_headers(row, TIME_PREFERENCES)
             validated = MeetingPreferencesSchema(**normalized)
+            faculty_ids.add(validated.facultyId)
 
             segments = validated.normalize_meeting_time()
             for days, start_time, end_time in segments:
@@ -223,7 +217,7 @@ def parse_time_preferences(db, reader):
     if errors:
         raise HTTPException(status_code=422, detail=errors)
 
-    return {"inserts": inserts, "updates": updates}
+    return {"inserts": inserts, "updates": updates, "available_faculty": list(faculty_ids)}
 
 
 def parse_course_offerings(db, reader):
@@ -252,10 +246,12 @@ def parse_course_preferences(db, reader):
     inserts = []
     updates = []
     errors = []
+    faculty_ids = set()
     for i, row in enumerate(reader):
         try:
             normalized = normalize_headers(row, COURSE_PREFERENCES)
             validated = CoursePreferencesSchema(**normalized)
+            faculty_ids.add(validated.facultyId)
             course = db.query(Course).filter(Course.name == validated.course).first()
             faculty = db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
             if not course:
@@ -288,10 +284,12 @@ def parse_course_preferences(db, reader):
         except ValidationError as e:
             errors.append(f"Row {i}: {e.errors()}")
 
+    print(faculty_ids)
+
     if errors:
         raise HTTPException(status_code=422, detail=errors)
 
-    return {"inserts": inserts, "updates": updates}
+    return {"inserts": inserts, "updates": updates, "available_faculty": list(faculty_ids)}
 
 
 def validate_headers(headers, schema):
