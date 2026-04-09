@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from app.algorithms.models import CourseAssignment
+from app.algorithms.models import MatchedAssignment
 from app.algorithms.time_assignment import (
     assign_time_blocks,
     department_code_from_course_name,
@@ -31,7 +31,7 @@ def test_prefers_better_time_preference():
     blocks = [_block(1, "MW"), _block(2, "TR")]
     faculty_prefs = {10: _prefs((1, "Willing to teach"), (2, "Eager to teach"))}
     assignments = [
-        CourseAssignment(section_id=1, course_id=100, faculty_nuid=10, department_code="CS")
+        MatchedAssignment(section_id=1, course_id=100, faculty_nuid=10, department_code="CS")
     ]
     result = assign_time_blocks(assignments, blocks, faculty_prefs)
     placed = result.assignments[0]
@@ -43,8 +43,8 @@ def test_faculty_cannot_double_book_same_time_block():
     blocks = [_block(1, "MW"), _block(2, "TR")]
     faculty_prefs = {10: _prefs((1, "Eager to teach"), (2, "Eager to teach"))}
     assignments = [
-        CourseAssignment(1, 100, 10, "CS"),
-        CourseAssignment(2, 101, 10, "CS"),
+        MatchedAssignment(1, 100, 10, "CS"),
+        MatchedAssignment(2, 101, 10, "CS"),
     ]
     result = assign_time_blocks(assignments, blocks, faculty_prefs)
     ids = {a.section_id: a.time_block_id for a in result.assignments}
@@ -63,7 +63,7 @@ def test_fifteen_percent_cap_per_department():
         for i in range(10)
     }
     assignments = [
-        CourseAssignment(section_id=i, course_id=200 + i, faculty_nuid=i, department_code="CS")
+        MatchedAssignment(section_id=i, course_id=200 + i, faculty_nuid=i, department_code="CS")
         for i in range(10)
     ]
     params = AlgorithmParameters(MaxTimeBlockCapacity=0.15)
@@ -78,8 +78,8 @@ def test_tiebreak_prefers_clustering_on_existing_days():
     blocks = [_block(1, "MW"), _block(2, "MWF")]
     faculty_prefs = {10: _prefs((1, "Ready to teach"), (2, "Ready to teach"))}
     assignments = [
-        CourseAssignment(1, 100, 10, "CS"),
-        CourseAssignment(2, 101, 10, "CS"),
+        MatchedAssignment(1, 100, 10, "CS"),
+        MatchedAssignment(2, 101, 10, "CS"),
     ]
     result = assign_time_blocks(assignments, blocks, faculty_prefs)
     by_sec = {a.section_id: a.time_block_id for a in result.assignments}
@@ -90,7 +90,7 @@ def test_tiebreak_prefers_clustering_on_existing_days():
 def test_unrated_time_blocks_rank_after_rated():
     blocks = [_block(1, "MW"), _block(2, "TR")]
     faculty_prefs = {10: _prefs((1, "Willing to teach"))}
-    assignments = [CourseAssignment(1, 100, 10, "CS")]
+    assignments = [MatchedAssignment(1, 100, 10, "CS")]
     result = assign_time_blocks(assignments, blocks, faculty_prefs)
     assert result.assignments[0].time_block_id == 1
     assert result.assignments[0].time_preference_level == 3
@@ -99,7 +99,7 @@ def test_unrated_time_blocks_rank_after_rated():
 def test_existing_faculty_time_blocks_respected():
     blocks = [_block(1, "MW"), _block(2, "TR")]
     faculty_prefs = {10: _prefs((1, "Eager to teach"), (2, "Eager to teach"))}
-    assignments = [CourseAssignment(1, 100, 10, "CS")]
+    assignments = [MatchedAssignment(1, 100, 10, "CS")]
     result = assign_time_blocks(
         assignments,
         blocks,
@@ -113,8 +113,8 @@ def test_department_section_totals_tighten_cap():
     blocks = [_block(1, "MW"), _block(2, "TR")]
     eager = _prefs((1, "Eager to teach"), (2, "Eager to teach"))
     assignments = [
-        CourseAssignment(1, 100, 10, "CS"),
-        CourseAssignment(2, 101, 11, "CS"),
+        MatchedAssignment(1, 100, 10, "CS"),
+        MatchedAssignment(2, 101, 11, "CS"),
     ]
     params = AlgorithmParameters(MaxTimeBlockCapacity=0.15)
     result = assign_time_blocks(
@@ -140,8 +140,8 @@ def test_max_sections_per_block_helper():
 def test_warning_severity_and_metadata():
     blocks = [_block(1, "MW")]
     assignments = [
-        CourseAssignment(1, 100, 10, "CS"),
-        CourseAssignment(2, 101, 11, "CS"),
+        MatchedAssignment(1, 100, 10, "CS"),
+        MatchedAssignment(2, 101, 11, "CS"),
     ]
     result = assign_time_blocks(
         assignments,
