@@ -59,14 +59,14 @@ def test_get_faculty_returns_all(client, db_session):
                 first_name="Jane",
                 last_name="Doe",
                 email="jane@example.com",
-                campus="Boston",
+                campus=1,
             ),
             Faculty(
                 nuid=1002,
                 first_name="John",
                 last_name="Smith",
                 email="john@example.com",
-                campus="Boston",
+                campus=1,
             ),
         ]
     )
@@ -86,24 +86,24 @@ def test_get_faculty_filter_by_campus(client, db_session):
                 first_name="A",
                 last_name="X",
                 email="a@x.com",
-                campus="Boston",
+                campus=1,
             ),
             Faculty(
                 nuid=1002,
                 first_name="B",
                 last_name="Y",
                 email="b@y.com",
-                campus="Oakland",
+                campus=2,
             ),
         ]
     )
     db_session.commit()
 
-    response = client.get("/faculty?campus=Boston")
+    response = client.get("/faculty?campus=1")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["FirstName"] == "A"
+    assert data[0]["first_name"] == "A"
 
 
 def test_get_faculty_filter_active_only(client, db_session):
@@ -114,7 +114,7 @@ def test_get_faculty_filter_active_only(client, db_session):
                 first_name="A",
                 last_name="X",
                 email="a@x.com",
-                campus="Boston",
+                campus=1,
                 active=True,
             ),
             Faculty(
@@ -122,7 +122,7 @@ def test_get_faculty_filter_active_only(client, db_session):
                 first_name="B",
                 last_name="Y",
                 email="b@y.com",
-                campus="Boston",
+                campus=1,
                 active=False,
             ),
         ]
@@ -133,7 +133,7 @@ def test_get_faculty_filter_active_only(client, db_session):
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["NUID"] == 1001
+    assert data[0]["nuid"] == 1001
 
 
 def test_get_faculty_profile(client, db_session):
@@ -205,6 +205,7 @@ def test_get_faculty_profile_with_preferences(client, db_session):
     assert data["course_preferences"][0]["preference"] == "Eager to teach"
     assert len(data["meeting_preferences"]) == 1
     assert data["meeting_preferences"][0]["preference"] == "Ready to teach"
+    assert data["meeting_preferences"][0]["time_block_id"] == tb.time_block_id
 
 
 def test_get_faculty_not_found(client, db_session):
@@ -221,16 +222,16 @@ def test_create_faculty_success(client, db_session):
             "first_name": "Pat",
             "last_name": "Kim",
             "email": "pat.kim@example.edu",
-            "campus": "Boston",
+            "campus": 1,
             "title": "Lecturer",
         },
     )
     assert response.status_code == 201
     data = response.json()
-    assert data["NUID"] == 5001
-    assert data["FirstName"] == "Pat"
-    assert data["Email"] == "pat.kim@example.edu"
-    assert data["Active"] is True
+    assert data["nuid"] == 5001
+    assert data["first_name"] == "Pat"
+    assert data["email"] == "pat.kim@example.edu"
+    assert data["active"] is True
 
 
 def test_create_faculty_duplicate_nuid_returns_400(client, db_session):
@@ -240,7 +241,7 @@ def test_create_faculty_duplicate_nuid_returns_400(client, db_session):
             first_name="A",
             last_name="B",
             email="a@b.edu",
-            campus="Boston",
+            campus=1,
         )
     )
     db_session.commit()
@@ -252,7 +253,7 @@ def test_create_faculty_duplicate_nuid_returns_400(client, db_session):
             "first_name": "C",
             "last_name": "D",
             "email": "other@b.edu",
-            "campus": "Boston",
+            "campus": 1,
         },
     )
     assert response.status_code == 400
@@ -266,7 +267,7 @@ def test_create_faculty_duplicate_email_returns_400(client, db_session):
             first_name="A",
             last_name="B",
             email="shared@b.edu",
-            campus="Boston",
+            campus=1,
         )
     )
     db_session.commit()
@@ -278,7 +279,7 @@ def test_create_faculty_duplicate_email_returns_400(client, db_session):
             "first_name": "C",
             "last_name": "D",
             "email": "shared@b.edu",
-            "campus": "Boston",
+            "campus": 1,
         },
     )
     assert response.status_code == 400
@@ -292,7 +293,7 @@ def test_patch_faculty_success(client, db_session):
             first_name="Old",
             last_name="Name",
             email="old@example.edu",
-            campus="Boston",
+            campus=1,
             active=True,
         )
     )
@@ -308,9 +309,9 @@ def test_patch_faculty_success(client, db_session):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["FirstName"] == "New"
-    assert data["Active"] is False
-    assert data["Title"] == "Professor"
+    assert data["first_name"] == "New"
+    assert data["active"] is False
+    assert data["title"] == "Professor"
 
 
 def test_patch_faculty_not_found_returns_404(client, db_session):
@@ -326,14 +327,14 @@ def test_patch_faculty_duplicate_email_returns_400(client, db_session):
                 first_name="A",
                 last_name="One",
                 email="a1@example.edu",
-                campus="Boston",
+                campus=1,
             ),
             Faculty(
                 nuid=8002,
                 first_name="B",
                 last_name="Two",
                 email="b2@example.edu",
-                campus="Boston",
+                campus=1,
             ),
         ]
     )
@@ -354,7 +355,7 @@ def test_delete_faculty_success(client, db_session):
             first_name="Gone",
             last_name="Soon",
             email="gone@example.edu",
-            campus="Boston",
+            campus=1,
         )
     )
     db_session.commit()
@@ -373,7 +374,7 @@ def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
         first_name="Rich",
         last_name="Prefs",
         email="prefs@example.edu",
-        campus="Boston",
+        campus=1,
     )
     db_session.add_all([course, tb, faculty])
     db_session.flush()
