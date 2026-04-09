@@ -154,9 +154,10 @@ def make_faculty_profile(
 def make_algorithm_input(
     courses: list[CourseResponse] | None = None,
     faculty: list[FacultyProfileResponse] | None = None,
-) -> AlgorithmInput:
-    return AlgorithmInput(
-        OfferedCourses=courses or [],
+) -> tuple[list[SectionCandidate], AlgorithmInput]:
+    courses = courses or []
+    return _expand_sections(courses), AlgorithmInput(
+        OfferedCourses=courses,
         AllFaculty=faculty or [],
         TimeBlocks=[],
     )
@@ -667,7 +668,8 @@ class TestMatchCoursesToFaculty:
             make_faculty_profile(nuid=1, course_prefs=[(100, EAGER), (200, WILLING)]),
             make_faculty_profile(nuid=2, course_prefs=[(100, WILLING), (200, EAGER)]),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
 
         assert len(result) == 2
         assert all(a.is_matched for a in result)
@@ -691,7 +693,8 @@ class TestMatchCoursesToFaculty:
                 course_prefs=[(100, EAGER), (200, WILLING)],
             ),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
 
         matched = [a for a in result if a.is_matched]
         unmatched = [a for a in result if not a.is_matched]
@@ -708,7 +711,8 @@ class TestMatchCoursesToFaculty:
             make_faculty_profile(nuid=1, course_prefs=[(100, NOT_INTERESTED)]),
             make_faculty_profile(nuid=2, course_prefs=[(100, NOT_INTERESTED)]),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
 
         assert len(result) == 2
         assert all(not a.is_matched for a in result)
@@ -728,7 +732,8 @@ class TestMatchCoursesToFaculty:
                 course_prefs=[(100, EAGER), (200, EAGER), (300, EAGER)],
             ),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
 
         matched = [a for a in result if a.is_matched]
         unmatched = [a for a in result if not a.is_matched]
@@ -750,19 +755,22 @@ class TestMatchCoursesToFaculty:
                 course_prefs=[(100, EAGER), (200, WILLING)],
             ),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
 
         assert len(result) == 2
         matched = [a for a in result if a.is_matched]
         assert len(matched) == 1
 
     def test_empty_courses_returns_empty(self):
-        result = match_courses_to_faculty(make_algorithm_input([], []))
+        sections, input = make_algorithm_input([], [])
+        result = match_courses_to_faculty(sections, input)
         assert result == []
 
     def test_empty_faculty_all_unmatched(self):
         courses = [make_course_response(course_id=100, section_count=2)]
-        result = match_courses_to_faculty(make_algorithm_input(courses, []))
+        sections, input = make_algorithm_input(courses, [])
+        result = match_courses_to_faculty(sections, input)
 
         assert len(result) == 2
         assert all(not a.is_matched for a in result)
@@ -781,7 +789,8 @@ class TestMatchCoursesToFaculty:
                 course_prefs=[(100, EAGER), (200, WILLING)],
             ),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
 
         matched = [a for a in result if a.is_matched]
         assert len(matched) == 1
@@ -801,7 +810,8 @@ class TestMatchCoursesToFaculty:
                 course_prefs=[(100, WILLING), (200, EAGER)],
             ),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
 
         matched = [a for a in result if a.is_matched]
         unmatched = [a for a in result if not a.is_matched]
@@ -816,7 +826,8 @@ class TestMatchCoursesToFaculty:
             make_faculty_profile(nuid=2, course_prefs=[(100, EAGER)]),
             make_faculty_profile(nuid=3, course_prefs=[(100, READY)]),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
 
         assert len(result) == 1
         assert result[0].is_matched is True
@@ -852,7 +863,8 @@ class TestMatchCoursesToFaculty:
                 course_prefs=[(100, WILLING), (200, READY), (300, READY)],
             ),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
 
         assert len(result) == 6
         assert all(a.is_matched for a in result)
@@ -866,7 +878,8 @@ class TestMatchCoursesToFaculty:
             make_faculty_profile(nuid=1, course_prefs=[(100, NOT_INTERESTED)]),
             make_faculty_profile(nuid=2, course_prefs=[(100, EAGER)]),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
         assert result[0].faculty_nuid == 2
 
     def test_faculty_capacity_respected(self):
@@ -887,7 +900,8 @@ class TestMatchCoursesToFaculty:
                 course_prefs=[(100, EAGER), (200, EAGER), (300, EAGER)],
             ),
         ]
-        result = match_courses_to_faculty(make_algorithm_input(courses, faculty))
+        sections, input = make_algorithm_input(courses, faculty)
+        result = match_courses_to_faculty(sections, input)
 
         matched = [a for a in result if a.is_matched]
         unmatched = [a for a in result if not a.is_matched]

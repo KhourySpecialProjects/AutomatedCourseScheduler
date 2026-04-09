@@ -193,6 +193,10 @@ def normalize_buckets(facultyProfile: FacultyProfileResponse) -> FacultyProfileR
     for mp in meeting_ready:
         mp.preference = PreferenceLevel.READY
 
+    # If all course preferences are NOT_INTERESTED, flag for manual review
+    if not course_filled:
+        facultyProfile.needsAdminReview = True
+
     return facultyProfile
 
 

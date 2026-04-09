@@ -36,15 +36,18 @@ def get_eligible_ranked_faculty(
             continue
 
         # Hard exclude: NOT_INTERESTED
-        if pref_int == 4:
+        if pref_int == PreferenceLevel.NOT_INTERESTED.to_int():
             continue
 
-        # 4. Find time preference (unrated = inf, not a hard exclude)
+        # 4.  Find time preference (unrated = inf, NOT_INTERESTED = hard exclude)
         time_pref_int = float("inf")
         for time_pref in faculty.time_preferences:
             if time_pref.time_block_id == section.time_block_id:
                 time_pref_int = PreferenceLevel(time_pref.preference).to_int()
                 break
+
+        if time_pref_int == PreferenceLevel.NOT_INTERESTED.to_int():
+            continue
 
         eligible.append((faculty, pref_int, time_pref_int))
 
@@ -72,6 +75,9 @@ def _expand_sections(courses: list[CourseResponse]) -> list[SectionCandidate]:
             )
             section_id += 1
     return sections
+
+def _get_department_code(course_name: str) -> str:
+    return course_name.strip().split(maxsplit=1)[0].upper() if course_name else ""
 
 
 def _build_pref_lookup(all_faculty: list[FacultyState]) -> dict[int, dict[int, int]]:
@@ -189,22 +195,25 @@ def _build_output(
     assignments: dict[int, tuple[int, int]],
     unmatched: list[SectionCandidate],
     pref_lookup: dict[int, dict[int, int]],
+    course_lookup: dict[int, str] | None = None,  # course_id -> course_name
 ) -> list[CourseAssignment]:
+    course_lookup = course_lookup or {}
     output = []
     for section in sections:
+        dept = _get_department_code(course_lookup.get(section.course_id, ""))
         if section.section_id in assignments:
             nuid, pref = assignments[section.section_id]
             output.append(
                 CourseAssignment(
                     section_id=section.section_id,
                     course_id=section.course_id,
+                    department_code=dept,
                     faculty_nuid=nuid,
                     assigned_pref_level=pref,
                     is_matched=True,
                 )
             )
         else:
-            # Check if ANY faculty has rank 1-3 for this course
             has_qualified = any(
                 prefs.get(section.course_id, 4) <= 3 for prefs in pref_lookup.values()
             )
@@ -213,6 +222,7 @@ def _build_output(
                 CourseAssignment(
                     section_id=section.section_id,
                     course_id=section.course_id,
+                    department_code=dept,
                     is_matched=False,
                     unmatched_reason=reason,
                 )
@@ -221,10 +231,10 @@ def _build_output(
 
 
 def match_courses_to_faculty(
+    sections: list[SectionCandidate],
     input: AlgorithmInput,
 ) -> list[CourseAssignment]:
     # 1. Build working data structures
-    sections = _expand_sections(input.OfferedCourses)
     faculty_states = _build_faculty_states(input.AllFaculty)
     pref_lookup = _build_pref_lookup(list(faculty_states.values()))
     section_lookup = {s.section_id: s for s in sections}
@@ -270,4 +280,5 @@ def match_courses_to_faculty(
             unmatched.append(section)
 
     # 3. Build output
-    return _build_output(sections, assignments, unmatched, pref_lookup)
+    course_name_lookup = {c.CourseID: c.CourseName or "" for c in input.OfferedCourses}
+    return _build_output(sections, assignments, unmatched, pref_lookup, course_name_lookup)

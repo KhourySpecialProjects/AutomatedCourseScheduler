@@ -33,6 +33,7 @@ class FacultyState:
 class CourseAssignment:
     section_id: int
     course_id: int
+    department_code: str = ""
     faculty_nuid: int | None = None
     assigned_pref_level: int | None = None
     is_matched: bool = False
