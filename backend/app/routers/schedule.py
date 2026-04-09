@@ -102,8 +102,8 @@ async def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
         schedule_id,
         {"type": "schedule_deleted", "payload": {"schedule_id": schedule_id}},
     )
-    await manager.disconnect_all(schedule_id)
     schedule_service.delete(db, schedule_id)
+    await manager.disconnect_all(schedule_id)
 
 
 @router.get("/{schedule_id}/export/csv")
