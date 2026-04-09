@@ -7,7 +7,7 @@ from app.core.auth import get_db_user, require_admin
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.user import InviteRequest, InviteResponse, UserResponse
-from app.services import user_service
+from app.services import user as user_service
 
 router = APIRouter(prefix="/api", tags=["users"])
 
