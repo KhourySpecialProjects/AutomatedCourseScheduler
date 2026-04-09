@@ -10,7 +10,7 @@ class SectionCandidate:
 
     course_id: int
     section_id: int
-    time_block_id: int
+    time_block_id: int | None = None
     is_priority: bool = False
     seen_second_pass: bool = False
     assigned_faculty_nuid: int | None = None
@@ -27,3 +27,13 @@ class FacultyState:
     time_preferences: list[MeetingPreferenceInfo] = field(default_factory=list)
     current_load: int = 0
     assigned_time_blocks: set[int] = field(default_factory=set)
+
+
+@dataclass
+class CourseAssignment:
+    section_id: int
+    course_id: int
+    faculty_nuid: int | None = None
+    assigned_pref_level: int | None = None
+    is_matched: bool = False
+    unmatched_reason: str | None = None

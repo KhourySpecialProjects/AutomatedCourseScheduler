@@ -4,7 +4,7 @@ from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
 
 
-def get_all(db: Session, campus: str | None = None, active_only: bool = False) -> list[Faculty]:
+def get_all(db: Session, campus: int | None = None, active_only: bool = False) -> list[Faculty]:
     query = db.query(Faculty)
     if campus is not None:
         query = query.filter(Faculty.campus == campus)

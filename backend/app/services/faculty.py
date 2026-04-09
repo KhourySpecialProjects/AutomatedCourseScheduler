@@ -25,19 +25,19 @@ logger = logging.getLogger(__name__)
 
 def _faculty_to_response(faculty: Faculty) -> FacultyResponse:
     return FacultyResponse(
-        NUID=faculty.nuid,
-        FirstName=faculty.first_name,
-        LastName=faculty.last_name,
-        Email=faculty.email,
-        Title=faculty.title,
-        Campus=None,
-        Active=faculty.active,
-        MaxLoad=None,
+        nuid=faculty.nuid,
+        first_name=faculty.first_name,
+        last_name=faculty.last_name,
+        email=faculty.email,
+        title=faculty.title,
+        campus=None,
+        active=faculty.active,
+        maxLoad=None,
     )
 
 
 def get_faculty(
-    db: Session, campus: str | None = None, active_only: bool = False
+    db: Session, campus: int | None = None, active_only: bool = False
 ) -> list[FacultyResponse]:
     faculty_list = faculty_repo.get_all(db, campus=campus, active_only=active_only)
     return [_faculty_to_response(f) for f in faculty_list]
@@ -82,7 +82,7 @@ def update_faculty(db: Session, nuid: int, body: FacultyUpdate) -> FacultyRespon
             raise ValueError("Email already exists")
         faculty.email = body.email
     if "campus" in fields:
-        if not body.campus:
+        if body.campus is None:
             raise ValueError("Campus is invalid")
         faculty.campus = body.campus
     if "phone_number" in fields:
@@ -198,7 +198,6 @@ def normalize_buckets(facultyProfile: FacultyProfileResponse) -> FacultyProfileR
 
 def get_average_max_load(db: Session, previous_assignmets: list[FacultyAssignment]) -> int:
     semester_counts = {}
-    logger.error(f"PREVIOUS ASSIGNMENTS: {previous_assignmets}")
     for assignment in previous_assignmets:
         section = section_repo.get_by_id(db, assignment.section_id)
         schedule = schedule_repo.get_by_id(db, section.schedule_id)
@@ -211,7 +210,6 @@ def get_average_max_load(db: Session, previous_assignmets: list[FacultyAssignmen
     total_sections = 0
     for sem_count in semester_counts.values():
         total_sections += sem_count
-    print(total_sections / total_sems)
     return math.floor((total_sections / total_sems) + 0.5)
 
 
@@ -238,7 +236,9 @@ def process_assignments(
         if meeting_time not in unique_meeting_times:
             unique_meeting_times.append(meeting_time)
             meeting_preferences.append(
-                MeetingPreferenceInfo(meeting_time=meeting_time, preference=PreferenceLevel.EAGER)
+                MeetingPreferenceInfo(
+                    time_block_id=section.time_block_id, preference=PreferenceLevel.EAGER
+                )
             )
     return FacultyProfileResponse(
         nuid=faculty.nuid,
