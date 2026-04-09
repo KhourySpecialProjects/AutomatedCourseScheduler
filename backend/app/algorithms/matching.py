@@ -76,6 +76,7 @@ def _expand_sections(courses: list[CourseResponse]) -> list[SectionCandidate]:
             section_id += 1
     return sections
 
+
 def _get_department_code(course_name: str) -> str:
     return course_name.strip().split(maxsplit=1)[0].upper() if course_name else ""
 

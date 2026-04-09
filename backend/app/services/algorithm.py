@@ -43,12 +43,7 @@ def run_algorithm_task(db: Session, schedule_id: int, parameters: AlgorithmParam
     # Step 4 — Load time blocks for Phase 2
     time_blocks = time_block_repo.get_all(db)
 
-    # Step 5 — Build faculty time preference lookup for Phase 2
-    faculty_time_preferences = {
-        profile.nuid: profile.meeting_preferences for profile in profiles
-    }
-
-    # Step 6 — Build AlgorithmInput and run Phase 1 (faculty matching)
+    # Step 5 — Build AlgorithmInput and run Phase 1 (faculty matching)
     algorithm_input = AlgorithmInput(
         OfferedCourses=courses,
         AllFaculty=profiles,
@@ -62,24 +57,19 @@ def run_algorithm_task(db: Session, schedule_id: int, parameters: AlgorithmParam
     unmatched = [a for a in phase1_assignments if not a.is_matched]
 
     for a in unmatched:
-        logger.warning(
-            f"Section for course {a.course_id} unmatched: {a.unmatched_reason}"
-        )
+        logger.warning(f"Section for course {a.course_id} unmatched: {a.unmatched_reason}")
 
-    # Step 7 — Run Phase 2 (time block assignment)
-    # NOTE: Saisri's assign_time_blocks will be imported here once her PR merges.
-    # For now, time_block_id comes from SectionCandidate (None until Phase 2 is wired).
-    # TODO: replace this block with assign_time_blocks() call after merge.
+    # Step 6 — Run Phase 2 (time block assignment)
+    # TODO: replace with assign_time_blocks() call after Saisri's PR merges.
+    # faculty_time_preferences = {profile.nuid: profile.meeting_preferences for profile in profiles}
     section_time_blocks: dict[int, int | None] = {
-        a.section_id: section_lookup[a.section_id].time_block_id
-        for a in matched_assignments
+        a.section_id: section_lookup[a.section_id].time_block_id for a in matched_assignments
     }
 
-    # Step 8 — Write results to DB
+    # Step 7 — Write results to DB
     section_number_tracker: dict[int, int] = {}  # course_id -> incrementing section number
 
     for assignment in matched_assignments:
-        candidate = section_lookup[assignment.section_id]
         time_block_id = section_time_blocks[assignment.section_id]
 
         if time_block_id is None:
