@@ -16,6 +16,7 @@ from app.services import schedule as schedule_service
 from app.services import section as section_service
 from app.services import section_lock as section_lock_service
 from app.services import semester as semester_service
+from app.services.connection_manager import manager
 from app.services.section import ScheduleNotFoundError
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
@@ -77,19 +78,32 @@ def get_schedule_sections_rich(schedule_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse)
-def update_schedule(
+async def update_schedule(
     schedule_id: int,
     schedule: ScheduleUpdate = Body(default=None),
     db: Session = Depends(get_db),
 ):
     """Update schedule metadata (name, complete status, etc.)."""
-    return schedule_service.update(db, schedule_id, schedule or ScheduleUpdate())
+    updated = schedule_service.update(db, schedule_id, schedule or ScheduleUpdate())
+    await manager.broadcast(
+        schedule_id,
+        {
+            "type": "schedule_updated",
+            "payload": ScheduleResponse.model_validate(updated).model_dump(mode="json"),
+        },
+    )
+    return updated
 
 
 @router.delete("/{schedule_id}", status_code=204)
-def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
+async def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
     """Delete a schedule and all its sections."""
+    await manager.broadcast(
+        schedule_id,
+        {"type": "schedule_deleted", "payload": {"schedule_id": schedule_id}},
+    )
     schedule_service.delete(db, schedule_id)
+    await manager.disconnect_all(schedule_id)
 
 
 @router.get("/{schedule_id}/export/csv")

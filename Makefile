@@ -35,6 +35,9 @@ be-test: ## Run backend tests
 be-test-upload:
 	cd backend && pytest ./tests/test_upload.py
 
+be-inject-ben:
+	docker compose exec api python bootstrap_admin.py --nuid 111111 --first-name Ben --last-name Doe --email b.welsh@northeastern.edu
+
 # ── Frontend ─────────────────────────────────────────────────────────────────
 
 fe-install: ## Install frontend dependencies
