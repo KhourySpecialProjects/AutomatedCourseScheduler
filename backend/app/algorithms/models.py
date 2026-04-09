@@ -5,7 +5,7 @@ from app.schemas.warning import Warning
 
 
 @dataclass(frozen=True)
-class CourseAssignment:
+class MatchedAssignment:
     """Represents a course section assigned to a faculty member
     during the scheduling algorithm."""
 
