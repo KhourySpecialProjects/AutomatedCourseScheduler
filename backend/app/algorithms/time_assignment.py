@@ -18,7 +18,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
  
 from app.algorithms.models import (
-    CourseAssignment,
+    MatchedAssignment,
     SectionAssignment,
     TimeBlockAssignmentResult,
 )
@@ -79,7 +79,7 @@ def _sort_key_for_block(
  
  
 def assign_time_blocks(
-    assignments: list[CourseAssignment],
+    assignments: list[MatchedAssignment],
     time_blocks: Sequence[Any],
     faculty_time_preferences: Mapping[int, Sequence[MeetingPreferenceInfo]],
     *,
