@@ -16,10 +16,7 @@ def _block(tid: int, days: str) -> SimpleNamespace:
 
 
 def _prefs(*pairs: tuple[int, str]) -> list[MeetingPreferenceInfo]:
-    return [
-        MeetingPreferenceInfo(time_block_id=tb, preference=pref)
-        for tb, pref in pairs
-    ]
+    return [MeetingPreferenceInfo(time_block_id=tb, preference=pref) for tb, pref in pairs]
 
 
 def test_department_code_from_course_name():
@@ -132,9 +129,18 @@ def test_department_section_totals_tighten_cap():
 
 
 def test_max_sections_per_block_helper():
-    assert max_sections_per_block_for_department(10, AlgorithmParameters(MaxTimeBlockCapacity=0.15)) == 1
-    assert max_sections_per_block_for_department(20, AlgorithmParameters(MaxTimeBlockCapacity=0.15)) == 3
-    assert max_sections_per_block_for_department(1, AlgorithmParameters(MaxTimeBlockCapacity=0.15)) == 1
+    assert (
+        max_sections_per_block_for_department(10, AlgorithmParameters(MaxTimeBlockCapacity=0.15))
+        == 1
+    )
+    assert (
+        max_sections_per_block_for_department(20, AlgorithmParameters(MaxTimeBlockCapacity=0.15))
+        == 3
+    )
+    assert (
+        max_sections_per_block_for_department(1, AlgorithmParameters(MaxTimeBlockCapacity=0.15))
+        == 1
+    )
 
 
 def test_warning_severity_and_metadata():
