@@ -26,6 +26,7 @@ class Severity(int, enum.Enum):
 
 class WarningType(enum.StrEnum):
     TIME_BLOCK_OVERLOAD = "Time block surpasses threshold"
+    NO_VALID_TIME_BLOCK = "No valid time block for section-faculty pair"
     UNPREFERENCED_COURSE = "Faculty assigned unpreferenced course"
     UNPREFERENCED_TIME = "Faculty assigned unpreferenced time"
     CONFLICT_GROUP_VIOLATION = "Conflict group courses overlap"
