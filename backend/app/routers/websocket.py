@@ -53,6 +53,8 @@ async def websocket_schedule(
             }
             await manager.broadcast(schedule_id, payload)
     except WebSocketDisconnect:
+        pass
+    finally:
         manager.disconnect(schedule_id, websocket)
         user_lock = section_lock_repo.get_by_user_id(db, user_id)
         if user_lock:
