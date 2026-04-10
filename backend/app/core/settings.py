@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     AUTH0_AUDIENCE: str = ""
     LOCK_TIMEOUT_MINUTES: int = 2  # duration in minutes before a section lock expires
 
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost:3000"
 
     # Auth0 SPA client ID — used to build the signup /authorize URL.
     AUTH0_SPA_CLIENT_ID: str = ""
