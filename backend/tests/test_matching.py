@@ -142,7 +142,6 @@ def make_faculty_profile(
         first_name="Faculty",
         last_name=f"#{nuid}",
         email=f"f{nuid}@example.com",
-        title="Professor",
         campus=1,
         active=True,
         maxLoad=max_load,

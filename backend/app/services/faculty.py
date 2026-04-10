@@ -29,7 +29,6 @@ def _faculty_to_response(faculty: Faculty) -> FacultyResponse:
         first_name=faculty.first_name,
         last_name=faculty.last_name,
         email=faculty.email,
-        title=faculty.title,
         campus=None,
         active=faculty.active,
         maxLoad=None,
@@ -54,8 +53,6 @@ def create_faculty(db: Session, body: FacultyCreate) -> FacultyResponse:
         last_name=body.last_name,
         email=body.email,
         campus=body.campus,
-        phone_number=body.phone_number,
-        title=body.title,
         active=body.active,
     )
     faculty_repo.create(db, faculty)
@@ -85,10 +82,6 @@ def update_faculty(db: Session, nuid: int, body: FacultyUpdate) -> FacultyRespon
         if body.campus is None:
             raise ValueError("Campus is invalid")
         faculty.campus = body.campus
-    if "phone_number" in fields:
-        faculty.phone_number = body.phone_number
-    if "title" in fields:
-        faculty.title = body.title
     if "active" in fields:
         if body.active is None:
             raise ValueError("Active is invalid")
@@ -116,7 +109,6 @@ def get_faculty_profile(db: Session, nuid: int) -> FacultyProfileResponse | None
         first_name=faculty.first_name,
         last_name=faculty.last_name,
         email=faculty.email,
-        title=faculty.title,
         campus=faculty.campus,
         active=faculty.active,
         maxLoad=get_average_max_load(db, previous_assignments) if previous_assignments else 3,
@@ -249,7 +241,6 @@ def process_assignments(
         first_name=faculty.first_name,
         last_name=faculty.last_name,
         email=faculty.email,
-        title=faculty.title,
         campus=faculty.campus,
         active=faculty.active,
         maxLoad=get_average_max_load(db, previous_assignmets),
@@ -277,7 +268,6 @@ def build_profile(db: Session, nuid: int) -> FacultyProfileResponse | None:
                 first_name=faculty.first_name,
                 last_name=faculty.last_name,
                 email=faculty.email,
-                title=faculty.title,
                 campus=faculty.campus,
                 active=faculty.active,
                 maxLoad=3,

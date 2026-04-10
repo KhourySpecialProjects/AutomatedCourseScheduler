@@ -143,7 +143,6 @@ def test_get_faculty_profile(client, db_session):
         first_name="Jane",
         last_name="Doe",
         email="jane@example.com",
-        title="Professor",
         campus=campus.campus_id,
     )
     db_session.add(faculty)
@@ -156,7 +155,6 @@ def test_get_faculty_profile(client, db_session):
     assert data["first_name"] == "Jane"
     assert data["last_name"] == "Doe"
     assert data["email"] == "jane@example.com"
-    assert data["title"] == "Professor"
     assert data["campus"] == 1
     assert "course_preferences" in data
     assert "meeting_preferences" in data
@@ -172,7 +170,6 @@ def test_get_faculty_profile_with_preferences(client, db_session):
         first_name="John",
         last_name="Smith",
         email="john@example.com",
-        title="Associate Professor",
         campus=campus.campus_id,
     )
     db_session.add(faculty)
@@ -223,7 +220,6 @@ def test_create_faculty_success(client, db_session):
             "last_name": "Kim",
             "email": "pat.kim@example.edu",
             "campus": 1,
-            "title": "Lecturer",
         },
     )
     assert response.status_code == 201
@@ -304,14 +300,12 @@ def test_patch_faculty_success(client, db_session):
         json={
             "first_name": "New",
             "active": False,
-            "title": "Professor",
         },
     )
     assert response.status_code == 200
     data = response.json()
     assert data["first_name"] == "New"
     assert data["active"] is False
-    assert data["title"] == "Professor"
 
 
 def test_patch_faculty_not_found_returns_404(client, db_session):

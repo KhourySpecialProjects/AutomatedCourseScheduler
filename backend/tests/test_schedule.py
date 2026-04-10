@@ -64,7 +64,6 @@ def _make_user(db, user_id):
         first_name="Test",
         last_name="User",
         email=f"user{user_id}@example.com",
-        phone_number="1234567890",
         role="ADMIN",
     )
     db.add(user)

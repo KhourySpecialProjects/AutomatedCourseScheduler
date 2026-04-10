@@ -178,7 +178,6 @@ def test_get_rich_sections_nested_shape(client, db_session):
         first_name="Ada",
         last_name="Lovelace",
         email="ada@example.edu",
-        title=None,
         campus=campus.campus_id,
     )
     db_session.add_all([tb, faculty])
@@ -224,7 +223,6 @@ def test_get_rich_sections_nested_shape(client, db_session):
     assert len(row["instructors"]) == 1
     inst = row["instructors"][0]
     assert inst["nuid"] == 1001
-    assert inst["title"] == ""
     assert len(inst["course_preferences"]) == 1
     assert inst["course_preferences"][0]["course_name"] == "Intro CS"
     assert len(inst["meeting_preferences"]) == 1

@@ -21,7 +21,6 @@ const mockSection: SectionRichResponse = {
       nuid: 100,
       first_name: 'Alice',
       last_name: 'Smith',
-      title: 'Professor',
       email: 'alice@example.com',
       course_preferences: [],
       meeting_preferences: [],
