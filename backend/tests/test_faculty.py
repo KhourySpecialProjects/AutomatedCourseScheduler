@@ -101,7 +101,7 @@ def test_get_faculty_filter_by_campus(client, db_session):
     )
     db_session.commit()
 
-    response = client.get(f"/faculty?campus=Boston")
+    response = client.get("/faculty?campus=Boston")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1

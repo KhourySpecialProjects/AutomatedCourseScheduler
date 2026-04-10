@@ -10,6 +10,7 @@ from app.schemas.generate_schedule import (
     RegenerateScheduleRequest,
 )
 from app.services.algorithm import run_algorithm_task, run_regenerate_task
+from app.services.connection_manager import manager
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
@@ -24,12 +25,8 @@ def run_algorithm(
     if not schedule_repo.schedule_exists(db, schedule_id):
         raise HTTPException(status_code=404, detail="Schedule not found")
 
-    # TODO (websocket): when run_algorithm_task completes, broadcast to connected clients:
-    #   type: "schedule_regenerated", payload: all rich sections for the generated schedule_id
-    #   This requires passing db + schedule_id into the background task and calling
-    #   manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": [...]})
-    
     background_tasks.add_task(run_algorithm_task, db, schedule_id, request.parameters)
+    manager.broadcast(schedule_id, {"type": "schedule_generated", "payload": {}})
     return {"schedule_id": schedule_id, "status": "running"}
 
 
@@ -43,11 +40,7 @@ def regenerate_algorithm(
     if not schedule_repo.schedule_exists(db, schedule_id):
         raise HTTPException(status_code=404, detail="Schedule not found")
 
-    # TODO (websocket): when run_regenerate_task completes, broadcast to connected clients:
-    #   type: "schedule_regenerated", payload: all rich sections for schedule_id
-    #   This requires passing db + schedule_id into the background task and calling
-    #   manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": [...]})
-
     background_tasks.add_task(run_regenerate_task, db, schedule_id, request.parameters)
-    
+    manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": {}})
+
     return {"schedule_id": schedule_id, "status": "running"}
