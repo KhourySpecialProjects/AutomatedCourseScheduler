@@ -432,6 +432,7 @@ def _make_faculty(db, campus_id, nuid=1001):
         first_name="Jane",
         last_name="Doe",
         email=f"faculty{nuid}@example.com",
+        title="Professor",
         campus=campus_id,
     )
     db.add(faculty)
@@ -599,9 +600,16 @@ class TestGetAverageMaxLoad:
     def _run(self, assignments, section_map, schedule_map):
         """Helper: patches repos and calls get_average_max_load."""
         db = MagicMock()
+        mock_faculty = Faculty(
+            nuid=1, first_name="Jane", last_name="Doe", email="j@x.com", active=True
+        )
+        db.query.return_value.filter.return_value.first.return_value = mock_faculty
 
         def mock_get_section(db, section_id):
             return section_map[section_id]
+
+        campus = _make_campus(db)
+        faculty = _make_faculty(db, campus.campus_id)
 
         def mock_get_schedule(db, schedule_id):
             return schedule_map[schedule_id]
@@ -610,7 +618,7 @@ class TestGetAverageMaxLoad:
             patch("app.services.faculty.section_repo.get_by_id", side_effect=mock_get_section),
             patch("app.services.faculty.schedule_repo.get_by_id", side_effect=mock_get_schedule),
         ):
-            return faculty_service.get_average_max_load(db, assignments)
+            return faculty_service.get_average_max_load(db, assignments, faculty.nuid)
 
     def test_equal_load_each_semester(self):
         """2 sections in each of 2 semesters → average 2."""
