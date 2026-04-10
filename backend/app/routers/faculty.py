@@ -1,6 +1,7 @@
 """Faculty router."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -11,6 +12,11 @@ from app.schemas.faculty import (
     FacultyUpdate,
 )
 from app.services import faculty as faculty_service
+
+
+class BuildProfilesRequest(BaseModel):
+    available_faculty: list[int]
+
 
 router = APIRouter(prefix="/faculty", tags=["faculty"])
 
@@ -37,9 +43,10 @@ def create_faculty(faculty: FacultyCreate, db: Session = Depends(get_db)):
 @router.get("/{nuid}", response_model=FacultyProfileResponse)
 def get_faculty_profile(nuid: int, db: Session = Depends(get_db)):
     "Retrieve faculty profile with course and time preferences."
-    faculty = faculty_service.get_faculty_profile(db, nuid)
-    if faculty is None:
-        raise HTTPException(status_code=404, detail="Faculty not found")
+    try:
+        faculty = faculty_service.get_faculty_profile(db, nuid)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
     return faculty
 
 
@@ -62,3 +69,12 @@ def delete_faculty(nuid: int, db: Session = Depends(get_db)):
     if not deleted:
         raise HTTPException(status_code=404, detail="Faculty not found")
     return None
+
+
+@router.post("/build_profiles", status_code=200, response_model=list[FacultyProfileResponse])
+def build_profiles(available_faculty: list[int] = Body(...), db: Session = Depends(get_db)):
+    try:
+        profiles = faculty_service.build_all_profiles(db, available_faculty)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=e.args) from e
+    return profiles
