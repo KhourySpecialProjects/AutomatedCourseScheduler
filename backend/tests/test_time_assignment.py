@@ -93,6 +93,25 @@ def test_unrated_time_blocks_rank_after_rated():
     assert result.assignments[0].time_preference_level == 3
 
 
+def test_not_my_cup_of_tea_is_hard_excluded():
+    blocks = [_block(1, "MW"), _block(2, "TR")]
+    faculty_prefs = {10: _prefs((1, "Not my cup of tea"), (2, "Willing to teach"))}
+    assignments = [MatchedAssignment(1, 100, 10, "CS")]
+    result = assign_time_blocks(assignments, blocks, faculty_prefs)
+    assert result.assignments[0].time_block_id == 2
+    assert result.assignments[0].time_preference_level == 3
+
+
+def test_only_not_my_cup_of_tea_available_results_in_warning():
+    blocks = [_block(1, "MW")]
+    faculty_prefs = {10: _prefs((1, "Not my cup of tea"))}
+    assignments = [MatchedAssignment(1, 100, 10, "CS")]
+    result = assign_time_blocks(assignments, blocks, faculty_prefs)
+    assert result.assignments[0].time_block_id is None
+    assert len(result.warnings) == 1
+    assert result.warnings[0].Type == WarningType.NO_VALID_TIME_BLOCK
+
+
 def test_existing_faculty_time_blocks_respected():
     blocks = [_block(1, "MW"), _block(2, "TR")]
     faculty_prefs = {10: _prefs((1, "Eager to teach"), (2, "Eager to teach"))}

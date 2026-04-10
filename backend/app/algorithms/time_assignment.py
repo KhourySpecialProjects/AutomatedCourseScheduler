@@ -173,6 +173,10 @@ def assign_time_blocks(
 
             # Block passed both checks -> record it with its preference rank in eligible
             pref = _time_pref_level(prefs, tb)
+
+            #If professor chooses "not my cup of tea"
+            if pref == 4:
+                continue
             pref_rank = pref if pref is not None else 99  # unrated sorts last
             eligible.append((tb, pref_rank))
 
