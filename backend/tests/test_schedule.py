@@ -17,6 +17,8 @@ from datetime import datetime, time, timedelta
 from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
 
+from app.core.auth import get_db_user
+from app.main import app
 from app.models import Schedule, TimeBlock
 from app.models.campus import Campus
 from app.models.course import Course as CourseModel
@@ -55,12 +57,13 @@ def _make_schedule(db, campus_id, semester_id, *, name="Test Schedule"):
     return schedule
 
 
-def _make_user(db, nuid):
+def _make_user(db, user_id):
     user = User(
-        nuid=nuid,
+        user_id=user_id,
+        nuid=user_id,
         first_name="Test",
         last_name="User",
-        email=f"user{nuid}@example.com",
+        email=f"user{user_id}@example.com",
         phone_number="1234567890",
         role="ADMIN",
     )
@@ -711,20 +714,21 @@ def test_get_schedule_locks_non_empty(client: TestClient, db_session: Session) -
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
-    user = _make_user(db_session, nuid=1)
+    user = _make_user(db_session, user_id=1)
     course = _make_course(db_session)
     time_block = _make_time_block(db_session, campus.campus_id)
     section = _make_section(
         db_session, schedule.schedule_id, course.course_id, time_block.time_block_id
     )
 
-    client.post(f"/sections/{section.section_id}/lock?user_id={user.nuid}")
+    app.dependency_overrides[get_db_user] = lambda: user
+    client.post(f"/sections/{section.section_id}/lock")
     response = client.get(f"/schedules/{schedule.schedule_id}/locks")
 
     assert len(response.json()) == 1
     data = response.json()[0]
     assert data["section_id"] == section.section_id
-    assert data["locked_by"] == user.nuid
+    assert data["locked_by"] == user.user_id
     assert data["display_name"] == "Test User"
     assert "expires_at" in data
 
@@ -733,9 +737,9 @@ def test_get_schedule_locks_returns_active(client: TestClient, db_session: Sessi
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
-    user1 = _make_user(db_session, nuid=1)
-    user2 = _make_user(db_session, nuid=2)
-    user3 = _make_user(db_session, nuid=3)
+    user1 = _make_user(db_session, user_id=1)
+    user2 = _make_user(db_session, user_id=2)
+    user3 = _make_user(db_session, user_id=3)
     course = _make_course(db_session)
     time_block = _make_time_block(db_session, campus.campus_id)
     section1 = _make_section(
@@ -749,13 +753,15 @@ def test_get_schedule_locks_returns_active(client: TestClient, db_session: Sessi
     )
 
     # two active locks
-    client.post(f"/sections/{section1.section_id}/lock?user_id={user1.nuid}")
-    client.post(f"/sections/{section2.section_id}/lock?user_id={user2.nuid}")
+    app.dependency_overrides[get_db_user] = lambda: user1
+    client.post(f"/sections/{section1.section_id}/lock")
+    app.dependency_overrides[get_db_user] = lambda: user2
+    client.post(f"/sections/{section2.section_id}/lock")
 
     # one expired lock inserted directly
     expired_lock = SectionLock(
         section_id=section3.section_id,
-        locked_by=user3.nuid,
+        locked_by=user3.user_id,
         expires_at=datetime.now() - timedelta(minutes=10),
     )
     db_session.add(expired_lock)
@@ -765,9 +771,9 @@ def test_get_schedule_locks_returns_active(client: TestClient, db_session: Sessi
 
     assert len(response.json()) == 2
     locked_by_ids = {lock["locked_by"] for lock in response.json()}
-    assert user1.nuid in locked_by_ids
-    assert user2.nuid in locked_by_ids
-    assert user3.nuid not in locked_by_ids
+    assert user1.user_id in locked_by_ids
+    assert user2.user_id in locked_by_ids
+    assert user3.user_id not in locked_by_ids
 
 
 def test_get_schedule_locks_excludes_other_schedules(
@@ -777,14 +783,15 @@ def test_get_schedule_locks_excludes_other_schedules(
     semester = _make_semester(db_session)
     schedule1 = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S1")
     schedule2 = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S2")
-    user = _make_user(db_session, nuid=1)
+    user = _make_user(db_session, user_id=1)
     course = _make_course(db_session)
     time_block = _make_time_block(db_session, campus.campus_id)
     section = _make_section(
         db_session, schedule1.schedule_id, course.course_id, time_block.time_block_id
     )
 
-    client.post(f"/sections/{section.section_id}/lock?user_id={user.nuid}")
+    app.dependency_overrides[get_db_user] = lambda: user
+    client.post(f"/sections/{section.section_id}/lock")
     response = client.get(f"/schedules/{schedule2.schedule_id}/locks")
 
     assert response.json() == []

@@ -37,7 +37,7 @@ def _faculty_to_response(faculty: Faculty) -> FacultyResponse:
 
 
 def get_faculty(
-    db: Session, campus: str | None = None, active_only: bool = False
+    db: Session, campus: int | None = None, active_only: bool = False
 ) -> list[FacultyResponse]:
     faculty_list = faculty_repo.get_all(db, campus=campus, active_only=active_only)
     return [_faculty_to_response(f) for f in faculty_list]
@@ -83,7 +83,7 @@ def update_faculty(db: Session, nuid: int, body: FacultyUpdate) -> FacultyRespon
             raise ValueError("Email already exists")
         faculty.email = body.email
     if "campus" in fields:
-        if not body.campus:
+        if body.campus is None:
             raise ValueError("Campus is invalid")
         faculty.campus = body.campus
     if "phone_number" in fields:
@@ -133,7 +133,7 @@ def get_faculty_profile(db: Session, nuid: int) -> FacultyProfileResponse | None
         ],
         meeting_preferences=[
             MeetingPreferenceInfo(
-                meeting_time=time_block_to_string(db, mp.meeting_time),
+                time_block_id=mp.meeting_time,
                 preference=mp.preference.value,
             )
             for mp in faculty.meeting_preferences
@@ -196,6 +196,10 @@ def normalize_buckets(facultyProfile: FacultyProfileResponse) -> FacultyProfileR
     for mp in meeting_ready:
         mp.preference = PreferenceLevel.READY
 
+    # If all course preferences are NOT_INTERESTED, flag for manual review
+    if not course_filled:
+        facultyProfile.needsAdminReview = True
+
     return facultyProfile
 
 
@@ -203,7 +207,6 @@ def get_average_max_load(
     db: Session, previous_assignmets: list[FacultyAssignment], nuid: int
 ) -> int:
     semester_counts = {}
-    logger.error(f"PREVIOUS ASSIGNMENTS: {previous_assignmets}")
     for assignment in previous_assignmets:
         section = section_repo.get_by_id(db, assignment.section_id)
         schedule = schedule_repo.get_by_id(db, section.schedule_id)
@@ -245,7 +248,9 @@ def process_assignments(
         if meeting_time not in unique_meeting_times:
             unique_meeting_times.append(meeting_time)
             meeting_preferences.append(
-                MeetingPreferenceInfo(meeting_time=meeting_time, preference=PreferenceLevel.EAGER)
+                MeetingPreferenceInfo(
+                    time_block_id=section.time_block_id, preference=PreferenceLevel.EAGER
+                )
             )
     return FacultyProfileResponse(
         nuid=faculty.nuid,

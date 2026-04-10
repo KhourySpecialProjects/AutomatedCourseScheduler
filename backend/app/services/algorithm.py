@@ -1,121 +1,113 @@
-"""Algorithm service — mock implementation and background tasks."""
+"""Algorithm service — real implementation."""
 
-import random
-import time
-from datetime import datetime
+import logging
 
-from app.core.enums import Severity, WarningType
-from app.schemas.algorithm_input import (
-    AlgorithmInput,
-    AlgorithmParameters,
-)
-from app.schemas.algorithm_output import DraftScheduleResult, RunMetadata, Warning
-from app.schemas.course import CourseResponse as Course
-from app.schemas.faculty import FacultyResponse as Faculty
+from sqlalchemy.orm import Session
+
+from app.algorithms.matching import _expand_sections, match_courses_to_faculty
+from app.models.faculty_assignment import FacultyAssignment
+from app.models.section import Section
+from app.repositories import faculty as faculty_repo
+from app.repositories import time_block as time_block_repo
+from app.schemas.algorithm_input import AlgorithmInput
+from app.schemas.algorithm_params import AlgorithmParameters
+from app.services import course as course_service
+from app.services import faculty as faculty_service
+
+logger = logging.getLogger(__name__)
 
 
-def generate_schedule(algorithm_input: AlgorithmInput) -> DraftScheduleResult:
-    start = datetime.now()
-    time.sleep(15)  # Simulate algorithm processing time
+def run_algorithm_task(db: Session, schedule_id: int, parameters: AlgorithmParameters):
+    # Step 1 — Load courses for this schedule
+    courses = course_service.get_courses(db, schedule_id)
+    if not courses:
+        logger.warning(f"No courses found for schedule {schedule_id}, aborting.")
+        return
 
-    section_ids = []
-    mock_section_id = 1
-    faculty_ids = [f.NUID for f in algorithm_input.AllFaculty]
+    # Step 2 — Build section candidates in memory (no DB writes yet)
+    sections = _expand_sections(courses)
+    section_lookup = {s.section_id: s for s in sections}
 
-    for course in algorithm_input.OfferedCourses:
-        for _ in range(course.SectionCount):
-            section_ids.append(mock_section_id)
-            mock_section_id += 1
+    # Step 3 — Load all active faculty and build profiles
+    all_faculty = faculty_repo.get_all(db, active_only=True)
+    if not all_faculty:
+        logger.warning("No active faculty found, aborting.")
+        return
+    nuids = [f.nuid for f in all_faculty]
+    try:
+        profiles = faculty_service.build_all_profiles(db, nuids)
+    except ValueError as e:
+        logger.error(f"Failed to build faculty profiles: {e}")
+        return
 
-    stability = round(random.uniform(0.65, 0.95), 2)
+    # Step 4 — Load time blocks for Phase 2
+    time_blocks = time_block_repo.get_all(db)
 
-    warnings = [
-        Warning(
-            Type=WarningType.UNPREFERENCED_COURSE,
-            SeverityRank=Severity.MEDIUM,
-            Message="Mock warning: faculty assigned unpreferenced course",
-            FacultyID=faculty_ids[0] if faculty_ids else None,
-            CourseID=algorithm_input.OfferedCourses[0].CourseID
-            if algorithm_input.OfferedCourses
-            else None,
+    # Step 5 — Build AlgorithmInput and run Phase 1 (faculty matching)
+    algorithm_input = AlgorithmInput(
+        OfferedCourses=courses,
+        AllFaculty=profiles,
+        TimeBlocks=[tb.time_block_id for tb in time_blocks],
+        Parameters=parameters,
+    )
+    phase1_assignments = match_courses_to_faculty(sections, algorithm_input)
+
+    # Filter to matched only for Phase 2
+    matched_assignments = [a for a in phase1_assignments if a.is_matched]
+    unmatched = [a for a in phase1_assignments if not a.is_matched]
+
+    for a in unmatched:
+        logger.warning(f"Section for course {a.course_id} unmatched: {a.unmatched_reason}")
+
+    # Step 6 — Run Phase 2 (time block assignment)
+    # TODO: replace with assign_time_blocks() call after Saisri's PR merges.
+    # faculty_time_preferences = {profile.nuid: profile.meeting_preferences for profile in profiles}
+    section_time_blocks: dict[int, int | None] = {
+        a.section_id: section_lookup[a.section_id].time_block_id for a in matched_assignments
+    }
+
+    # Step 7 — Write results to DB
+    section_number_tracker: dict[int, int] = {}  # course_id -> incrementing section number
+
+    for assignment in matched_assignments:
+        time_block_id = section_time_blocks[assignment.section_id]
+
+        if time_block_id is None:
+            logger.warning(
+                f"No time block assigned for section {assignment.section_id} "
+                f"(course {assignment.course_id}), skipping DB write."
+            )
+            continue
+
+        # Increment section number per course
+        section_number_tracker[assignment.course_id] = (
+            section_number_tracker.get(assignment.course_id, 0) + 1
         )
-    ]
+        section_number = section_number_tracker[assignment.course_id]
 
-    end = datetime.now()
+        # Create Section row
+        section_obj = Section(
+            schedule_id=schedule_id,
+            course_id=assignment.course_id,
+            time_block_id=time_block_id,
+            section_number=section_number,
+            capacity=30,  # TODO: pull from course data once capacity field exists
+        )
+        db.add(section_obj)
+        db.flush()  # get real section_id from Postgres before creating FacultyAssignment
 
-    metadata = RunMetadata(
-        StartTime=start,
-        EndTime=end,
-        TotalRunTime=int((end - start).total_seconds() * 1000),
-        Version=1,
-    )
+        # Create FacultyAssignment row
+        fa = FacultyAssignment(
+            faculty_nuid=assignment.faculty_nuid,
+            section_id=section_obj.section_id,
+        )
+        db.add(fa)
 
-    return DraftScheduleResult(
-        SectionAssignments=section_ids,
-        StabilityScore=stability,
-        Warnings=warnings,
-        Metadata=metadata,
-    )
-
-
-def _build_mock_input(parameters: AlgorithmParameters) -> AlgorithmInput:
-    # TODO: replace with real DB queries once SSIP-40 is merged
-    # e.g. load Schedule -> OfferedCourses, AllFaculty, TimeBlocks, preferences
-    return AlgorithmInput(
-        OfferedCourses=[
-            Course(CourseID=1, SectionCount=2),
-            Course(CourseID=2, SectionCount=1),
-        ],
-        AllFaculty=[
-            Faculty(NUID=1001, MaxLoad=3),
-            Faculty(NUID=1002, MaxLoad=4),
-        ],
-        TimeBlocks=[101, 102, 103],
-        CoursePreferences=[],
-        TimePreferences=[],
-        ConflictGroups=[],
-        Parameters=parameters,
-    )
+    db.commit()
+    logger.info(f"Algorithm completed for schedule {schedule_id}.")
 
 
-def _build_mock_partial_input(parameters: AlgorithmParameters) -> AlgorithmInput:
-    # TODO: replace with real DB queries
-    # Load only unassigned sections — existing assigned sections are preserved
-    # e.g. query sections where faculty_id IS NULL or time_block_id IS NULL
-    return AlgorithmInput(
-        OfferedCourses=[
-            Course(CourseID=3, SectionCount=1),
-        ],
-        AllFaculty=[
-            Faculty(NUID=1001, MaxLoad=3),
-            Faculty(NUID=1002, MaxLoad=4),
-        ],
-        TimeBlocks=[101, 102, 103],
-        CoursePreferences=[],
-        TimePreferences=[],
-        ConflictGroups=[],
-        Parameters=parameters,
-    )
-
-
-# def run_algorithm_task(schedule_id: int, parameters: AlgorithmParameters):
-#     algorithm_input = _build_mock_input(parameters)
-#     result = generate_schedule(algorithm_input)
-
-#     # TODO:
-#     # - write result.SectionAssignments back to DB
-#     # - set schedule.status = ScheduleStatus.COMPLETED
-#     # - set schedule.status = ScheduleStatus.FAILED on exception
-
-
-# def run_regenerate_task(schedule_id: int, parameters: AlgorithmParameters):
-#     # Runs algorithm only on unassigned sections — preserves existing assignments
-#     result = generate_schedule(_build_mock_partial_input(parameters))
-
-#     # TODO: define regenerate_schedule() once regeneration logic is scoped
-#     # TODO:
-#     # - merge result.SectionAssignments into existing schedule
-#     #   (do not overwrite assigned)
-#     # - set schedule.status = ScheduleStatus.COMPLETED
-#     # - set schedule.status = ScheduleStatus.FAILED on exception
-#     pass
+def run_regenerate_task(db: Session, schedule_id: int, parameters: AlgorithmParameters):
+    # TODO: load only unassigned sections for this schedule, run algorithm on those only
+    # preserving existing assignments
+    pass

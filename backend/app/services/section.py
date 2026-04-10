@@ -32,6 +32,11 @@ def require_schedule(db: Session, schedule_id: int) -> None:
         raise ScheduleNotFoundError
 
 
+def get_by_id(db: Session, section_id: int) -> Section | None:
+    """Return a single section by ID, or None if not found."""
+    return section_repo.get_by_id(db, section_id)
+
+
 def get_all_sections(db: Session, schedule_id: int) -> list[Section]:
     """Return all sections for a schedule (no schedule-existence check)."""
     return section_repo.get_by_schedule(db, schedule_id)
@@ -82,7 +87,7 @@ def get_rich_sections(db: Session, schedule_id: int) -> list[SectionRichResponse
                         ],
                         meeting_preferences=[
                             MeetingPreferenceInfo(
-                                meeting_time=str(mp.meeting_time),
+                                time_block_id=mp.meeting_time,
                                 preference=mp.preference.value,
                             )
                             for mp in fa.faculty.meeting_preferences
