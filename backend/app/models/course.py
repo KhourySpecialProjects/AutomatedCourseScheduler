@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -21,7 +21,7 @@ class Course(Base):
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str] = mapped_column(String(1000))
     credits: Mapped[int] = mapped_column(Integer)
-    # priority: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    priority: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
     sections: Mapped[list["Section"]] = relationship("Section", back_populates="course")
