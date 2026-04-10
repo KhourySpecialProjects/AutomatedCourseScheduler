@@ -27,6 +27,7 @@ class Faculty(Base):
     title: Mapped[str | None] = mapped_column(String(100))
     campus: Mapped[str] = mapped_column(ForeignKey("campus.campus_id"))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    max_load: Mapped[int] = mapped_column(Integer, default=3)
 
     # Relationships
     course_preferences: Mapped[list["CoursePreference"]] = relationship(
