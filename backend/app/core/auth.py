@@ -45,7 +45,7 @@ async def get_db_user(
     endpoint with the bearer token to get the email, match it to a User record,
     and persist the sub for all subsequent requests.
     """
-    from app.services.user_service import get_or_link_user
+    from app.services.user import get_or_link_user
 
     sub = claims["sub"]
     token = request.headers.get("Authorization", "").removeprefix("Bearer ")
@@ -60,6 +60,6 @@ async def get_db_user(
 
 async def require_admin(user: User = Depends(get_db_user)) -> User:
     """Guards a route to admin-role users only."""
-    if user.role != "admin":
+    if user.role != "ADMIN":
         raise HTTPException(status_code=403, detail="Admin access required")
     return user

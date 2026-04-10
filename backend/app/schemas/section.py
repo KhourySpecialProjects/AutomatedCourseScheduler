@@ -57,7 +57,7 @@ class CoursePreferenceInfo(BaseModel):
 
 
 class MeetingPreferenceInfo(BaseModel):
-    meeting_time: str
+    time_block_id: int
     preference: str
 
 

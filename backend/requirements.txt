@@ -4,9 +4,11 @@ sqlalchemy
 psycopg2-binary
 python-dotenv
 pytest
+pytest-asyncio
 httpx
 python-multipart
 pydantic==2.12.5
 pydantic-settings==2.13.1
 pydantic_core==2.41.5
 auth0-fastapi-api
+python-jose[cryptography]

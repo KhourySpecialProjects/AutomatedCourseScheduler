@@ -38,7 +38,7 @@ def bootstrap(nuid: int, first_name: str, last_name: str, email: str) -> None:
             first_name=first_name,
             last_name=last_name,
             email=email,
-            role="admin",
+            role="ADMIN",
             auth0_sub=None,
             active=True,
         )

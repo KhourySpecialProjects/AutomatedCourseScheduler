@@ -6,14 +6,14 @@ from app.schemas.section import CoursePreferenceInfo, MeetingPreferenceInfo
 
 
 class FacultyResponse(BaseModel):
-    NUID: int
-    FirstName: str | None = None
-    LastName: str | None = None
-    Email: str | None = None
-    Title: str | None = None
-    Campus: int | None = None
-    Active: bool | None = None
-    MaxLoad: int | None = None
+    nuid: int
+    first_name: str | None = None
+    last_name: str | None = None
+    email: str | None = None
+    title: str | None = None
+    campus: int | None = None
+    active: bool | None = None
+    maxLoad: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -23,12 +23,12 @@ class FacultyCreate(BaseModel):
     first_name: str = Field(..., min_length=1)
     last_name: str = Field(..., min_length=1)
     email: str = Field(..., min_length=1)
-    campus: str = Field(..., min_length=1)
+    campus: int = Field(..., gt=0)
     phone_number: str | None = None
     title: str | None = None
     active: bool = True
 
-    @field_validator("first_name", "last_name", "email", "campus")
+    @field_validator("first_name", "last_name", "email")
     @classmethod
     def not_empty(cls, v: str) -> str:
         if not v.strip():
@@ -40,13 +40,13 @@ class FacultyUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
-    campus: str | None = None
+    campus: int | None = None
     phone_number: str | None = None
     title: str | None = None
     active: bool | None = None
     max_load: int | None = None
 
-    @field_validator("first_name", "last_name", "email", "campus")
+    @field_validator("first_name", "last_name", "email")
     @classmethod
     def not_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and not v.strip():

@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class UserResponse(BaseModel):
-    id: int
+    user_id: int
     nuid: int
     first_name: str
     last_name: str
@@ -17,13 +17,13 @@ class UserResponse(BaseModel):
 
 class InviteRequest(BaseModel):
     nuid: int = Field(..., gt=0)
-    role: str = Field(default="viewer")
+    role: str = Field(default="VIEWER")
 
     @field_validator("role")
     @classmethod
     def valid_role(cls, v: str) -> str:
-        if v not in ("admin", "viewer"):
-            raise ValueError("Role must be 'admin' or 'viewer'")
+        if v not in ("ADMIN", "VIEWER"):
+            raise ValueError("Role must be 'ADMIN' or 'VIEWER'")
         return v
 
 
