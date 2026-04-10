@@ -49,12 +49,20 @@ export interface CommentResponse {
   resolved: boolean;
   active: boolean;
   created_at: string;
+  user: CommentUserInfo;
 }
 
 export interface CommentSchema {
   section_id: number;
   user_id: number;
   content: string;
+}
+
+export interface CommentUserInfo {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
 }
 
 export interface CourseCreate {
@@ -265,12 +273,15 @@ export interface ScheduleUpdate {
   active?: ScheduleUpdateActive;
 }
 
+export type SectionCreateFacultyNuids = number[] | null;
+
 export interface SectionCreate {
   schedule_id: number;
   time_block_id: number;
   course_id: number;
   capacity: number;
   section_number: number;
+  faculty_nuids?: SectionCreateFacultyNuids;
 }
 
 /**

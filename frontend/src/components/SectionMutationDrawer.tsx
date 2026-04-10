@@ -165,6 +165,7 @@ export default function SectionMutationDrawer(props: Props) {
           time_block_id: timeBlockId,
           capacity: capacity as number,
           section_number: sectionNumber as number,
+          faculty_nuids: selectedNuids,
         });
       }
       onClose();
