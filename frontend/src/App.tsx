@@ -1,14 +1,17 @@
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
-import Home from './pages/Home';
+import ScheduleList from './pages/ScheduleList';
 import Schedules from './pages/Schedules';
+import Faculty from './pages/Faculty';
+import Courses from './pages/Courses';
+import Upload from './pages/Upload';
+import Sidebar from './components/Sidebar';
 import LoginButton from './components/LoginButton';
-import LogoutButton from './components/LogoutButton';
 import { useAuthInterceptor } from './hooks/useAuthInterceptor';
 
 function App() {
   const { isAuthenticated, isLoading, error } = useAuth0();
-  useAuthInterceptor()
+  useAuthInterceptor();
 
   if (isLoading) {
     return (
@@ -57,57 +60,19 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <span className="text-xl font-semibold text-gray-900">
-                Course Scheduler
-              </span>
-              <div className="flex items-center gap-6">
-                <NavLink
-                  to="/"
-                  end
-                  className={({ isActive }) =>
-                    isActive
-                      ? 'text-indigo-600 font-medium'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }
-                >
-                  Home
-                </NavLink>
-                <NavLink
-                  to="/schedules"
-                  className={({ isActive }) =>
-                    isActive
-                      ? 'text-indigo-600 font-medium'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }
-                >
-                  Schedules
-                </NavLink>
-                <NavLink
-                  to="/sections"
-                  className={({ isActive }) =>
-                    isActive
-                      ? 'text-indigo-600 font-medium'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }
-                >
-                  Sections
-                </NavLink>
-                <LogoutButton />
-              </div>
-            </div>
+      <div className="flex h-screen overflow-hidden bg-gray-50">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-8">
+            <Routes>
+              <Route path="/" element={<Navigate to="/schedules" replace />} />
+              <Route path="/schedules" element={<ScheduleList />} />
+              <Route path="/schedules/:scheduleId" element={<Schedules />} />
+              <Route path="/faculty" element={<Faculty />} />
+              <Route path="/courses" element={<Courses />} />
+              <Route path="/upload" element={<Upload />} />
+            </Routes>
           </div>
-        </nav>
-
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/schedules" element={<Schedules />} />
-            <Route path="/schedules/:scheduleId" element={<Schedules />} />
-          </Routes>
         </main>
       </div>
     </BrowserRouter>
