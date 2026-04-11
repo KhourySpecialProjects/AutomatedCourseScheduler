@@ -181,3 +181,8 @@ def delete_course(db: Session, course_id: int) -> bool:
         raise ValueError("Course has sections and cannot be deleted")
     course_repo.delete(db, course)
     return True
+
+
+def get_course_capacity(db: Session, course_id: int) -> int:
+    capacity = course_repo.get_course_capacity(db, course_id)
+    return capacity
