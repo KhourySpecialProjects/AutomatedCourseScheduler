@@ -182,3 +182,7 @@ def delete_section(db: Session, section_id: int) -> bool:
         return False
     section_repo.delete(db, section_obj)
     return True
+
+
+def get_dept_time_block_counts(db: Session, schedule_id: int) -> dict:
+    return section_repo.get_dept_time_blocks_counts(db, schedule_id)

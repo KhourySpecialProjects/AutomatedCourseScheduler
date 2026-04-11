@@ -86,3 +86,21 @@ def get_by_instructor(db: Session, instructor_id: int) -> list[FacultyAssignment
     )
 
     return assignments
+
+
+def get_dept_time_blocks_counts(db: Session, schedule_id: int) -> dict[str, int]:
+    """Dept code -> {time_block_id → section count} for this schedule."""
+    sections = get_by_schedule(db, schedule_id)
+    department_time_block_counts = {}
+    for section in sections:
+        dept_code = section.course.name.split(" ", 1)[
+            0
+        ]  # e.g. "CS" or "HINF" from "CS 1010" or "HINF 5000"
+        time_block_id = section.time_block_id
+        if time_block_id is not None:
+            if dept_code not in department_time_block_counts:
+                department_time_block_counts[dept_code] = {}
+            department_time_block_counts[dept_code][time_block_id] = (
+                department_time_block_counts[dept_code].get(time_block_id, 0) + 1
+            )
+    return department_time_block_counts

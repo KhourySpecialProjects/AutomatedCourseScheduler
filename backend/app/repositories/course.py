@@ -73,3 +73,9 @@ def department_code_from_course_name(course_name: str) -> str:
     from app.algorithms.time_assignment import department_code_from_course_name as _dept_from_name
 
     return _dept_from_name(course_name)
+
+
+def get_course_capacity(db: Session) -> int:
+    # Default capacity for schedule skeleton.
+    # Scheduler adjusts per-section after generation.
+    return 30
