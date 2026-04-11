@@ -57,7 +57,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           audience: import.meta.env.VITE_AUTH0_AUDIENCE,
         }}
         useRefreshTokens={true}
-        cacheLocation="memory"
+        // This may be insecure - jwt stored in browser memory
+        cacheLocation="localstorage"
       >
         <App />
       </Auth0Provider>
