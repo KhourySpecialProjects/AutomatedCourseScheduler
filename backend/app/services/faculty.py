@@ -25,14 +25,14 @@ logger = logging.getLogger(__name__)
 
 def _faculty_to_response(faculty: Faculty) -> FacultyResponse:
     return FacultyResponse(
-        NUID=faculty.nuid,
-        FirstName=faculty.first_name,
-        LastName=faculty.last_name,
-        Email=faculty.email,
-        Title=faculty.title,
-        Campus=None,
-        Active=faculty.active,
-        MaxLoad=faculty.max_load,
+        nuid=faculty.nuid,
+        first_name=faculty.first_name,
+        last_name=faculty.last_name,
+        email=faculty.email,
+        title=faculty.title,
+        campus=faculty.campus,
+        active=faculty.active,
+        maxLoad=faculty.max_load,
     )
 
 
