@@ -27,7 +27,7 @@ class Section(Base):
     section_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     section_number: Mapped[int] = mapped_column(Integer)
     capacity: Mapped[int] = mapped_column(Integer)
-    room: Mapped[str | None] = mapped_column(String(10))
+    room: Mapped[str | None] = mapped_column(String(50))
 
     # Foreign Keys
     schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("schedule.schedule_id"))
@@ -59,5 +59,3 @@ class Section(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
-
-    # Add crosslisted FK... points to other course

@@ -31,18 +31,16 @@ HIGH_PRIORITY_COURSES = [
 
 def _course_to_response(course: Course, section_count: int) -> CourseResponse:
     qualified_faculty = sum(1 for p in course.course_preferences if p.preference.to_int() <= 3)
-    split_name = course.name.split(" ", 1)
-    course_subject = split_name[0]
-    course_no = int(split_name[1]) if len(split_name) > 1 else None
     return CourseResponse(
-        CourseID=course.course_id,
-        CourseName=course.name,
-        CourseDescription=course.description,
-        CourseNo=course_no,
-        CourseSubject=course_subject,
-        SectionCount=section_count,
-        QualifiedFaculty=qualified_faculty,
-        Priority=course.priority,
+        course_id=course.course_id,
+        subject=course.subject,
+        code=course.code,
+        name=course.name,
+        description=course.description,
+        credits=course.credits,
+        priority=course.priority,
+        section_count=section_count,
+        qualified_faculty=qualified_faculty,
     )
 
 
@@ -103,7 +101,7 @@ def get_section_count(
 
 
 def sort_course_list(course_list: list[CourseResponse]) -> list[CourseResponse]:
-    return sorted(course_list, key=lambda c: (not c.Priority, c.QualifiedFaculty, c.CourseNo or 0))
+    return sorted(course_list, key=lambda c: (not c.priority, c.qualified_faculty, c.code or 0))
 
 
 def generate_course_list(
@@ -130,6 +128,8 @@ def generate_course_list(
 
 def create_course(db: Session, body: CourseCreate) -> CourseResponse:
     course = Course(
+        subject=body.subject,
+        code=body.code,
         name=body.name,
         description=body.description,
         credits=body.credits,
@@ -144,6 +144,14 @@ def update_course(db: Session, course_id: int, body: CourseUpdate) -> CourseResp
     if course is None:
         return None
     fields = body.model_fields_set
+    if "subject" in fields:
+        if not body.subject:
+            raise ValueError("Subject is invalid")
+        course.subject = body.subject
+    if "code" in fields:
+        if body.code is None or body.code <= 0:
+            raise ValueError("Code is invalid")
+        course.code = body.code
     if "name" in fields:
         if not body.name:
             raise ValueError("Name is invalid")

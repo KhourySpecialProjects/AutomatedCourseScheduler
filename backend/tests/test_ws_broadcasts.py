@@ -51,7 +51,7 @@ def _seed(db):
     db.add(semester)
     db.flush()
     schedule = Schedule(name="Test", semester_id=semester.semester_id, campus=campus.campus_id)
-    course = Course(name="CS 2500", description="Fundamentals", credits=4)
+    course = Course(subject="CS", code=2500, name="CS 2500", description="Fundamentals", credits=4)
     db.add_all([schedule, course])
     db.flush()
     tb = TimeBlock(

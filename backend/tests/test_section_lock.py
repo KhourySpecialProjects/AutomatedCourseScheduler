@@ -47,7 +47,7 @@ def _make_section(db, season="Fall"):
     campus = _make_campus(db)
     semester = _make_semester(db, season=season)
     schedule = Schedule(name="F24", semester_id=semester.semester_id, campus=campus.campus_id)
-    course = Course(name="CS 2500", description="Fundamentals", credits=4)
+    course = Course(subject="CS", code=2500, name="CS 2500", description="Fundamentals", credits=4)
     db.add_all([schedule, course])
     db.flush()
     time_block = TimeBlock(

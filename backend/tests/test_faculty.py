@@ -161,7 +161,7 @@ def test_get_faculty_profile(client, db_session):
 
 
 def test_get_faculty_profile_with_preferences(client, db_session):
-    course = Course(name="Algorithms", description="Algo", credits=4)
+    course = Course(subject="CS", code=3000, name="Algorithms", description="Algo", credits=4)
     db_session.add(course)
     db_session.flush()
     campus = _make_campus(db_session)
@@ -360,7 +360,7 @@ def test_delete_faculty_success(client, db_session):
 
 
 def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
-    course = Course(name="PL", description="PL", credits=4)
+    course = Course(subject="CS", code=9999, name="PL", description="PL", credits=4)
     campus = _make_campus(db_session, name="Boston")
     tb = _make_time_block(db_session, campus_id=campus.campus_id)
     faculty = Faculty(
@@ -434,8 +434,8 @@ def _make_faculty(db, campus_id, nuid=1001):
     return faculty
 
 
-def _make_course(db, name="Algorithms"):
-    course = Course(name=name, description="desc", credits=4)
+def _make_course(db, subject="CS", code=3000, name="Algorithms"):
+    course = Course(subject=subject, code=code, name=name, description="desc", credits=4)
     db.add(course)
     db.flush()
     return course
@@ -491,8 +491,8 @@ class TestBuildProfile:
         campus = _make_campus(db_session)
         _make_time_block(db_session, campus.campus_id)
         faculty = _make_faculty(db_session, campus.campus_id)
-        course1 = _make_course(db_session, name="Algorithms")
-        course2 = _make_course(db_session, name="OS")
+        course1 = _make_course(db_session, "CS", 3000, name="Algorithms")
+        course2 = _make_course(db_session, "CSYE", 6230, name="OS")
 
         db_session.add(
             CoursePreference(
