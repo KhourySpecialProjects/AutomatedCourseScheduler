@@ -44,6 +44,7 @@ class FacultyUpdate(BaseModel):
     phone_number: str | None = None
     title: str | None = None
     active: bool | None = None
+    max_load: int | None = None
 
     @field_validator("first_name", "last_name", "email")
     @classmethod

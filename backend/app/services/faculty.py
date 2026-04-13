@@ -30,9 +30,9 @@ def _faculty_to_response(faculty: Faculty) -> FacultyResponse:
         last_name=faculty.last_name,
         email=faculty.email,
         title=faculty.title,
-        campus=None,
+        campus=faculty.campus,
         active=faculty.active,
-        maxLoad=None,
+        maxLoad=faculty.max_load,
     )
 
 
@@ -67,6 +67,7 @@ def update_faculty(db: Session, nuid: int, body: FacultyUpdate) -> FacultyRespon
     if faculty is None:
         return None
     fields = body.model_fields_set
+    logger.error(f"FIELDS: {fields}")
     if "first_name" in fields:
         if not body.first_name:
             raise ValueError("FirstName is invalid")
@@ -93,6 +94,8 @@ def update_faculty(db: Session, nuid: int, body: FacultyUpdate) -> FacultyRespon
         if body.active is None:
             raise ValueError("Active is invalid")
         faculty.active = body.active
+    if "max_load" in fields:
+        faculty.max_load = body.max_load
     faculty_repo.save(db, faculty)
     return _faculty_to_response(faculty)
 
@@ -119,7 +122,7 @@ def get_faculty_profile(db: Session, nuid: int) -> FacultyProfileResponse | None
         title=faculty.title,
         campus=faculty.campus,
         active=faculty.active,
-        maxLoad=get_average_max_load(db, previous_assignments) if previous_assignments else 3,
+        maxLoad=get_average_max_load(db, previous_assignments, nuid) if previous_assignments else 3,
         course_preferences=[
             CoursePreferenceInfo(
                 course_id=cp.course_id,
@@ -200,9 +203,11 @@ def normalize_buckets(facultyProfile: FacultyProfileResponse) -> FacultyProfileR
     return facultyProfile
 
 
-def get_average_max_load(db: Session, previous_assignmets: list[FacultyAssignment]) -> int:
+def get_average_max_load(
+    db: Session, previous_assignments: list[FacultyAssignment], nuid: int
+) -> int:
     semester_counts = {}
-    for assignment in previous_assignmets:
+    for assignment in previous_assignments:
         section = section_repo.get_by_id(db, assignment.section_id)
         schedule = schedule_repo.get_by_id(db, section.schedule_id)
         semester = schedule.semester_id
@@ -214,17 +219,20 @@ def get_average_max_load(db: Session, previous_assignmets: list[FacultyAssignmen
     total_sections = 0
     for sem_count in semester_counts.values():
         total_sections += sem_count
+    print(total_sections / total_sems)
+    average_load = math.floor((total_sections / total_sems) + 0.5)
+    update_faculty(db, nuid, FacultyUpdate(max_load=average_load))
     return math.floor((total_sections / total_sems) + 0.5)
 
 
 def process_assignments(
-    db: Session, previous_assignmets: list[FacultyAssignment], nuid: int, faculty: Faculty
+    db: Session, previous_assignments: list[FacultyAssignment], faculty: Faculty
 ) -> FacultyProfileResponse:
     course_preferences = []
     meeting_preferences = []
     unique_courses = []
     unique_meeting_times = []
-    for assignment in previous_assignmets:
+    for assignment in previous_assignments:
         section = section_repo.get_by_id(db, assignment.section_id)
         course = course_repo.get_by_id(db, section.course_id)
         if course not in unique_courses:
@@ -252,7 +260,7 @@ def process_assignments(
         title=faculty.title,
         campus=faculty.campus,
         active=faculty.active,
-        maxLoad=get_average_max_load(db, previous_assignmets),
+        maxLoad=get_average_max_load(db, previous_assignments, faculty.nuid),
         course_preferences=course_preferences,
         meeting_preferences=meeting_preferences,
     )
@@ -268,9 +276,9 @@ def build_profile(db: Session, nuid: int) -> FacultyProfileResponse | None:
         faculty = faculty_repo.get_by_nuid(db, nuid)
         if not faculty:
             return None
-        previous_assignmets = section_repo.get_by_instructor(db, nuid)
-        if previous_assignmets:
-            return process_assignments(db, previous_assignmets, nuid, faculty)
+        previous_assignments = section_repo.get_by_instructor(db, nuid)
+        if previous_assignments:
+            return process_assignments(db, previous_assignments, faculty)
         else:
             return FacultyProfileResponse(
                 nuid=faculty.nuid,
