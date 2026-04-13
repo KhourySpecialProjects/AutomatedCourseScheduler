@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.comment import Comment
 from app.models.section import Section
@@ -11,13 +11,19 @@ def get_all(db: Session) -> list[Comment]:
 
 
 def get_by_section(db: Session, section_id: int) -> list[Comment]:
-    stmt = select(Comment).join(Section.comments).where(Comment.section_id == section_id)
+    stmt = (
+        select(Comment)
+        .join(Section.comments)
+        .where(Comment.section_id == section_id, Comment.active.is_(True))
+        .options(joinedload(Comment.user))
+    )
     results = db.scalars(stmt).all()
     return results
 
 
 def get_by_id(db: Session, comment_id: int) -> Comment | None:
-    comment = db.get(Comment, comment_id)
+    stmt = select(Comment).where(Comment.comment_id == comment_id).options(joinedload(Comment.user))
+    comment = db.scalars(stmt).first()
     return comment
 
 
@@ -36,6 +42,7 @@ def post_comment(db: Session, commentIn: CommentSchema) -> CommentResponse:
     db.add(comment)
     db.commit()
     db.refresh(comment)
+    db.refresh(comment, attribute_names=["user"])
 
     return comment
 
@@ -51,6 +58,7 @@ def post_reply(db: Session, replyIn: CommentSchema, parent_id: int) -> CommentRe
     db.add(reply)
     db.commit()
     db.refresh(reply)
+    db.refresh(reply, attribute_names=["user"])
 
     return reply
 
