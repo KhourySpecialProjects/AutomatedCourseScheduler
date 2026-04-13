@@ -4,13 +4,15 @@ import type { InternalAxiosRequestConfig } from 'axios';
 import { instance } from '../api/axiosInstance';
 
 export function useAuthInterceptor() {
-  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+  const { getAccessTokenSilently } = useAuth0();
 
   useEffect(() => {
     const interceptorId = instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
       if (isAuthenticated) {
         const token = await getAccessTokenSilently();
         config.headers.Authorization = `Bearer ${token}`;
+      } catch {
+        // not authenticated, send request without token
       }
       return config;
     });
@@ -18,5 +20,5 @@ export function useAuthInterceptor() {
     return () => {
       instance.interceptors.request.eject(interceptorId);
     };
-  }, [getAccessTokenSilently, isAuthenticated]);
+  }, [getAccessTokenSilently]);
 }
