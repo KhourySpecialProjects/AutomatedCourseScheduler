@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   getAutomatedCourseSchedulerAPI,
   type CourseResponse,
@@ -61,7 +61,6 @@ export default function SectionMutationDrawer(props: Props) {
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
@@ -82,15 +81,8 @@ export default function SectionMutationDrawer(props: Props) {
     });
   }, [campusName, scheduleId]);
 
-  useEffect(() => {
-    if (timeBlockId === null) {
-      setWarning(null);
-      return;
-    }
-    if (selectedNuids.length === 0) {
-      setWarning(null);
-      return;
-    }
+  const warning = useMemo<string | null>(() => {
+    if (timeBlockId === null || selectedNuids.length === 0) return null;
 
     const selected = new Set(selectedNuids);
     const conflicts = scheduleSections
@@ -107,16 +99,13 @@ export default function SectionMutationDrawer(props: Props) {
           })),
       );
 
-    if (conflicts.length === 0) {
-      setWarning(null);
-      return;
-    }
+    if (conflicts.length === 0) return null;
 
     const lines = conflicts
       .map((c) => `${c.name || `NUID ${c.nuid}`} is already assigned to ${c.course} §${c.sectionNo}`)
       .slice(0, 4);
     const more = conflicts.length > 4 ? ` (+${conflicts.length - 4} more)` : '';
-    setWarning(`Professor double-booked: ${lines.join('; ')}${more}`);
+    return `Professor double-booked: ${lines.join('; ')}${more}`;
   }, [scheduleSections, section, selectedNuids, timeBlockId]);
 
   // Build typed SelectOption arrays once data is loaded

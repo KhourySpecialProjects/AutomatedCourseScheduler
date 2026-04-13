@@ -10,8 +10,6 @@ export default function Courses() {
 
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
-    setLoading(true);
-    setError(null);
     api
       .getSchedulesSchedulesGet()
       .then((ss) => {
@@ -26,10 +24,9 @@ export default function Courses() {
   useEffect(() => {
     if (!scheduleId) return;
     const api = getAutomatedCourseSchedulerAPI();
-    setError(null);
     api
       .getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet(scheduleId)
-      .then(setSections)
+      .then((result) => { setSections(result); setError(null); })
       .catch(() => setError('Failed to load schedule courses.'));
   }, [scheduleId]);
 

@@ -91,9 +91,7 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
   const toggleLabel = useMemo(() => (effectiveReadOnly ? 'Switch to admin view' : 'Switch to faculty view'), [effectiveReadOnly]);
   const calendarAllowed = selectedCourseCount > 0 && selectedCourseCount < 5;
 
-  useEffect(() => {
-    if (!calendarAllowed && viewMode === 'calendar') setViewMode('table');
-  }, [calendarAllowed, viewMode]);
+  const effectiveViewMode: ViewMode = !calendarAllowed && viewMode === 'calendar' ? 'table' : viewMode;
 
   return (
     <div>
@@ -166,12 +164,12 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
             type="button"
             onClick={() => setViewMode('table')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              viewMode === 'table'
+              effectiveViewMode === 'table'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <TableIcon active={viewMode === 'table'} />
+            <TableIcon active={effectiveViewMode === 'table'} />
             Table
           </button>
           <button
@@ -180,14 +178,14 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
             onClick={() => setViewMode('calendar')}
             title={!calendarAllowed ? 'Calendar view supports up to 4 selected courses.' : 'Calendar'}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              viewMode === 'calendar'
+              effectiveViewMode === 'calendar'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : calendarAllowed
                   ? 'text-gray-500 hover:text-gray-700'
                   : 'text-gray-400 cursor-not-allowed opacity-60'
             }`}
           >
-            <CalendarIcon active={viewMode === 'calendar'} />
+            <CalendarIcon active={effectiveViewMode === 'calendar'} />
             Calendar
           </button>
         </div>
@@ -228,7 +226,7 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
           locks={locks}
           campusName={campusName}
           readOnly={effectiveReadOnly}
-          viewMode={viewMode}
+          viewMode={effectiveViewMode}
           onSelectedCourseCountChange={setSelectedCourseCount}
         />
       )}
