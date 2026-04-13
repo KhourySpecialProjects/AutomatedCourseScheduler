@@ -1,14 +1,13 @@
 import { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import type { InternalAxiosRequestConfig } from 'axios';
 import { instance } from '../api/axiosInstance';
 
 export function useAuthInterceptor() {
   const { getAccessTokenSilently } = useAuth0();
 
   useEffect(() => {
-    const interceptorId = instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-      if (isAuthenticated) {
+    const interceptorId = instance.interceptors.request.use(async (config) => {
+      try {
         const token = await getAccessTokenSilently();
         config.headers.Authorization = `Bearer ${token}`;
       } catch {
