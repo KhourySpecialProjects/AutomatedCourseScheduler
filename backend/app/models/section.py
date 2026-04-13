@@ -47,14 +47,12 @@ class Section(Base):
         post_update=True,
     )
     faculty_assignments: Mapped[list[FacultyAssignment]] = relationship(
-        "FacultyAssignment", back_populates="section", cascade="all, delete-orphan"
+        "FacultyAssignment", back_populates="section"
     )
     section_lock: Mapped[SectionLock] = relationship(
-        "SectionLock", back_populates="section", uselist=False, cascade="all, delete-orphan"
+        "SectionLock", back_populates="section", uselist=False
     )
-    comments: Mapped[list[Comment]] = relationship(
-        "Comment", back_populates="section", cascade="all, delete-orphan"
-    )
+    comments: Mapped[list[Comment]] = relationship("Comment", back_populates="section")
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

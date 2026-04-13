@@ -22,7 +22,6 @@ class SectionCreate(BaseModel):
     course_id: int
     capacity: int
     section_number: int
-    faculty_nuids: list[int] | None = None
 
 
 class SectionUpdate(BaseModel):
