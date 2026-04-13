@@ -204,10 +204,10 @@ def normalize_buckets(facultyProfile: FacultyProfileResponse) -> FacultyProfileR
 
 
 def get_average_max_load(
-    db: Session, previous_assignmets: list[FacultyAssignment], nuid: int
+    db: Session, previous_assignments: list[FacultyAssignment], nuid: int
 ) -> int:
     semester_counts = {}
-    for assignment in previous_assignmets:
+    for assignment in previous_assignments:
         section = section_repo.get_by_id(db, assignment.section_id)
         schedule = schedule_repo.get_by_id(db, section.schedule_id)
         semester = schedule.semester_id
@@ -226,13 +226,13 @@ def get_average_max_load(
 
 
 def process_assignments(
-    db: Session, previous_assignmets: list[FacultyAssignment], faculty: Faculty
+    db: Session, previous_assignments: list[FacultyAssignment], faculty: Faculty
 ) -> FacultyProfileResponse:
     course_preferences = []
     meeting_preferences = []
     unique_courses = []
     unique_meeting_times = []
-    for assignment in previous_assignmets:
+    for assignment in previous_assignments:
         section = section_repo.get_by_id(db, assignment.section_id)
         course = course_repo.get_by_id(db, section.course_id)
         if course not in unique_courses:
@@ -260,7 +260,7 @@ def process_assignments(
         title=faculty.title,
         campus=faculty.campus,
         active=faculty.active,
-        maxLoad=get_average_max_load(db, previous_assignmets, faculty.nuid),
+        maxLoad=get_average_max_load(db, previous_assignments, faculty.nuid),
         course_preferences=course_preferences,
         meeting_preferences=meeting_preferences,
     )
@@ -276,9 +276,9 @@ def build_profile(db: Session, nuid: int) -> FacultyProfileResponse | None:
         faculty = faculty_repo.get_by_nuid(db, nuid)
         if not faculty:
             return None
-        previous_assignmets = section_repo.get_by_instructor(db, nuid)
-        if previous_assignmets:
-            return process_assignments(db, previous_assignmets, faculty)
+        previous_assignments = section_repo.get_by_instructor(db, nuid)
+        if previous_assignments:
+            return process_assignments(db, previous_assignments, faculty)
         else:
             return FacultyProfileResponse(
                 nuid=faculty.nuid,
