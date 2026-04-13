@@ -76,9 +76,14 @@ export default function Faculty() {
         setSchedules(data);
         if (data.length > 0) {
           setSelectedScheduleId((prev) => prev ?? data[0].schedule_id);
+        } else {
+          setLoading(false);
         }
       })
-      .catch(() => setError('Failed to load schedules.'));
+      .catch(() => {
+        setError('Failed to load schedules.');
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
