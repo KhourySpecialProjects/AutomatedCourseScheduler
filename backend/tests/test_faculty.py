@@ -79,6 +79,8 @@ def test_get_faculty_returns_all(client, db_session):
 
 
 def test_get_faculty_filter_by_campus(client, db_session):
+    boston = _make_campus(db_session, name="Boston")
+    oakland = _make_campus(db_session, name="Oakland")
     db_session.add_all(
         [
             Faculty(
@@ -86,20 +88,20 @@ def test_get_faculty_filter_by_campus(client, db_session):
                 first_name="A",
                 last_name="X",
                 email="a@x.com",
-                campus=1,
+                campus=boston.campus_id,
             ),
             Faculty(
                 nuid=1002,
                 first_name="B",
                 last_name="Y",
                 email="b@y.com",
-                campus=2,
+                campus=oakland.campus_id,
             ),
         ]
     )
     db_session.commit()
 
-    response = client.get("/faculty?campus=1")
+    response = client.get("/faculty?campus=Boston")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1

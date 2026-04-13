@@ -58,6 +58,13 @@ export interface CommentSchema {
 }
 
 export interface CourseCreate {
+  /**
+   * @minLength 1
+   * @maxLength 10
+   */
+  subject: string;
+  /** */
+  code: number;
   /** @minLength 1 */
   name: string;
   /** @minLength 1 */
@@ -80,26 +87,25 @@ export interface CoursePreferenceInfo {
   preference: string;
 }
 
-export type CourseResponseCourseDescription = string | null;
-
-export type CourseResponseCourseNo = number | null;
-
-export type CourseResponseCourseSubject = string | null;
-
-export type CourseResponseCourseName = string | null;
+export type CourseResponseDescription = string | null;
 
 export type CourseResponseSectionCount = number | null;
 
 export interface CourseResponse {
-  CourseID: number;
-  CourseDescription?: CourseResponseCourseDescription;
-  CourseNo?: CourseResponseCourseNo;
-  CourseSubject?: CourseResponseCourseSubject;
-  CourseName?: CourseResponseCourseName;
-  SectionCount?: CourseResponseSectionCount;
-  Priority?: boolean;
-  QualifiedFaculty?: number;
+  course_id: number;
+  subject: string;
+  code: number;
+  name: string;
+  description?: CourseResponseDescription;
+  credits: number;
+  priority?: boolean;
+  section_count?: CourseResponseSectionCount;
+  qualified_faculty?: number;
 }
+
+export type CourseUpdateSubject = string | null;
+
+export type CourseUpdateCode = number | null;
 
 export type CourseUpdateName = string | null;
 
@@ -110,6 +116,8 @@ export type CourseUpdateCredits = number | null;
 export type CourseUpdatePriority = boolean | null;
 
 export interface CourseUpdate {
+  subject?: CourseUpdateSubject;
+  code?: CourseUpdateCode;
   name?: CourseUpdateName;
   description?: CourseUpdateDescription;
   credits?: CourseUpdateCredits;
