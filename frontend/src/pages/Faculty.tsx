@@ -78,6 +78,9 @@ export default function Faculty() {
   const [facultyList, setFacultyList] = useState<FacultyRecord[]>([]);
   const [facultyLoading, setFacultyLoading] = useState(true);
 
+  // Users with accounts (for invite status)
+  const [userNuidSet, setUserNuidSet] = useState<Set<number>>(new Set());
+
   // Filters & sort
   const [campusFilter, setCampusFilter] = useState<number | null>(null);
   const [nameSearch, setNameSearch] = useState('');
@@ -102,7 +105,7 @@ export default function Faculty() {
       .finally(() => setMeLoading(false));
   }, []);
 
-  // Fetch campuses + schedules on mount
+  // Fetch campuses + schedules + users on mount
   useEffect(() => {
     api.getAllCampusesCampusesGet().then(setCampuses).catch(() => {});
     api
@@ -111,6 +114,10 @@ export default function Faculty() {
         setSchedules(data);
         if (data.length > 0) setSelectedScheduleId((prev) => prev ?? data[0].schedule_id);
       })
+      .catch(() => {});
+    api
+      .listUsersApiUsersGet()
+      .then((users) => setUserNuidSet(new Set(users.map((u) => u.nuid))))
       .catch(() => {});
   }, []);
 
@@ -399,6 +406,7 @@ export default function Faculty() {
                     </span>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -467,6 +475,20 @@ export default function Faculty() {
                           {f.active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
+
+                      {/* Account */}
+                      <td className="px-4 py-3">
+                        {userNuidSet.has(f.nuid) ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Linked
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">No account</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -491,9 +513,11 @@ export default function Faculty() {
           sections={sections}
           campuses={campuses}
           scheduleId={selectedScheduleId}
+          hasAccount={drawer.mode === 'edit' ? userNuidSet.has(drawer.faculty.nuid) : false}
           onClose={() => setDrawer(null)}
           onSaved={handleSaved}
           onDeleted={handleDeleted}
+          onInvited={(nuid) => setUserNuidSet((prev) => new Set([...prev, nuid]))}
         />
       )}
     </div>
