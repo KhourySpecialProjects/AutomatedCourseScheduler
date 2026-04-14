@@ -52,5 +52,7 @@ def add_course_list(
         draft=schedule.draft,
         campus=schedule.campus,
         active=schedule.active,
+        status=schedule.status,
+        error_message=schedule.error_message,
         course_list=course_list,
     )

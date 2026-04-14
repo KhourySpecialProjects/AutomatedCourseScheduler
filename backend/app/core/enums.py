@@ -33,8 +33,14 @@ class WarningType(enum.StrEnum):
     FACULTY_OVERLOAD = "Faculty overloaded with assignments"
     INSUFFICIENT_FACULTY_SUPPLY = "Insufficient faculty supply for section"
 
-
 class Campus(enum.StrEnum):
     BOSTON = "Boston"
     OAKLAND = "Oakland"
     LONDON = "London"
+
+class ScheduleStatus(enum.StrEnum):
+    IDLE = "idle"
+    RUNNING = "running"
+    GENERATED = "generated"
+    FAILED = "failed"
+    FINALIZED = "finalized"
