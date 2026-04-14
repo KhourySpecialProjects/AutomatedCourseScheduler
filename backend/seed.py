@@ -248,7 +248,6 @@ def seed(db: Session) -> None:
     ]
     db.add_all(seed_admins)
 
-    
     # ------------------------------------------------------------------
     # Time blocks
     # ------------------------------------------------------------------
@@ -328,7 +327,7 @@ def seed(db: Session) -> None:
     schedule_log = ScheduleLog(
         schedule_id=schedule.schedule_id,
         content="Initial seed — auto-generated draft schedule.",
-        updated_by=1
+        updated_by=1,
     )
     db.add(schedule_log)
 

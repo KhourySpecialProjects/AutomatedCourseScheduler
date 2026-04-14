@@ -49,6 +49,13 @@ class FacultyUpdate(BaseModel):
             raise ValueError("Field cannot be empty")
         return v
 
+    @field_validator("max_load")
+    @classmethod
+    def not_negative_optional(cls, v: int | None) -> int | None:
+        if v < 1:
+            raise ValueError("Max_load cannot be less than 1")
+        return v
+
 
 class FacultyProfileResponse(BaseModel):
     nuid: int

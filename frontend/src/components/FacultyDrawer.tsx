@@ -16,7 +16,6 @@ export interface FacultyRecord {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
-  title: string | null;
   campus: number | null;
   active: boolean | null;
   maxLoad: number | null;
@@ -94,8 +93,6 @@ export default function FacultyDrawer({
   const [firstName, setFirstName] = useState(faculty?.first_name ?? '');
   const [lastName, setLastName] = useState(faculty?.last_name ?? '');
   const [email, setEmail] = useState(faculty?.email ?? '');
-  const [phone, setPhone] = useState('');
-  const [titleVal, setTitleVal] = useState(faculty?.title ?? '');
   const [campusId, setCampusId] = useState<number | null>(faculty?.campus ?? null);
   const [maxLoad, setMaxLoad] = useState<number | ''>(faculty?.maxLoad ?? 3);
   const [active, setActive] = useState(faculty?.active ?? true);
@@ -183,8 +180,6 @@ export default function FacultyDrawer({
         last_name: lastName.trim(),
         email: email.trim(),
         campus: campusId,
-        phone_number: phone.trim() || null,
-        title: titleVal.trim() || null,
         active,
         max_load: Number(maxLoad),
       };
@@ -332,30 +327,6 @@ export default function FacultyDrawer({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={INPUT_CLS}
-              />
-            </div>
-
-            {/* Phone */}
-            <div>
-              <Label>Phone (optional)</Label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className={INPUT_CLS}
-                placeholder="e.g. 617-555-0100"
-              />
-            </div>
-
-            {/* Title */}
-            <div>
-              <Label>Title (optional)</Label>
-              <input
-                type="text"
-                value={titleVal}
-                onChange={(e) => setTitleVal(e.target.value)}
-                className={INPUT_CLS}
-                placeholder="e.g. Associate Professor"
               />
             </div>
 

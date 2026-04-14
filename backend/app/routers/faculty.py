@@ -33,9 +33,7 @@ def get_faculty(
 
 
 @router.post("", response_model=FacultyResponse, status_code=201)
-def create_faculty(
-    faculty: FacultyCreate, db: Session = Depends(get_db), _: dict = Depends(require_admin)
-):
+def create_faculty(faculty: FacultyCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
     """Create a new faculty member."""
     try:
         return faculty_service.create_faculty(db, faculty)
@@ -58,7 +56,7 @@ def update_faculty(
     nuid: int,
     faculty: FacultyUpdate,
     db: Session = Depends(get_db),
-    _: dict = Depends(require_admin),
+    _=Depends(require_admin),
 ):
     """Partially update faculty demographics and status."""
     try:
@@ -71,7 +69,7 @@ def update_faculty(
 
 
 @router.delete("/{nuid}", status_code=204)
-def delete_faculty(nuid: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+def delete_faculty(nuid: int, db: Session = Depends(get_db), _=Depends(require_admin)):
     """Delete a faculty member and their preferences and assignments."""
     deleted = faculty_service.delete_faculty(db, nuid)
     if not deleted:

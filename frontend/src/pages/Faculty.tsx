@@ -134,12 +134,26 @@ export default function Faculty() {
 
   // Fetch sections when schedule changes
   useEffect(() => {
-    if (!selectedScheduleId) return;
+    if (!selectedScheduleId) {
+      setSections([]);
+      return;
+    }
+    let cancelled = false;
     setSectionsLoading(true);
     api
       .getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet(selectedScheduleId)
-      .then((secs) => { setSections(secs); setSectionsLoading(false); })
-      .catch(() => setSectionsLoading(false));
+      .then((secs) => {
+        if (!cancelled) setSections(secs);
+      })
+      .catch(() => {
+        if (!cancelled) setSections([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSectionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedScheduleId]);
 
   // Current load per faculty in selected schedule
@@ -248,6 +262,8 @@ export default function Faculty() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      const users = await api.listUsersApiUsersGet();
+      setUserNuidSet(new Set(users.map((u) => u.nuid)));
     } finally {
       setExporting(false);
     }
@@ -430,7 +446,6 @@ export default function Faculty() {
                       )}
                     </span>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campus</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Load</th>
                   <th
@@ -475,11 +490,6 @@ export default function Faculty() {
                           {f.last_name}, {f.first_name}
                         </div>
                         <div className="text-xs text-gray-400">{f.nuid}</div>
-                      </td>
-
-                      {/* Title */}
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {f.title ?? <span className="text-gray-300">—</span>}
                       </td>
 
                       {/* Campus */}
