@@ -143,8 +143,14 @@ export interface FacultyCreate {
   email: string;
   /** */
   campus: number;
+  phone_number?: FacultyCreatePhoneNumber;
+  title?: FacultyCreateTitle;
   active?: boolean;
+  /** @minimum 1 */
+  max_load?: number;
 }
+
+export type FacultyProfileResponseMaxLoad = number | null;
 
 export type FacultyProfileResponseMaxLoad = number | null;
 
@@ -153,6 +159,7 @@ export interface FacultyProfileResponse {
   first_name: string;
   last_name: string;
   email: string;
+  title?: FacultyProfileResponseTitle;
   campus: number;
   active: boolean;
   maxLoad?: FacultyProfileResponseMaxLoad;
@@ -178,6 +185,7 @@ export interface FacultyResponse {
   first_name?: FacultyResponseFirstName;
   last_name?: FacultyResponseLastName;
   email?: FacultyResponseEmail;
+  title?: FacultyResponseTitle;
   campus?: FacultyResponseCampus;
   active?: FacultyResponseActive;
   maxLoad?: FacultyResponseMaxLoad;
@@ -191,7 +199,13 @@ export type FacultyUpdateEmail = string | null;
 
 export type FacultyUpdateCampus = number | null;
 
+export type FacultyUpdatePhoneNumber = string | null;
+
+export type FacultyUpdateTitle = string | null;
+
 export type FacultyUpdateActive = boolean | null;
+
+export type FacultyUpdateMaxLoad = number | null;
 
 export interface FacultyUpdate {
   first_name?: FacultyUpdateFirstName;
@@ -199,6 +213,7 @@ export interface FacultyUpdate {
   email?: FacultyUpdateEmail;
   campus?: FacultyUpdateCampus;
   active?: FacultyUpdateActive;
+  max_load?: FacultyUpdateMaxLoad;
 }
 
 export interface HTTPValidationError {
@@ -212,6 +227,13 @@ export interface InstructorInfo {
   email: string;
   course_preferences: CoursePreferenceInfo[];
   meeting_preferences: MeetingPreferenceInfo[];
+}
+
+export interface InviteLinkResponse {
+  first_name: string;
+  last_name: string;
+  email: string;
+  invite_link: string;
 }
 
 export interface InviteRequest {
@@ -1022,6 +1044,22 @@ const createInviteApiInvitesPost = (
     }
   
 /**
+ * Return invite links for all active faculty without a linked account.
+
+Creates pending User records for any who were not yet invited.
+Requires admin role.
+ * @summary Export Invites
+ */
+const exportInvitesApiInvitesExportGet = (
+    
+ ) => {
+      return axiosInstance<InviteLinkResponse[]>(
+      {url: `/api/invites/export`, method: 'GET'
+    },
+      );
+    }
+  
+/**
  * Return all users. Requires admin role.
  * @summary List Users
  */
@@ -1072,7 +1110,7 @@ const rootGet = (
       );
     }
   
-return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getScheduleLocksSchedulesScheduleIdLocksGet,getCoursesCoursesGet,createCourseCoursesPost,getCourseCoursesCourseIdGet,updateCourseCoursesCourseIdPatch,deleteCourseCoursesCourseIdDelete,getFacultyFacultyGet,createFacultyFacultyPost,getFacultyProfileFacultyNuidGet,updateFacultyFacultyNuidPatch,deleteFacultyFacultyNuidDelete,buildProfilesFacultyBuildProfilesPost,getTimeBlocksTimeBlocksGet,getAllCampusesCampusesGet,createCampusCampusesPost,getCampusCampusesCampusIdGet,updateCampusCampusesCampusIdPut,deleteCampusCampusesCampusIdDelete,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,postCommentCommentsPost,postReplyCommentsParentIdPost,getCommentsCommentsSectionIdGet,deleteCommentCommentsCommentIdDelete,resolveCommentCommentsCommentIdPut,acquireLockSectionsSectionIdLockPost,releaseLockSectionsSectionIdUnlockPost,createInviteApiInvitesPost,listUsersApiUsersGet,getMeApiUsersMeGet,getUserApiUsersUserIdGet,rootGet}};
+return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getScheduleLocksSchedulesScheduleIdLocksGet,getCoursesCoursesGet,createCourseCoursesPost,getCourseCoursesCourseIdGet,updateCourseCoursesCourseIdPatch,deleteCourseCoursesCourseIdDelete,getFacultyFacultyGet,createFacultyFacultyPost,getFacultyProfileFacultyNuidGet,updateFacultyFacultyNuidPatch,deleteFacultyFacultyNuidDelete,buildProfilesFacultyBuildProfilesPost,getTimeBlocksTimeBlocksGet,getAllCampusesCampusesGet,createCampusCampusesPost,getCampusCampusesCampusIdGet,updateCampusCampusesCampusIdPut,deleteCampusCampusesCampusIdDelete,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,postCommentCommentsPost,postReplyCommentsParentIdPost,getCommentsCommentsSectionIdGet,deleteCommentCommentsCommentIdDelete,resolveCommentCommentsCommentIdPut,acquireLockSectionsSectionIdLockPost,releaseLockSectionsSectionIdUnlockPost,createInviteApiInvitesPost,exportInvitesApiInvitesExportGet,listUsersApiUsersGet,getMeApiUsersMeGet,getUserApiUsersUserIdGet,rootGet}};
 export type CreateSectionSectionsPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createSectionSectionsPost']>>>
 export type UpdateSectionSectionsSectionIdPatchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateSectionSectionsSectionIdPatch']>>>
 export type DeleteSectionSectionsSectionIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteSectionSectionsSectionIdDelete']>>>
@@ -1113,6 +1151,7 @@ export type ResolveCommentCommentsCommentIdPutResult = NonNullable<Awaited<Retur
 export type AcquireLockSectionsSectionIdLockPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['acquireLockSectionsSectionIdLockPost']>>>
 export type ReleaseLockSectionsSectionIdUnlockPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['releaseLockSectionsSectionIdUnlockPost']>>>
 export type CreateInviteApiInvitesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createInviteApiInvitesPost']>>>
+export type ExportInvitesApiInvitesExportGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['exportInvitesApiInvitesExportGet']>>>
 export type ListUsersApiUsersGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['listUsersApiUsersGet']>>>
 export type GetMeApiUsersMeGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getMeApiUsersMeGet']>>>
 export type GetUserApiUsersUserIdGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getUserApiUsersUserIdGet']>>>

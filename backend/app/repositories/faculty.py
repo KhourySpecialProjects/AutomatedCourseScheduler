@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.campus import Campus
@@ -58,3 +59,20 @@ def save(db: Session, faculty: Faculty) -> Faculty:
 def delete_with_dependencies(db: Session, faculty: Faculty) -> None:
     db.delete(faculty)
     db.commit()
+
+
+def get_uninvited_or_pending_active(db: Session) -> list[Faculty]:
+    """Return active faculty who have no User record or a User record with
+    auth0_sub=None (invited but never logged in)."""
+    from app.models.user import User
+
+    return (
+        db.query(Faculty)
+        .outerjoin(User, Faculty.nuid == User.nuid)
+        .filter(
+            Faculty.active.is_(True),
+            or_(User.nuid.is_(None), User.auth0_sub.is_(None)),
+        )
+        .order_by(Faculty.last_name, Faculty.first_name)
+        .all()
+    )

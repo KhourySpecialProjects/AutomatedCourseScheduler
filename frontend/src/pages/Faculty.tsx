@@ -94,6 +94,9 @@ export default function Faculty() {
     | null;
   const [drawer, setDrawer] = useState<DrawerState>(null);
 
+  // Export state
+  const [exporting, setExporting] = useState(false);
+
   const api = getAutomatedCourseSchedulerAPI();
 
   // Fetch current user
@@ -221,6 +224,29 @@ export default function Faculty() {
     else { setSortKey(key); setSortDir('asc'); }
   }
 
+  async function handleExportInviteCsv() {
+    setExporting(true);
+    try {
+      const rows = await api.exportInvitesApiInvitesExportGet();
+      const header = ['first_name', 'last_name', 'email', 'invite_link'];
+      const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+      const csv = [
+        header.join(','),
+        ...rows.map((r) => [r.first_name, r.last_name, r.email, r.invite_link].map(escape).join(',')),
+      ].join('\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'faculty_invites.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function handleSaved(updated: FacultyRecord) {
     setFacultyList((prev) => {
       const idx = prev.findIndex((f) => f.nuid === updated.nuid);
@@ -342,6 +368,18 @@ export default function Faculty() {
               className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-44"
             />
           </div>
+
+          {/* Export invite CSV */}
+          <button
+            onClick={handleExportInviteCsv}
+            disabled={exporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {exporting ? 'Exporting…' : 'Export Invite CSV'}
+          </button>
 
           {/* Add faculty */}
           <button
