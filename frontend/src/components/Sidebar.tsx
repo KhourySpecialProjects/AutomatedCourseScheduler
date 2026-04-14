@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
+import { getAutomatedCourseSchedulerAPI } from '../api/generated';
 
 function CalendarIcon() {
   return (
@@ -59,15 +60,23 @@ function LogoutIcon() {
 }
 
 const NAV_ITEMS = [
-  { to: '/schedules', label: 'Schedules', icon: <CalendarIcon /> },
-  { to: '/faculty', label: 'Faculty', icon: <UsersIcon /> },
-  { to: '/courses', label: 'Courses', icon: <BookIcon /> },
-  { to: '/upload', label: 'Upload CSV', icon: <UploadIcon /> },
+  { to: '/schedules', label: 'Schedules', icon: <CalendarIcon />, adminOnly: false },
+  { to: '/faculty', label: 'Faculty', icon: <UsersIcon />, adminOnly: true },
+  { to: '/courses', label: 'Courses', icon: <BookIcon />, adminOnly: false },
+  { to: '/upload', label: 'Upload CSV', icon: <UploadIcon />, adminOnly: true },
 ];
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { user, logout } = useAuth0();
+
+  useEffect(() => {
+    getAutomatedCourseSchedulerAPI()
+      .getMeApiUsersMeGet()
+      .then((me) => setIsAdmin(me.role === 'ADMIN'))
+      .catch(() => {});
+  }, []);
 
   return (
     <aside
@@ -91,7 +100,7 @@ export default function Sidebar() {
 
       {/* Nav items */}
       <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-hidden">
-        {NAV_ITEMS.map((item) => (
+        {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
