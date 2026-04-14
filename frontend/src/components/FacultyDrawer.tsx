@@ -4,6 +4,7 @@ import {
   type CampusResponse,
   type SectionRichResponse,
   type TimeBlockInfo,
+  type InviteResponse,
 } from '../api/generated';
 import SectionCalendarGrid from './SectionCalendarGrid';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
@@ -34,9 +35,11 @@ interface Props {
   sections: SectionRichResponse[];
   campuses: CampusResponse[];
   scheduleId: number | null;
+  hasAccount: boolean;
   onClose: () => void;
   onSaved: (f: FacultyRecord) => void;
   onDeleted: (nuid: number) => void;
+  onInvited: (nuid: number) => void;
 }
 
 function Label({ children }: { children: React.ReactNode }) {
@@ -78,9 +81,11 @@ export default function FacultyDrawer({
   sections,
   campuses,
   scheduleId,
+  hasAccount,
   onClose,
   onSaved,
   onDeleted,
+  onInvited,
 }: Props) {
   const isEdit = mode === 'edit' && faculty !== null;
 
@@ -105,6 +110,12 @@ export default function FacultyDrawer({
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Invite state (edit mode only)
+  const [inviting, setInviting] = useState(false);
+  const [inviteResult, setInviteResult] = useState<InviteResponse | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Build time-block lookup from the sections prop for readable meeting preference labels.
   const timeBlockMap = useMemo(() => {
@@ -208,6 +219,31 @@ export default function FacultyDrawer({
       setDeleting(false);
       setConfirmingDelete(false);
     }
+  }
+
+  async function handleInvite() {
+    if (!faculty) return;
+    setInviting(true);
+    setInviteError(null);
+    try {
+      const result = await getAutomatedCourseSchedulerAPI().createInviteApiInvitesPost({
+        nuid: faculty.nuid,
+      });
+      setInviteResult(result);
+      onInvited(faculty.nuid);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setInviteError(detail ?? 'Failed to send invite. Please try again.');
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  function handleCopy(url: string) {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   }
 
   const drawerWidth = sectionView === 'calendar' && isEdit ? 'w-[56rem]' : 'w-[28rem]';
@@ -491,6 +527,64 @@ export default function FacultyDrawer({
                     )}
                   </div>
                 </>
+              )}
+            </div>
+          )}
+
+          {/* ── Section D: Account / Invite ── */}
+          {isEdit && (
+            <div className="space-y-3">
+              <SectionHeader>Account</SectionHeader>
+
+              {hasAccount || inviteResult ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Account linked
+                  </span>
+                </div>
+              ) : inviteResult === null ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">
+                    This faculty member has no account. Send them an invite to set up access.
+                  </p>
+                  {inviteError && (
+                    <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                      {inviteError}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleInvite}
+                    disabled={inviting}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {inviting ? 'Sending…' : 'Send invite'}
+                  </button>
+                </div>
+              ) : null}
+
+              {inviteResult?.signup_url && (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500">Invite link generated. Share it with the faculty member:</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={inviteResult.signup_url}
+                      className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-700 focus:outline-none"
+                    />
+                    <button
+                      onClick={() => handleCopy(inviteResult.signup_url)}
+                      className="shrink-0 px-3 py-2 text-xs font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}
