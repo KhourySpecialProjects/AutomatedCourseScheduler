@@ -137,14 +137,18 @@ export interface FacultyCreate {
   last_name: string;
   /** @minLength 1 */
   email: string;
-  /** @minLength 1 */
-  campus: string;
+  /** */
+  campus: number;
   phone_number?: FacultyCreatePhoneNumber;
   title?: FacultyCreateTitle;
   active?: boolean;
+  /** @minimum 1 */
+  max_load?: number;
 }
 
 export type FacultyProfileResponseTitle = string | null;
+
+export type FacultyProfileResponseMaxLoad = number | null;
 
 export interface FacultyProfileResponse {
   nuid: number;
@@ -152,8 +156,10 @@ export interface FacultyProfileResponse {
   last_name: string;
   email: string;
   title?: FacultyProfileResponseTitle;
-  campus: string;
+  campus: number;
   active: boolean;
+  maxLoad?: FacultyProfileResponseMaxLoad;
+  needsAdminReview?: boolean;
   course_preferences: CoursePreferenceInfo[];
   meeting_preferences: MeetingPreferenceInfo[];
 }
@@ -173,14 +179,14 @@ export type FacultyResponseActive = boolean | null;
 export type FacultyResponseMaxLoad = number | null;
 
 export interface FacultyResponse {
-  NUID: number;
-  FirstName?: FacultyResponseFirstName;
-  LastName?: FacultyResponseLastName;
-  Email?: FacultyResponseEmail;
-  Title?: FacultyResponseTitle;
-  Campus?: FacultyResponseCampus;
-  Active?: FacultyResponseActive;
-  MaxLoad?: FacultyResponseMaxLoad;
+  nuid: number;
+  first_name?: FacultyResponseFirstName;
+  last_name?: FacultyResponseLastName;
+  email?: FacultyResponseEmail;
+  title?: FacultyResponseTitle;
+  campus?: FacultyResponseCampus;
+  active?: FacultyResponseActive;
+  maxLoad?: FacultyResponseMaxLoad;
 }
 
 export type FacultyUpdateFirstName = string | null;
@@ -189,13 +195,15 @@ export type FacultyUpdateLastName = string | null;
 
 export type FacultyUpdateEmail = string | null;
 
-export type FacultyUpdateCampus = string | null;
+export type FacultyUpdateCampus = number | null;
 
 export type FacultyUpdatePhoneNumber = string | null;
 
 export type FacultyUpdateTitle = string | null;
 
 export type FacultyUpdateActive = boolean | null;
+
+export type FacultyUpdateMaxLoad = number | null;
 
 export interface FacultyUpdate {
   first_name?: FacultyUpdateFirstName;
@@ -205,6 +213,7 @@ export interface FacultyUpdate {
   phone_number?: FacultyUpdatePhoneNumber;
   title?: FacultyUpdateTitle;
   active?: FacultyUpdateActive;
+  max_load?: FacultyUpdateMaxLoad;
 }
 
 export interface HTTPValidationError {
@@ -233,7 +242,7 @@ export interface InviteResponse {
 }
 
 export interface MeetingPreferenceInfo {
-  meeting_time: string;
+  time_block_id: number;
   preference: string;
 }
 
@@ -344,6 +353,31 @@ export interface SectionUpdate {
   faculty_nuids?: SectionUpdateFacultyNuids;
 }
 
+export interface SemesterCreate {
+  season: string;
+  year: number;
+  active?: boolean;
+}
+
+export interface SemesterResponse {
+  semester_id: number;
+  season: string;
+  year: number;
+  active: boolean;
+}
+
+export type SemesterUpdateSeason = string | null;
+
+export type SemesterUpdateYear = number | null;
+
+export type SemesterUpdateActive = boolean | null;
+
+export interface SemesterUpdate {
+  season?: SemesterUpdateSeason;
+  year?: SemesterUpdateYear;
+  active?: SemesterUpdateActive;
+}
+
 export interface TimeBlockInfo {
   time_block_id: number;
   days: string;
@@ -374,6 +408,7 @@ export interface UploadResponse {
   records_processed?: number;
   records_successful?: number;
   records_failed?: number;
+  available_faculty?: number[];
   errors?: UploadResponseErrors;
 }
 
@@ -618,6 +653,76 @@ const getScheduleLocksSchedulesScheduleIdLocksGet = (
     }
   
 /**
+ * Get all semesters, with optional filtering by campus, semester name, or year.
+ * @summary Get All Semesters
+ */
+const getAllSemestersSemestersGet = (
+    
+ ) => {
+      return axiosInstance<SemesterResponse[]>(
+      {url: `/semesters`, method: 'GET'
+    },
+      );
+    }
+  
+/**
+ * Create a new semester.
+ * @summary Create Semester
+ */
+const createSemesterSemestersPost = (
+    semesterCreate: SemesterCreate,
+ ) => {
+      return axiosInstance<SemesterCreate>(
+      {url: `/semesters`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: semesterCreate
+    },
+      );
+    }
+  
+/**
+ * Retrieve a specific semester.
+ * @summary Get Semester
+ */
+const getSemesterSemestersSemesterIdGet = (
+    semesterId: number,
+ ) => {
+      return axiosInstance<SemesterResponse>(
+      {url: `/semesters/${semesterId}`, method: 'GET'
+    },
+      );
+    }
+  
+/**
+ * Update semester metadata (name, complete status, etc.).
+ * @summary Update Semester
+ */
+const updateSemesterSemestersSemesterIdPut = (
+    semesterId: number,
+    semesterUpdate: SemesterUpdate,
+ ) => {
+      return axiosInstance<SemesterResponse>(
+      {url: `/semesters/${semesterId}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: semesterUpdate
+    },
+      );
+    }
+  
+/**
+ * Delete a semester and all its sections.
+ * @summary Delete Semester
+ */
+const deleteSemesterSemestersSemesterIdDelete = (
+    semesterId: number,
+ ) => {
+      return axiosInstance<void>(
+      {url: `/semesters/${semesterId}`, method: 'DELETE'
+    },
+      );
+    }
+  
+/**
  * Retrieve all courses, optionally filtered by schedule
  * @summary Get Courses
  */
@@ -757,6 +862,20 @@ const deleteFacultyFacultyNuidDelete = (
  ) => {
       return axiosInstance<void>(
       {url: `/faculty/${nuid}`, method: 'DELETE'
+    },
+      );
+    }
+  
+/**
+ * @summary Build Profiles
+ */
+const buildProfilesFacultyBuildProfilesPost = (
+    buildProfilesFacultyBuildProfilesPostBody: number[],
+ ) => {
+      return axiosInstance<FacultyProfileResponse[]>(
+      {url: `/faculty/build_profiles`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: buildProfilesFacultyBuildProfilesPostBody
     },
       );
     }
@@ -1064,7 +1183,7 @@ const rootGet = (
       );
     }
   
-return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getScheduleLocksSchedulesScheduleIdLocksGet,getCoursesCoursesGet,createCourseCoursesPost,getCourseCoursesCourseIdGet,updateCourseCoursesCourseIdPatch,deleteCourseCoursesCourseIdDelete,getFacultyFacultyGet,createFacultyFacultyPost,getFacultyProfileFacultyNuidGet,updateFacultyFacultyNuidPatch,deleteFacultyFacultyNuidDelete,getTimeBlocksTimeBlocksGet,getAllCampusesCampusesGet,createCampusCampusesPost,getCampusCampusesCampusIdGet,updateCampusCampusesCampusIdPut,deleteCampusCampusesCampusIdDelete,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,postCommentCommentsPost,postReplyCommentsParentIdPost,getCommentsCommentsSectionIdGet,deleteCommentCommentsCommentIdDelete,resolveCommentCommentsCommentIdPut,acquireLockSectionsSectionIdLockPost,releaseLockSectionsSectionIdUnlockPost,createInviteApiInvitesPost,listUsersApiUsersGet,getMeApiUsersMeGet,getUserApiUsersUserIdGet,rootGet}};
+return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getScheduleLocksSchedulesScheduleIdLocksGet,getAllSemestersSemestersGet,createSemesterSemestersPost,getSemesterSemestersSemesterIdGet,updateSemesterSemestersSemesterIdPut,deleteSemesterSemestersSemesterIdDelete,getCoursesCoursesGet,createCourseCoursesPost,getCourseCoursesCourseIdGet,updateCourseCoursesCourseIdPatch,deleteCourseCoursesCourseIdDelete,getFacultyFacultyGet,createFacultyFacultyPost,getFacultyProfileFacultyNuidGet,updateFacultyFacultyNuidPatch,deleteFacultyFacultyNuidDelete,buildProfilesFacultyBuildProfilesPost,getTimeBlocksTimeBlocksGet,getAllCampusesCampusesGet,createCampusCampusesPost,getCampusCampusesCampusIdGet,updateCampusCampusesCampusIdPut,deleteCampusCampusesCampusIdDelete,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,postCommentCommentsPost,postReplyCommentsParentIdPost,getCommentsCommentsSectionIdGet,deleteCommentCommentsCommentIdDelete,resolveCommentCommentsCommentIdPut,acquireLockSectionsSectionIdLockPost,releaseLockSectionsSectionIdUnlockPost,createInviteApiInvitesPost,listUsersApiUsersGet,getMeApiUsersMeGet,getUserApiUsersUserIdGet,rootGet}};
 export type CreateSectionSectionsPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createSectionSectionsPost']>>>
 export type UpdateSectionSectionsSectionIdPatchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateSectionSectionsSectionIdPatch']>>>
 export type DeleteSectionSectionsSectionIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteSectionSectionsSectionIdDelete']>>>
@@ -1077,6 +1196,11 @@ export type GetScheduleSectionsSchedulesScheduleIdSectionsGetResult = NonNullabl
 export type GetScheduleSectionsRichSchedulesScheduleIdSectionsRichGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet']>>>
 export type ExportScheduleCsvSchedulesScheduleIdExportCsvGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['exportScheduleCsvSchedulesScheduleIdExportCsvGet']>>>
 export type GetScheduleLocksSchedulesScheduleIdLocksGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getScheduleLocksSchedulesScheduleIdLocksGet']>>>
+export type GetAllSemestersSemestersGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getAllSemestersSemestersGet']>>>
+export type CreateSemesterSemestersPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createSemesterSemestersPost']>>>
+export type GetSemesterSemestersSemesterIdGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getSemesterSemestersSemesterIdGet']>>>
+export type UpdateSemesterSemestersSemesterIdPutResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateSemesterSemestersSemesterIdPut']>>>
+export type DeleteSemesterSemestersSemesterIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteSemesterSemestersSemesterIdDelete']>>>
 export type GetCoursesCoursesGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getCoursesCoursesGet']>>>
 export type CreateCourseCoursesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createCourseCoursesPost']>>>
 export type GetCourseCoursesCourseIdGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getCourseCoursesCourseIdGet']>>>
@@ -1087,6 +1211,7 @@ export type CreateFacultyFacultyPostResult = NonNullable<Awaited<ReturnType<Retu
 export type GetFacultyProfileFacultyNuidGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getFacultyProfileFacultyNuidGet']>>>
 export type UpdateFacultyFacultyNuidPatchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateFacultyFacultyNuidPatch']>>>
 export type DeleteFacultyFacultyNuidDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteFacultyFacultyNuidDelete']>>>
+export type BuildProfilesFacultyBuildProfilesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['buildProfilesFacultyBuildProfilesPost']>>>
 export type GetTimeBlocksTimeBlocksGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getTimeBlocksTimeBlocksGet']>>>
 export type GetAllCampusesCampusesGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getAllCampusesCampusesGet']>>>
 export type CreateCampusCampusesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createCampusCampusesPost']>>>

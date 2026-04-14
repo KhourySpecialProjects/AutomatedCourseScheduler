@@ -121,9 +121,9 @@ export default function SectionMutationDrawer(props: Props) {
   }));
 
   const facultyOptions: SelectOption<number>[] = faculty.map((f) => ({
-    value: f.NUID,
-    label: `${f.FirstName ?? ''} ${f.LastName ?? ''}`.trim(),
-    sublabel: f.Title ?? undefined,
+    value: f.nuid,
+    label: `${f.first_name ?? ''} ${f.last_name ?? ''}`.trim(),
+    sublabel: f.title ?? undefined,
   }));
 
   async function handleDelete() {
