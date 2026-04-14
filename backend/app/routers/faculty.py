@@ -4,6 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_admin
 from app.core.database import get_db
 from app.schemas.faculty import (
     FacultyCreate,
@@ -32,7 +33,7 @@ def get_faculty(
 
 
 @router.post("", response_model=FacultyResponse, status_code=201)
-def create_faculty(faculty: FacultyCreate, db: Session = Depends(get_db)):
+def create_faculty(faculty: FacultyCreate, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
     """Create a new faculty member."""
     try:
         return faculty_service.create_faculty(db, faculty)
@@ -51,7 +52,7 @@ def get_faculty_profile(nuid: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{nuid}", response_model=FacultyResponse)
-def update_faculty(nuid: int, faculty: FacultyUpdate, db: Session = Depends(get_db)):
+def update_faculty(nuid: int, faculty: FacultyUpdate, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
     """Partially update faculty demographics and status."""
     try:
         updated = faculty_service.update_faculty(db, nuid, faculty)
@@ -63,7 +64,7 @@ def update_faculty(nuid: int, faculty: FacultyUpdate, db: Session = Depends(get_
 
 
 @router.delete("/{nuid}", status_code=204)
-def delete_faculty(nuid: int, db: Session = Depends(get_db)):
+def delete_faculty(nuid: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
     """Delete a faculty member and their preferences and assignments."""
     deleted = faculty_service.delete_faculty(db, nuid)
     if not deleted:

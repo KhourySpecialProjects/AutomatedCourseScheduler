@@ -57,6 +57,7 @@ def create_faculty(db: Session, body: FacultyCreate) -> FacultyResponse:
         phone_number=body.phone_number,
         title=body.title,
         active=body.active,
+        max_load=body.max_load,
     )
     faculty_repo.create(db, faculty)
     return _faculty_to_response(faculty)
@@ -113,7 +114,6 @@ def get_faculty_profile(db: Session, nuid: int) -> FacultyProfileResponse | None
     if faculty is None:
         raise ValueError(f"Faculty with id {nuid} not found")
 
-    previous_assignments = section_repo.get_by_instructor(db, nuid)
     return FacultyProfileResponse(
         nuid=faculty.nuid,
         first_name=faculty.first_name,
@@ -122,7 +122,7 @@ def get_faculty_profile(db: Session, nuid: int) -> FacultyProfileResponse | None
         title=faculty.title,
         campus=faculty.campus,
         active=faculty.active,
-        maxLoad=get_average_max_load(db, previous_assignments, nuid) if previous_assignments else 3,
+        maxLoad=faculty.max_load,
         course_preferences=[
             CoursePreferenceInfo(
                 course_id=cp.course_id,
