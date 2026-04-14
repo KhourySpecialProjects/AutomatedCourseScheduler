@@ -139,7 +139,7 @@ export default function SectionCalendarGrid({
             <div
               className="grid border-b border-gray-200 bg-gray-50"
               style={{
-                gridTemplateColumns: `clamp(10rem, 16vw, 14rem) repeat(${DAYS.length}, minmax(10.5rem, 1fr))`,
+                gridTemplateColumns: `clamp(7rem, 10vw, 8.5rem) repeat(${DAYS.length}, minmax(10.5rem, 1fr))`,
               }}
             >
               <div className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky left-0 z-40 bg-gray-50 border-r border-gray-200">
@@ -163,7 +163,7 @@ export default function SectionCalendarGrid({
                 key={`${tb.start_time}|${tb.end_time}`}
                 className="grid border-b border-gray-100"
                 style={{
-                  gridTemplateColumns: `clamp(10rem, 16vw, 14rem) repeat(${DAYS.length}, minmax(10.5rem, 1fr))`,
+                  gridTemplateColumns: `clamp(7rem, 10vw, 8.5rem) repeat(${DAYS.length}, minmax(10.5rem, 1fr))`,
                 }}
               >
                 {/* Time label */}

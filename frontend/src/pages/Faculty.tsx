@@ -82,7 +82,6 @@ export default function Faculty() {
   const [userNuidSet, setUserNuidSet] = useState<Set<number>>(new Set());
 
   // Filters & sort
-  const [campusFilter, setCampusFilter] = useState<number | null>(null);
   const [nameSearch, setNameSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -124,16 +123,14 @@ export default function Faculty() {
       .catch(() => {});
   }, []);
 
-  // Fetch faculty list (re-runs when campus filter changes)
+  // Fetch faculty list once on mount
   useEffect(() => {
     setFacultyLoading(true);
-    const campusName = campuses.find((c) => c.campus_id === campusFilter)?.name;
-    const params = campusName ? { campus: campusName } : {};
-    (api.getFacultyFacultyGet(params) as unknown as Promise<FacultyRecord[]>)
+    (api.getFacultyFacultyGet({}) as unknown as Promise<FacultyRecord[]>)
       .then(setFacultyList)
       .catch(() => {})
       .finally(() => setFacultyLoading(false));
-  }, [campusFilter, campuses]);
+  }, []);
 
   // Fetch sections when schedule changes
   useEffect(() => {
@@ -169,11 +166,20 @@ export default function Faculty() {
   }, [sections]);
   const totalAssignments = counts.first + counts.second + counts.third + counts.none;
 
-  // Campus dropdown options
-  const campusOptions: SelectOption<number>[] = useMemo(
-    () => campuses.map((c) => ({ value: c.campus_id, label: c.name })),
-    [campuses],
-  );
+  // Time preference histogram counts
+  const timeCounts = useMemo(() => {
+    const c: Record<BucketKey, number> = { first: 0, second: 0, third: 0, none: 0 };
+    for (const s of sections) {
+      for (const inst of s.instructors) {
+        const pref = inst.meeting_preferences.find(
+          (mp) => mp.time_block_id === s.time_block.time_block_id,
+        )?.preference;
+        c[preferenceToBucket(pref)] += 1;
+      }
+    }
+    return c;
+  }, [sections]);
+  const totalTimeAssignments = timeCounts.first + timeCounts.second + timeCounts.third + timeCounts.none;
 
   // Schedule dropdown options
   const scheduleOptions: SelectOption<number>[] = useMemo(
@@ -295,41 +301,55 @@ export default function Faculty() {
   return (
     <div className="max-w-5xl space-y-6">
       {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Faculty</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Manage faculty members and view preference satisfaction by schedule.
-        </p>
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Faculty</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage faculty members and view preference satisfaction by schedule.
+          </p>
+        </div>
+        <div className="w-72 mt-1 shrink-0">
+          <SearchableSelect
+            options={scheduleOptions}
+            value={selectedScheduleId}
+            onChange={setSelectedScheduleId}
+            placeholder="Select schedule…"
+            disabled={schedules.length === 0}
+          />
+        </div>
       </div>
 
       {/* ── Histogram card ── */}
       <div className="bg-white border border-gray-200 rounded-xl p-5">
-        <div className="flex items-center justify-between gap-4 mb-5">
-          <div>
-            <div className="text-sm font-semibold text-gray-900">Preference Histogram</div>
-            <div className="text-xs text-gray-500">
-              Instructor-to-section assignments by preference bucket.
-            </div>
-          </div>
-          <div className="w-72">
-            <SearchableSelect
-              options={scheduleOptions}
-              value={selectedScheduleId}
-              onChange={setSelectedScheduleId}
-              placeholder="Select schedule…"
-              disabled={schedules.length === 0}
-            />
+        <div className="mb-5">
+          <div className="text-sm font-semibold text-gray-900">Assignment Preferences</div>
+          <div className="text-xs text-gray-500">
+            Instructor-to-section assignments by preference bucket.
           </div>
         </div>
 
         {sectionsLoading ? (
           <div className="text-sm text-gray-400">Loading…</div>
         ) : (
-          <div className="space-y-4">
-            <Bar label={bucketLabel('first')} value={counts.first} total={totalAssignments} color={bucketStyle('first')} />
-            <Bar label={bucketLabel('second')} value={counts.second} total={totalAssignments} color={bucketStyle('second')} />
-            <Bar label={bucketLabel('third')} value={counts.third} total={totalAssignments} color={bucketStyle('third')} />
-            <Bar label={bucketLabel('none')} value={counts.none} total={totalAssignments} color={bucketStyle('none')} />
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <div className="text-xs font-medium text-gray-600 mb-3">Course</div>
+              <div className="space-y-4">
+                <Bar label={bucketLabel('first')} value={counts.first} total={totalAssignments} color={bucketStyle('first')} />
+                <Bar label={bucketLabel('second')} value={counts.second} total={totalAssignments} color={bucketStyle('second')} />
+                <Bar label={bucketLabel('third')} value={counts.third} total={totalAssignments} color={bucketStyle('third')} />
+                <Bar label={bucketLabel('none')} value={counts.none} total={totalAssignments} color={bucketStyle('none')} />
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-medium text-gray-600 mb-3">Time</div>
+              <div className="space-y-4">
+                <Bar label={bucketLabel('first')} value={timeCounts.first} total={totalTimeAssignments} color={bucketStyle('first')} />
+                <Bar label={bucketLabel('second')} value={timeCounts.second} total={totalTimeAssignments} color={bucketStyle('second')} />
+                <Bar label={bucketLabel('third')} value={timeCounts.third} total={totalTimeAssignments} color={bucketStyle('third')} />
+                <Bar label={bucketLabel('none')} value={timeCounts.none} total={totalTimeAssignments} color={bucketStyle('none')} />
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -339,16 +359,6 @@ export default function Faculty() {
         {/* Card header */}
         <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-gray-100">
           <div className="text-sm font-semibold text-gray-900 mr-auto">All Faculty</div>
-
-          {/* Campus filter */}
-          <div className="w-48">
-            <SearchableSelect
-              options={campusOptions}
-              value={campusFilter}
-              onChange={setCampusFilter}
-              placeholder="All campuses"
-            />
-          </div>
 
           {/* Name search */}
           <div className="relative">

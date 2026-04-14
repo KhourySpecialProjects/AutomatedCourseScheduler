@@ -360,6 +360,31 @@ export interface SectionUpdate {
   faculty_nuids?: SectionUpdateFacultyNuids;
 }
 
+export interface SemesterCreate {
+  season: string;
+  year: number;
+  active?: boolean;
+}
+
+export interface SemesterResponse {
+  semester_id: number;
+  season: string;
+  year: number;
+  active: boolean;
+}
+
+export type SemesterUpdateSeason = string | null;
+
+export type SemesterUpdateYear = number | null;
+
+export type SemesterUpdateActive = boolean | null;
+
+export interface SemesterUpdate {
+  season?: SemesterUpdateSeason;
+  year?: SemesterUpdateYear;
+  active?: SemesterUpdateActive;
+}
+
 export interface TimeBlockInfo {
   time_block_id: number;
   days: string;
@@ -630,6 +655,76 @@ const getScheduleLocksSchedulesScheduleIdLocksGet = (
  ) => {
       return axiosInstance<ScheduleActiveLockResponse[]>(
       {url: `/schedules/${scheduleId}/locks`, method: 'GET'
+    },
+      );
+    }
+  
+/**
+ * Get all semesters, with optional filtering by campus, semester name, or year.
+ * @summary Get All Semesters
+ */
+const getAllSemestersSemestersGet = (
+    
+ ) => {
+      return axiosInstance<SemesterResponse[]>(
+      {url: `/semesters`, method: 'GET'
+    },
+      );
+    }
+  
+/**
+ * Create a new semester.
+ * @summary Create Semester
+ */
+const createSemesterSemestersPost = (
+    semesterCreate: SemesterCreate,
+ ) => {
+      return axiosInstance<SemesterCreate>(
+      {url: `/semesters`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: semesterCreate
+    },
+      );
+    }
+  
+/**
+ * Retrieve a specific semester.
+ * @summary Get Semester
+ */
+const getSemesterSemestersSemesterIdGet = (
+    semesterId: number,
+ ) => {
+      return axiosInstance<SemesterResponse>(
+      {url: `/semesters/${semesterId}`, method: 'GET'
+    },
+      );
+    }
+  
+/**
+ * Update semester metadata (name, complete status, etc.).
+ * @summary Update Semester
+ */
+const updateSemesterSemestersSemesterIdPut = (
+    semesterId: number,
+    semesterUpdate: SemesterUpdate,
+ ) => {
+      return axiosInstance<SemesterResponse>(
+      {url: `/semesters/${semesterId}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: semesterUpdate
+    },
+      );
+    }
+  
+/**
+ * Delete a semester and all its sections.
+ * @summary Delete Semester
+ */
+const deleteSemesterSemestersSemesterIdDelete = (
+    semesterId: number,
+ ) => {
+      return axiosInstance<void>(
+      {url: `/semesters/${semesterId}`, method: 'DELETE'
     },
       );
     }
@@ -1111,7 +1206,7 @@ const rootGet = (
       );
     }
   
-return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getScheduleLocksSchedulesScheduleIdLocksGet,getCoursesCoursesGet,createCourseCoursesPost,getCourseCoursesCourseIdGet,updateCourseCoursesCourseIdPatch,deleteCourseCoursesCourseIdDelete,getFacultyFacultyGet,createFacultyFacultyPost,getFacultyProfileFacultyNuidGet,updateFacultyFacultyNuidPatch,deleteFacultyFacultyNuidDelete,buildProfilesFacultyBuildProfilesPost,getTimeBlocksTimeBlocksGet,getAllCampusesCampusesGet,createCampusCampusesPost,getCampusCampusesCampusIdGet,updateCampusCampusesCampusIdPut,deleteCampusCampusesCampusIdDelete,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,postCommentCommentsPost,postReplyCommentsParentIdPost,getCommentsCommentsSectionIdGet,deleteCommentCommentsCommentIdDelete,resolveCommentCommentsCommentIdPut,acquireLockSectionsSectionIdLockPost,releaseLockSectionsSectionIdUnlockPost,createInviteApiInvitesPost,exportInvitesApiInvitesExportGet,listUsersApiUsersGet,getMeApiUsersMeGet,getUserApiUsersUserIdGet,rootGet}};
+return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getScheduleLocksSchedulesScheduleIdLocksGet,getAllSemestersSemestersGet,createSemesterSemestersPost,getSemesterSemestersSemesterIdGet,updateSemesterSemestersSemesterIdPut,deleteSemesterSemestersSemesterIdDelete,getCoursesCoursesGet,createCourseCoursesPost,getCourseCoursesCourseIdGet,updateCourseCoursesCourseIdPatch,deleteCourseCoursesCourseIdDelete,getFacultyFacultyGet,createFacultyFacultyPost,getFacultyProfileFacultyNuidGet,updateFacultyFacultyNuidPatch,deleteFacultyFacultyNuidDelete,buildProfilesFacultyBuildProfilesPost,getTimeBlocksTimeBlocksGet,getAllCampusesCampusesGet,createCampusCampusesPost,getCampusCampusesCampusIdGet,updateCampusCampusesCampusIdPut,deleteCampusCampusesCampusIdDelete,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,postCommentCommentsPost,postReplyCommentsParentIdPost,getCommentsCommentsSectionIdGet,deleteCommentCommentsCommentIdDelete,resolveCommentCommentsCommentIdPut,acquireLockSectionsSectionIdLockPost,releaseLockSectionsSectionIdUnlockPost,createInviteApiInvitesPost,listUsersApiUsersGet,getMeApiUsersMeGet,getUserApiUsersUserIdGet,rootGet}};
 export type CreateSectionSectionsPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createSectionSectionsPost']>>>
 export type UpdateSectionSectionsSectionIdPatchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateSectionSectionsSectionIdPatch']>>>
 export type DeleteSectionSectionsSectionIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteSectionSectionsSectionIdDelete']>>>
@@ -1124,6 +1219,11 @@ export type GetScheduleSectionsSchedulesScheduleIdSectionsGetResult = NonNullabl
 export type GetScheduleSectionsRichSchedulesScheduleIdSectionsRichGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet']>>>
 export type ExportScheduleCsvSchedulesScheduleIdExportCsvGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['exportScheduleCsvSchedulesScheduleIdExportCsvGet']>>>
 export type GetScheduleLocksSchedulesScheduleIdLocksGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getScheduleLocksSchedulesScheduleIdLocksGet']>>>
+export type GetAllSemestersSemestersGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getAllSemestersSemestersGet']>>>
+export type CreateSemesterSemestersPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createSemesterSemestersPost']>>>
+export type GetSemesterSemestersSemesterIdGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getSemesterSemestersSemesterIdGet']>>>
+export type UpdateSemesterSemestersSemesterIdPutResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateSemesterSemestersSemesterIdPut']>>>
+export type DeleteSemesterSemestersSemesterIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteSemesterSemestersSemesterIdDelete']>>>
 export type GetCoursesCoursesGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getCoursesCoursesGet']>>>
 export type CreateCourseCoursesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createCourseCoursesPost']>>>
 export type GetCourseCoursesCourseIdGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getCourseCoursesCourseIdGet']>>>
