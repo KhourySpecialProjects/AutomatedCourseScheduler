@@ -24,6 +24,7 @@ class FacultyCreate(BaseModel):
     email: str = Field(..., min_length=1)
     campus: int = Field(..., gt=0)
     active: bool = True
+    max_load: int = Field(default=3, ge=1)
 
     @field_validator("first_name", "last_name", "email")
     @classmethod
