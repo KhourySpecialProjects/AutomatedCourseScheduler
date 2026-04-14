@@ -143,16 +143,10 @@ export interface FacultyCreate {
   email: string;
   /** */
   campus: number;
-  phone_number?: FacultyCreatePhoneNumber;
-  title?: FacultyCreateTitle;
   active?: boolean;
   /** @minimum 1 */
   max_load?: number;
 }
-
-export type FacultyProfileResponseMaxLoad = number | null;
-
-export type FacultyProfileResponseMaxLoad = number | null;
 
 export type FacultyProfileResponseMaxLoad = number | null;
 
@@ -161,7 +155,6 @@ export interface FacultyProfileResponse {
   first_name: string;
   last_name: string;
   email: string;
-  title?: FacultyProfileResponseTitle;
   campus: number;
   active: boolean;
   maxLoad?: FacultyProfileResponseMaxLoad;
@@ -187,7 +180,6 @@ export interface FacultyResponse {
   first_name?: FacultyResponseFirstName;
   last_name?: FacultyResponseLastName;
   email?: FacultyResponseEmail;
-  title?: FacultyResponseTitle;
   campus?: FacultyResponseCampus;
   active?: FacultyResponseActive;
   maxLoad?: FacultyResponseMaxLoad;
@@ -200,10 +192,6 @@ export type FacultyUpdateLastName = string | null;
 export type FacultyUpdateEmail = string | null;
 
 export type FacultyUpdateCampus = number | null;
-
-export type FacultyUpdatePhoneNumber = string | null;
-
-export type FacultyUpdateTitle = string | null;
 
 export type FacultyUpdateActive = boolean | null;
 
