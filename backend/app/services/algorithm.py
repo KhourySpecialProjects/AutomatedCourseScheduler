@@ -1,7 +1,8 @@
 """Algorithm service — runs as background task with own DB session."""
 
 import logging
-from datetime import datetime, timezone
+from collections import defaultdict
+from datetime import UTC, datetime
 
 from app.algorithms.matching import _expand_sections, match_courses_to_faculty
 from app.algorithms.models import MatchedAssignment
@@ -10,31 +11,101 @@ from app.core.database import SessionLocal
 from app.core.enums import ScheduleStatus
 from app.models.faculty_assignment import FacultyAssignment
 from app.models.schedule import Schedule
+from app.models.schedule_warning import ScheduleWarning as ScheduleWarningModel
 from app.models.section import Section
 from app.repositories import faculty as faculty_repo
+from app.repositories import schedule_warning as warning_repo
+from app.repositories import section as section_repo
 from app.repositories import time_block as time_block_repo
 from app.schemas.algorithm_input import AlgorithmInput
 from app.schemas.algorithm_params import AlgorithmParameters
+from app.schemas.course import CourseResponse
 from app.services import course as course_service
 from app.services import faculty as faculty_service
 
 logger = logging.getLogger(__name__)
 
 
+# Status helpers
+
+
 def _set_status(db, schedule_id: int, status: str, error_message: str | None = None):
     """Update schedule status and timestamps."""
-    schedule = db.query(Schedule).filter(
-        Schedule.schedule_id == schedule_id
-    ).first()
+    schedule = db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
     if schedule:
         schedule.status = status
         if status == ScheduleStatus.RUNNING:
-            schedule.started_at = datetime.now(timezone.utc)
+            schedule.started_at = datetime.now(UTC)
             schedule.completed_at = None
         elif status in (ScheduleStatus.GENERATED, ScheduleStatus.FAILED):
-            schedule.completed_at = datetime.now(timezone.utc)
+            schedule.completed_at = datetime.now(UTC)
         schedule.error_message = error_message
         db.commit()
+
+
+# Warning persistence — respects dismissed warnings
+
+
+def _persist_warnings(db, schedule_id, phase2_warnings, unmatched_assignments):
+    """Persist warnings, preserving dismissed ones and skipping duplicates."""
+    # Load all existing warnings (including dismissed)
+    existing = warning_repo.get_by_schedule(db, schedule_id, include_dismissed=True)
+
+    # Build set of dismissed warning keys so we don't re-create them
+    dismissed_keys = {
+        (w.type, w.course_id, w.faculty_nuid, w.time_block_id) for w in existing if w.dismissed
+    }
+
+    # Delete only non-dismissed warnings (dismissed ones survive re-runs)
+    for w in existing:
+        if not w.dismissed:
+            db.delete(w)
+
+    count = 0
+
+    # Persist Phase 2 warnings (time block assignment issues)
+    for w in phase2_warnings:
+        key = (
+            w.Type.value if w.Type else "unknown",
+            w.CourseID,
+            w.FacultyID,
+            w.BlockID,
+        )
+        if key in dismissed_keys:
+            continue
+        db.add(
+            ScheduleWarningModel(
+                schedule_id=schedule_id,
+                type=key[0],
+                severity=w.SeverityRank.value,
+                message=w.Message,
+                faculty_nuid=w.FacultyID,
+                course_id=w.CourseID,
+                time_block_id=w.BlockID,
+            )
+        )
+        count += 1
+
+    # Persist unmatched section warnings
+    for a in unmatched_assignments:
+        key = ("unmatched", a.course_id, None, None)
+        if key in dismissed_keys:
+            continue
+        db.add(
+            ScheduleWarningModel(
+                schedule_id=schedule_id,
+                type="unmatched",
+                severity="medium",
+                message=f"Course {a.course_id}: {a.unmatched_reason}",
+                course_id=a.course_id,
+            )
+        )
+        count += 1
+
+    logger.info(f"Persisted {count} warnings ({len(dismissed_keys)} dismissed preserved)")
+
+
+# Generate — full run from scratch
 
 
 def run_algorithm_task(schedule_id: int, parameters: AlgorithmParameters):
@@ -59,7 +130,6 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
     courses = course_service.get_courses(db, schedule_id)
     if not courses:
         raise ValueError(f"No courses found for schedule {schedule_id}")
-
     logger.info(f"Loaded {len(courses)} courses for schedule {schedule_id}")
 
     # Step 2: Expand sections
@@ -70,7 +140,6 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
     all_faculty = faculty_repo.get_all(db, active_only=True)
     if not all_faculty:
         raise ValueError("No active faculty found")
-
     nuids = [f.nuid for f in all_faculty]
     profiles = faculty_service.build_all_profiles(db, nuids)
     logger.info(f"Built {len(profiles)} faculty profiles")
@@ -86,41 +155,32 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         TimeBlocks=[tb.time_block_id for tb in time_blocks],
         Parameters=parameters,
     )
-
     phase1_results = match_courses_to_faculty(sections, algorithm_input)
     matched = [a for a in phase1_results if a.is_matched]
     unmatched = [a for a in phase1_results if not a.is_matched]
 
     for a in unmatched:
         logger.warning(
-            f"Section {a.section_id} (course {a.course_id}) "
-            f"unmatched: {a.unmatched_reason}"
+            f"Section {a.section_id} (course {a.course_id}) unmatched: {a.unmatched_reason}"
         )
-    logger.info(
-        f"Phase 1 complete: {len(matched)} matched, {len(unmatched)} unmatched"
-    )
+    logger.info(f"Phase 1 complete: {len(matched)} matched, {len(unmatched)} unmatched")
 
     # Step 6: Bridge — CourseAssignment → MatchedAssignment
-    course_name_lookup = {c.course_id: c for c in courses}
-
+    course_lookup = {c.course_id: c for c in courses}
     matched_for_phase2 = [
         MatchedAssignment(
             section_id=a.section_id,
             course_id=a.course_id,
             faculty_nuid=a.faculty_nuid,
             department_code=(
-                course_name_lookup[a.course_id].subject
-                if a.course_id in course_name_lookup
-                and course_name_lookup[a.course_id].subject
+                course_lookup[a.course_id].subject
+                if a.course_id in course_lookup and course_lookup[a.course_id].subject
                 else ""
             ),
         )
         for a in matched
     ]
-
-    faculty_time_preferences = {
-        profile.nuid: profile.meeting_preferences for profile in profiles
-    }
+    faculty_time_preferences = {p.nuid: p.meeting_preferences for p in profiles}
 
     # Step 7: Phase 2 — time block assignment
     phase2_result = assign_time_blocks(
@@ -129,28 +189,21 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         faculty_time_preferences,
         parameters=parameters,
     )
-
     placed = [a for a in phase2_result.assignments if a.time_block_id is not None]
     unplaced = [a for a in phase2_result.assignments if a.time_block_id is None]
 
     for w in phase2_result.warnings:
         logger.warning(f"Phase 2 warning: {w.Message}")
-    logger.info(
-        f"Phase 2 complete: {len(placed)} placed, {len(unplaced)} unplaced"
-    )
+    logger.info(f"Phase 2 complete: {len(placed)} placed, {len(unplaced)} unplaced")
 
-    # Step 8: Write results to DB
+    # Step 8: Write sections to DB
     matched_lookup = {a.section_id: a for a in matched}
     section_number_tracker: dict[int, int] = {}
     sections_written = 0
 
     for sa in phase2_result.assignments:
         if sa.time_block_id is None:
-            logger.warning(
-                f"No time block for section {sa.section_id}, skipping."
-            )
             continue
-
         original = matched_lookup.get(sa.section_id)
         if original is None:
             continue
@@ -158,7 +211,6 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         section_number_tracker[original.course_id] = (
             section_number_tracker.get(original.course_id, 0) + 1
         )
-
         section_obj = Section(
             schedule_id=schedule_id,
             course_id=original.course_id,
@@ -168,7 +220,6 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         )
         db.add(section_obj)
         db.flush()
-
         fa = FacultyAssignment(
             faculty_nuid=original.faculty_nuid,
             section_id=section_obj.section_id,
@@ -176,20 +227,21 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         db.add(fa)
         sections_written += 1
 
+    # Step 9: Persist warnings (respects dismissed)
+    _persist_warnings(db, schedule_id, phase2_result.warnings, unmatched)
+
     db.commit()
     logger.info(
-        f"Algorithm completed for schedule {schedule_id}: "
-        f"{sections_written} sections written"
+        f"Algorithm completed for schedule {schedule_id}: {sections_written} sections written"
     )
 
 
+# Regenerate — re-run on unassigned sections, preserving existing
 def run_regenerate_task(schedule_id: int, parameters: AlgorithmParameters):
-    """Regenerate — re-run on unassigned sections only."""
+    """Regenerate — re-run algorithm on unassigned sections only."""
     db = SessionLocal()
     try:
-        logger.info(
-            f"Regenerate not yet implemented for schedule {schedule_id}"
-        )
+        _run_regenerate(db, schedule_id, parameters)
         _set_status(db, schedule_id, ScheduleStatus.GENERATED)
     except Exception as e:
         logger.error(f"Regenerate failed for schedule {schedule_id}: {e}")
@@ -200,3 +252,157 @@ def run_regenerate_task(schedule_id: int, parameters: AlgorithmParameters):
             logger.error(f"Failed to update status for schedule {schedule_id}")
     finally:
         db.close()
+
+
+def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
+    # Step 1: Load all courses for this schedule
+    courses = course_service.get_courses(db, schedule_id)
+    if not courses:
+        raise ValueError(f"No courses found for schedule {schedule_id}")
+
+    # Step 2: Load existing sections (already assigned from previous run)
+    existing_sections = section_repo.get_by_schedule(db, schedule_id)
+
+    # Build constraints from existing assignments
+    existing_course_counts: dict[int, int] = defaultdict(int)
+    existing_faculty_tbs: dict[int, set[int]] = defaultdict(set)
+    existing_dept_tb_counts: dict[tuple[str, int], int] = defaultdict(int)
+    dept_section_totals: dict[str, int] = defaultdict(int)
+
+    for section in existing_sections:
+        existing_course_counts[section.course_id] += 1
+        if section.time_block_id and section.faculty_assignments:
+            for fa in section.faculty_assignments:
+                existing_faculty_tbs[fa.faculty_nuid].add(section.time_block_id)
+            dept = section.course.subject if hasattr(section.course, "subject") else ""
+            if dept and section.time_block_id:
+                existing_dept_tb_counts[(dept, section.time_block_id)] += 1
+
+    # Step 3: Figure out which courses still need sections
+    courses_needing = []
+    for c in courses:
+        existing = existing_course_counts.get(c.course_id, 0)
+        needed = (c.section_count or 0) - existing
+        if needed > 0:
+            courses_needing.append(
+                CourseResponse(
+                    course_id=c.course_id,
+                    subject=c.subject,
+                    code=c.code,
+                    name=c.name,
+                    description=c.description,
+                    credits=c.credits,
+                    section_count=needed,
+                    priority=c.priority,
+                    qualified_faculty=c.qualified_faculty,
+                )
+            )
+
+    if not courses_needing:
+        logger.info(f"All sections already assigned for schedule {schedule_id}")
+        return
+
+    total_needed = sum(c.section_count for c in courses_needing)
+    logger.info(f"Regenerate: {len(courses_needing)} courses need {total_needed} more sections")
+
+    # Step 4: Build department totals (full schedule)
+    for c in courses:
+        dept = c.subject or ""
+        dept_section_totals[dept] += c.section_count or 0
+
+    # Step 5: Expand only the remaining sections
+    sections = _expand_sections(courses_needing)
+
+    # Step 6: Load faculty and time blocks
+    all_faculty = faculty_repo.get_all(db, active_only=True)
+    if not all_faculty:
+        raise ValueError("No active faculty found")
+    nuids = [f.nuid for f in all_faculty]
+    profiles = faculty_service.build_all_profiles(db, nuids)
+    time_blocks = time_block_repo.get_all(db)
+
+    # Step 7: Phase 1 — match remaining sections
+    algorithm_input = AlgorithmInput(
+        OfferedCourses=courses_needing,
+        AllFaculty=profiles,
+        TimeBlocks=[tb.time_block_id for tb in time_blocks],
+        Parameters=parameters,
+    )
+    phase1_results = match_courses_to_faculty(sections, algorithm_input)
+    matched = [a for a in phase1_results if a.is_matched]
+    unmatched = [a for a in phase1_results if not a.is_matched]
+    logger.info(f"Regenerate Phase 1: {len(matched)} matched, {len(unmatched)} unmatched")
+
+    # Step 8: Bridge
+    course_lookup = {c.course_id: c for c in courses_needing}
+    matched_for_phase2 = [
+        MatchedAssignment(
+            section_id=a.section_id,
+            course_id=a.course_id,
+            faculty_nuid=a.faculty_nuid,
+            department_code=(
+                course_lookup[a.course_id].subject
+                if a.course_id in course_lookup and course_lookup[a.course_id].subject
+                else ""
+            ),
+        )
+        for a in matched
+    ]
+    faculty_time_preferences = {p.nuid: p.meeting_preferences for p in profiles}
+
+    # Step 9: Phase 2 with existing constraints
+    phase2_result = assign_time_blocks(
+        matched_for_phase2,
+        time_blocks,
+        faculty_time_preferences,
+        parameters=parameters,
+        existing_faculty_time_blocks=dict(existing_faculty_tbs),
+        initial_department_time_block_counts=dict(existing_dept_tb_counts),
+        department_section_totals=dict(dept_section_totals),
+    )
+    placed = [a for a in phase2_result.assignments if a.time_block_id is not None]
+    logger.info(f"Regenerate Phase 2: {len(placed)} placed, {len(phase2_result.warnings)} warnings")
+
+    # Step 10: Write new sections to DB
+    matched_lookup = {a.section_id: a for a in matched}
+
+    # Continue section numbering from existing max
+    section_number_tracker: dict[int, int] = {}
+    for s in existing_sections:
+        current = section_number_tracker.get(s.course_id, 0)
+        section_number_tracker[s.course_id] = max(current, s.section_number)
+
+    sections_written = 0
+    for sa in phase2_result.assignments:
+        if sa.time_block_id is None:
+            continue
+        original = matched_lookup.get(sa.section_id)
+        if original is None:
+            continue
+
+        section_number_tracker[original.course_id] = (
+            section_number_tracker.get(original.course_id, 0) + 1
+        )
+        section_obj = Section(
+            schedule_id=schedule_id,
+            course_id=original.course_id,
+            time_block_id=sa.time_block_id,
+            section_number=section_number_tracker[original.course_id],
+            capacity=30,
+        )
+        db.add(section_obj)
+        db.flush()
+        fa = FacultyAssignment(
+            faculty_nuid=original.faculty_nuid,
+            section_id=section_obj.section_id,
+        )
+        db.add(fa)
+        sections_written += 1
+
+    # Step 11: Persist warnings (append to existing, respect dismissed)
+    _persist_warnings(db, schedule_id, phase2_result.warnings, unmatched)
+
+    db.commit()
+    logger.info(
+        f"Regenerate completed for schedule {schedule_id}: {sections_written} new sections written"
+    )
