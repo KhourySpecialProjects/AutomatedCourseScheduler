@@ -33,7 +33,9 @@ def get_faculty(
 
 
 @router.post("", response_model=FacultyResponse, status_code=201)
-def create_faculty(faculty: FacultyCreate, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+def create_faculty(
+    faculty: FacultyCreate, db: Session = Depends(get_db), _: dict = Depends(require_admin)
+):
     """Create a new faculty member."""
     try:
         return faculty_service.create_faculty(db, faculty)
@@ -52,7 +54,12 @@ def get_faculty_profile(nuid: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{nuid}", response_model=FacultyResponse)
-def update_faculty(nuid: int, faculty: FacultyUpdate, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+def update_faculty(
+    nuid: int,
+    faculty: FacultyUpdate,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
     """Partially update faculty demographics and status."""
     try:
         updated = faculty_service.update_faculty(db, nuid, faculty)

@@ -156,7 +156,9 @@ def test_export_mixed_faculty(mock_url, client, db_session):
     uninvited = _make_faculty(db_session, 2001, "Uninvited", "One", "uninvited@example.com")
     pending = _make_faculty(db_session, 2002, "Pending", "Two", "pending@example.com")
     linked = _make_faculty(db_session, 2003, "Linked", "Three", "linked@example.com")
-    inactive = _make_faculty(db_session, 2004, "Inactive", "Four", "inactive@example.com", active=False)
+    inactive = _make_faculty(
+        db_session, 2004, "Inactive", "Four", "inactive@example.com", active=False
+    )
 
     _make_user(db_session, pending, auth0_sub=None)
     _make_user(db_session, linked, auth0_sub="auth0|xyz")

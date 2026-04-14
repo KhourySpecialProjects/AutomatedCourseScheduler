@@ -44,6 +44,7 @@ describe('Faculty page — Export Invite CSV', () => {
   let createObjectURLSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    // @ts-expect-error — vi.spyOn doesn't resolve static methods on URL
     createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-url');
     vi.spyOn(URL, 'revokeObjectURL').mockReturnValue(undefined);
 
