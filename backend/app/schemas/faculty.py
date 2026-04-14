@@ -10,7 +10,6 @@ class FacultyResponse(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
-    title: str | None = None
     campus: int | None = None
     active: bool | None = None
     maxLoad: int | None = None
@@ -24,8 +23,6 @@ class FacultyCreate(BaseModel):
     last_name: str = Field(..., min_length=1)
     email: str = Field(..., min_length=1)
     campus: int = Field(..., gt=0)
-    phone_number: str | None = None
-    title: str | None = None
     active: bool = True
 
     @field_validator("first_name", "last_name", "email")
@@ -41,8 +38,6 @@ class FacultyUpdate(BaseModel):
     last_name: str | None = None
     email: str | None = None
     campus: int | None = None
-    phone_number: str | None = None
-    title: str | None = None
     active: bool | None = None
     max_load: int | None = None
 
@@ -59,7 +54,6 @@ class FacultyProfileResponse(BaseModel):
     first_name: str
     last_name: str
     email: str
-    title: str | None = None
     campus: int
     active: bool
     maxLoad: int | None = None

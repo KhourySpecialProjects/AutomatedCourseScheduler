@@ -66,7 +66,6 @@ class InstructorInfo(BaseModel):
     nuid: int
     first_name: str
     last_name: str
-    title: str
     email: str
     course_preferences: list[CoursePreferenceInfo]
     meeting_preferences: list[MeetingPreferenceInfo]

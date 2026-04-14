@@ -37,7 +37,7 @@ def _seed_schedule_course_timeblock(db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = Schedule(name="F24", semester_id=semester.semester_id, campus=campus.campus_id)
-    course = Course(name="CS 2500", description="Fundamentals", credits=4)
+    course = Course(subject="CS", code=2500, name="CS 2500", description="Fundamentals", credits=4)
     db_session.add_all([schedule, course])
     db_session.flush()
     time_block = TimeBlock(
@@ -163,7 +163,7 @@ def test_get_rich_sections_nested_shape(client, db_session):
     semester = _make_semester(db_session)
 
     schedule = Schedule(name="Sched", semester_id=semester.semester_id, campus=campus.campus_id)
-    course = Course(name="Intro CS", description="Fun", credits=4)
+    course = Course(subject="CS", code=2500, name="Intro CS", description="Fun", credits=4)
     db_session.add_all([schedule, course])
     db_session.flush()
 
@@ -178,7 +178,6 @@ def test_get_rich_sections_nested_shape(client, db_session):
         first_name="Ada",
         last_name="Lovelace",
         email="ada@example.edu",
-        title=None,
         campus=campus.campus_id,
     )
     db_session.add_all([tb, faculty])
@@ -224,7 +223,6 @@ def test_get_rich_sections_nested_shape(client, db_session):
     assert len(row["instructors"]) == 1
     inst = row["instructors"][0]
     assert inst["nuid"] == 1001
-    assert inst["title"] == ""
     assert len(inst["course_preferences"]) == 1
     assert inst["course_preferences"][0]["course_name"] == "Intro CS"
     assert len(inst["meeting_preferences"]) == 1
@@ -297,7 +295,7 @@ def test_create_section_invalid_course_returns_400(client, db_session):
 def test_patch_section_success(client, db_session):
     schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
     campus = _make_campus(db_session, "Oakland")
-    new_course = Course(name="CS 3200", description="Databases", credits=4)
+    new_course = Course(subject="CS", code=3200, name="CS 3200", description="Databases", credits=4)
     db_session.add(new_course)
     db_session.flush()
     new_time_block = TimeBlock(

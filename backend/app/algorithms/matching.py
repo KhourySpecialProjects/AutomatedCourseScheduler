@@ -65,12 +65,12 @@ def _expand_sections(courses: list[CourseResponse]) -> list[SectionCandidate]:
     sections = []
     section_id = 0
     for course in courses:
-        for _ in range(course.SectionCount):
+        for _ in range(course.section_count):
             sections.append(
                 SectionCandidate(
-                    course_id=course.CourseID,
+                    course_id=course.course_id,
                     section_id=section_id,
-                    is_priority=course.Priority,
+                    is_priority=course.priority,
                 )
             )
             section_id += 1
@@ -281,5 +281,5 @@ def match_courses_to_faculty(
             unmatched.append(section)
 
     # 3. Build output
-    course_name_lookup = {c.CourseID: c.CourseName or "" for c in input.OfferedCourses}
+    course_name_lookup = {c.course_id: c.name or "" for c in input.OfferedCourses}
     return _build_output(sections, assignments, unmatched, pref_lookup, course_name_lookup)
