@@ -7,6 +7,7 @@ from app.models.faculty_assignment import FacultyAssignment
 from app.models.meeting_preference import MeetingPreference
 from app.models.schedule import Schedule
 from app.models.schedule_log import ScheduleLog
+from app.models.schedule_warning import ScheduleWarning
 from app.models.section import Section
 from app.models.section_lock import SectionLock
 from app.models.time_block import TimeBlock
@@ -26,4 +27,5 @@ __all__ = [
     "SectionLock",
     "Comment",
     "Campus",
+    "ScheduleWarning",
 ]

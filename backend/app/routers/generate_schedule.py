@@ -1,6 +1,6 @@
 """Algorithm router."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -13,6 +13,8 @@ from app.schemas.generate_schedule import (
     RegenerateScheduleRequest,
 )
 from app.services.algorithm import run_algorithm_task, run_regenerate_task
+
+router = APIRouter(prefix="/schedules", tags=["schedules"])
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
@@ -31,7 +33,7 @@ def run_algorithm(
         raise HTTPException(status_code=409, detail="Algorithm already running")
 
     schedule.status = ScheduleStatus.RUNNING
-    schedule.started_at = datetime.now(timezone.utc)
+    schedule.started_at = datetime.now(UTC)
     schedule.completed_at = None
     schedule.error_message = None
     db.commit()
@@ -54,7 +56,7 @@ def regenerate_algorithm(
         raise HTTPException(status_code=409, detail="Algorithm already running")
 
     schedule.status = ScheduleStatus.RUNNING
-    schedule.started_at = datetime.now(timezone.utc)
+    schedule.started_at = datetime.now(UTC)
     schedule.completed_at = None
     schedule.error_message = None
     db.commit()

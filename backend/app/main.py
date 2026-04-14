@@ -9,7 +9,9 @@ from app.routers import (
     comment,
     course,
     faculty,
+    generate_schedule,
     schedule,
+    schedule_warning,
     section,
     section_lock,
     time_block,
@@ -65,6 +67,8 @@ app.include_router(campus.router, dependencies=[Depends(get_current_user)])
 app.include_router(upload.router, dependencies=[Depends(get_current_user)])
 app.include_router(comment.router, dependencies=[Depends(get_current_user)])
 app.include_router(section_lock.router, dependencies=[Depends(get_current_user)])
+app.include_router(schedule_warning.router, dependencies=[Depends(get_current_user)])
+app.include_router(generate_schedule.router, dependencies=[Depends(get_current_user)])
 
 
 # custom auth dependencies
