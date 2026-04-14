@@ -429,7 +429,6 @@ def _make_faculty(db, campus_id, nuid=1001):
         first_name="Jane",
         last_name="Doe",
         email=f"faculty{nuid}@example.com",
-        title="Professor",
         campus=campus_id,
     )
     db.add(faculty)
