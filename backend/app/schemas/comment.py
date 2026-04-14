@@ -13,6 +13,15 @@ class CommentSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CommentUserInfo(BaseModel):
+    user_id: int
+    first_name: str
+    last_name: str
+    email: str
+
+    model_config = {"from_attributes": True}
+
+
 class CommentResponse(BaseModel):
     comment_id: int
     user_id: int
@@ -22,5 +31,6 @@ class CommentResponse(BaseModel):
     resolved: bool
     active: bool
     created_at: datetime
+    user: CommentUserInfo
 
     model_config = {"from_attributes": True}

@@ -62,6 +62,12 @@ describe('Schedules page', () => {
       getAllCampusesCampusesGet: vi.fn().mockResolvedValue([
         { campus_id: 1, name: 'Boston', active: true },
       ]),
+      getFacultyFacultyGet: vi.fn().mockResolvedValue([
+        { NUID: 100005 },
+      ]),
+      getMeApiUsersMeGet: vi.fn().mockResolvedValue([
+        {user_id: 1, nuid: 100005, first_name: "John", last_name: "Doe", email: "j.doe@northeastern.edu",role: "VIEWER", active: true}
+      ])
     } as unknown as ReturnType<typeof generated.getAutomatedCourseSchedulerAPI>);
   });
 

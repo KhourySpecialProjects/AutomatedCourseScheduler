@@ -1,4 +1,5 @@
 import type { SectionRichResponse } from '../api/generated';
+import SectionComments from './SectionComments';
 
 interface Props {
   section: SectionRichResponse;
@@ -163,6 +164,8 @@ export default function SectionDetailPanel({ section, onClose }: Props) {
               </div>
             )}
           </section>
+
+          <SectionComments sectionId={section.section_id} />
         </div>
       </div>
     </>

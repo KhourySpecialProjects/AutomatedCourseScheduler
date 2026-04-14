@@ -39,6 +39,7 @@ class FacultyUpdate(BaseModel):
     email: str | None = None
     campus: int | None = None
     active: bool | None = None
+    max_load: int | None = None
 
     @field_validator("first_name", "last_name", "email")
     @classmethod

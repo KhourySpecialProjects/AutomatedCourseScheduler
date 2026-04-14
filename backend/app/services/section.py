@@ -137,7 +137,11 @@ def create_section(db: Session, section: SectionCreate) -> Section:
         capacity=section.capacity,
         section_number=section.section_number,
     )
-    return section_repo.create(db, section_obj)
+
+    section_made = section_repo.create(db, section_obj)
+    if section.faculty_nuids:
+        section_repo.replace_faculty_assignments(db, section_made.section_id, section.faculty_nuids)
+    return section_repo.save(db, section_made)
 
 
 def update_section(db: Session, section_id: int, section: SectionUpdate) -> Section | None:
