@@ -1,9 +1,12 @@
 """Algorithm router."""
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.enums import ScheduleStatus
 from app.repositories import schedule as schedule_repo
 from app.schemas.generate_schedule import (
     GenerateScheduleRequest,
@@ -21,8 +24,17 @@ def run_algorithm(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    if not schedule_repo.schedule_exists(db, schedule_id):
+    schedule = schedule_repo.get_by_id(db, schedule_id)
+    if schedule is None:
         raise HTTPException(status_code=404, detail="Schedule not found")
+    if schedule.status == ScheduleStatus.RUNNING:
+        raise HTTPException(status_code=409, detail="Algorithm already running")
+
+    schedule.status = ScheduleStatus.RUNNING
+    schedule.started_at = datetime.now(timezone.utc)
+    schedule.completed_at = None
+    schedule.error_message = None
+    db.commit()
 
     background_tasks.add_task(run_algorithm_task, schedule_id, request.parameters)
     return {"schedule_id": schedule_id, "status": "running"}
@@ -35,8 +47,17 @@ def regenerate_algorithm(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    if not schedule_repo.schedule_exists(db, schedule_id):
+    schedule = schedule_repo.get_by_id(db, schedule_id)
+    if schedule is None:
         raise HTTPException(status_code=404, detail="Schedule not found")
+    if schedule.status == ScheduleStatus.RUNNING:
+        raise HTTPException(status_code=409, detail="Algorithm already running")
+
+    schedule.status = ScheduleStatus.RUNNING
+    schedule.started_at = datetime.now(timezone.utc)
+    schedule.completed_at = None
+    schedule.error_message = None
+    db.commit()
 
     background_tasks.add_task(run_regenerate_task, schedule_id, request.parameters)
     return {"schedule_id": schedule_id, "status": "running"}
