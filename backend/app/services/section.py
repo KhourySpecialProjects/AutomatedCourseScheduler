@@ -5,6 +5,8 @@ from datetime import time
 from sqlalchemy.orm import Session
 
 from app.models.section import Section
+from app.models.schedule import Schedule
+from app.core.enums import WarningType
 from app.repositories import course as course_repo
 from app.repositories import faculty as faculty_repo
 from app.repositories import schedule as schedule_repo
@@ -174,7 +176,37 @@ def update_section(db: Session, section_id: int, section: SectionUpdate) -> Sect
         section_repo.replace_faculty_assignments(
             db, section_obj.section_id, section.faculty_nuids or []
         )
-    return section_repo.save(db, section_obj)
+    warnings = error_check(db, section_obj, section)
+    return {"updated": section_repo.save(db, section_obj), "warnings": warnings}
+
+def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[WarningType]:
+    warnings = []
+    assignments = section_repo.get_faculty_assignmnets(db, section.section_id)
+    if "time_block_id" in updates.model_fields_set:
+        meeting_time = section.time_block_id
+        schedule = schedule_repo.get_by_id(db, section.schedule_id)
+        course = course_repo.get_by_id(db, section.course_id)
+        split_name = course.name.split(" ", 1)
+        course_subject = split_name[0]
+        error = exceeds_meeting_time_capcacity(db, schedule, meeting_time, course_subject)
+        if error:
+            warnings.append(WarningType.TIME_BLOCK_OVERLOAD)
+        for nuid in assignments:
+            time_pref_exists = faculty_repo.find_meeting_time_preference(db, nuid, section.time_block_id)
+            if not time_pref_exists:
+                warnings.append(WarningType.UNPREFERENCED_TIME)
+    if "course_id" in updates.model_fields_set:
+        for nuid in assignments:
+            course_pref_exists = faculty_repo.find_course_preference(db, nuid, section.course_id)
+            if not course_pref_exists:
+                warnings.append(WarningType.UNPREFERENCED_COURSE)
+    if "faculty_nuids" in updates.model_fields_set:
+        for faculty_id in updates.faculty_nuids or []:
+            f = faculty_repo.get_by_nuid(db, faculty_id)
+            assigned = len(faculty_repo.get_assginments(db, faculty_id))
+            if assigned + 1 > f.max_load:
+                warnings.append(WarningType.FACULTY_OVERLOAD)
+    return warnings
 
 
 def delete_section(db: Session, section_id: int) -> bool:
@@ -183,3 +215,21 @@ def delete_section(db: Session, section_id: int) -> bool:
         return False
     section_repo.delete(db, section_obj)
     return True
+
+def exceeds_meeting_time_capcacity(db: Session, schedule: Schedule, time_block: int, dept: str) -> bool:
+    sections = schedule.sections
+    dept_count_total = 0
+    dept_time_block_count = 0
+    for section in sections:
+        course = course_repo.get_by_id(db, section.course_id)
+        split_name = course.name.split(" ", 1)
+        course_subject = split_name[0]
+        if course_subject == dept:
+            dept_count_total += 1
+            if section.time_block_id == time_block:
+                dept_time_block_count += 1
+
+    if dept_count_total == 0:
+        return False
+    time_block_capacity = dept_time_block_count / dept_count_total
+    return time_block_capacity >= 0.15

@@ -29,7 +29,8 @@ async def create_section(section: SectionCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e)) from e
 
     rich_sections = section_service.get_rich_sections(db, created.schedule_id)
-    rich_section = next((s for s in rich_sections if s.section_id == created.section_id), None)
+    rich_section = next(
+        (s for s in rich_sections if s.section_id == created.section_id), None)
     if rich_section:
         await manager.broadcast(
             created.schedule_id,
@@ -60,17 +61,29 @@ async def update_section(
     except SectionLockConflictError as e:
         raise HTTPException(
             status_code=423,
-            detail={"locked_by": e.lock.locked_by, "expires_at": str(e.lock.expires_at)},
+            detail={"locked_by": e.lock.locked_by,
+                    "expires_at": str(e.lock.expires_at)},
         ) from e
     try:
-        updated = section_service.update_section(db, section_id, section)
+        result = section_service.update_section(db, section_id, section)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    if updated is None:
+    if result is None:
         raise HTTPException(status_code=404, detail="Section not found")
+    updated = result.get("updated")
+    warnings = result.get("warnings")
+    if warnings:
+        await manager.broadcast(
+            updated.schedule_id,
+            {
+                "type": "schedule_warnings",
+                "payload": {"section_id": section_id, "warnings": warnings},
+            },
+        )
 
     rich_sections = section_service.get_rich_sections(db, updated.schedule_id)
-    rich_section = next((s for s in rich_sections if s.section_id == section_id), None)
+    rich_section = next(
+        (s for s in rich_sections if s.section_id == section_id), None)
     if rich_section:
         await manager.broadcast(
             updated.schedule_id,

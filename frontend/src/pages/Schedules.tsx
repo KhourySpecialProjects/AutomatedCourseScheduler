@@ -49,7 +49,7 @@ function CalendarIcon({ active }: { active: boolean }) {
 }
 
 function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?: boolean }) {
-  const { sections, locks, loading, status } = useScheduleWebSocket(scheduleId);
+  const { sections, locks, loading, status, warnings, dismissWarning } = useScheduleWebSocket(scheduleId);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [selectedCourseCount, setSelectedCourseCount] = useState(0);
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
@@ -58,6 +58,7 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
   const [meError, setMeError] = useState<string | null>(null);
   const [forceFacultyView, setForceFacultyView] = useState(false);
   const [invitePanel, setInvitePanel] = useState<string | null>(null);
+
 
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
@@ -80,7 +81,7 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
           if (match) setCampusName(match.name);
         });
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [scheduleId]);
 
   const scheduleName = schedule?.name ?? `Schedule ${scheduleId}`;
@@ -113,13 +114,12 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
             <h1 className="text-2xl font-bold text-gray-900">{scheduleName}</h1>
             <LiveIndicator status={status} />
             <span
-              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-                effectiveReadOnly
-                  ? 'bg-slate-100 text-slate-700 border-slate-200'
-                  : isAdmin
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                    : 'bg-gray-100 text-gray-700 border-gray-200'
-              }`}
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${effectiveReadOnly
+                ? 'bg-slate-100 text-slate-700 border-slate-200'
+                : isAdmin
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                  : 'bg-gray-100 text-gray-700 border-gray-200'
+                }`}
               title={modeLabel}
             >
               {modeLabel}
@@ -160,35 +160,33 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
 
           {/* View toggle */}
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-          <button
-            type="button"
-            onClick={() => setViewMode('table')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              effectiveViewMode === 'table'
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${effectiveViewMode === 'table'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <TableIcon active={effectiveViewMode === 'table'} />
-            Table
-          </button>
-          <button
-            type="button"
-            disabled={!calendarAllowed}
-            onClick={() => setViewMode('calendar')}
-            title={!calendarAllowed ? 'Calendar view supports up to 4 selected courses.' : 'Calendar'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              effectiveViewMode === 'calendar'
+                }`}
+            >
+              <TableIcon active={effectiveViewMode === 'table'} />
+              Table
+            </button>
+            <button
+              type="button"
+              disabled={!calendarAllowed}
+              onClick={() => setViewMode('calendar')}
+              title={!calendarAllowed ? 'Calendar view supports up to 4 selected courses.' : 'Calendar'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${effectiveViewMode === 'calendar'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : calendarAllowed
                   ? 'text-gray-500 hover:text-gray-700'
                   : 'text-gray-400 cursor-not-allowed opacity-60'
-            }`}
-          >
-            <CalendarIcon active={effectiveViewMode === 'calendar'} />
-            Calendar
-          </button>
-        </div>
+                }`}
+            >
+              <CalendarIcon active={effectiveViewMode === 'calendar'} />
+              Calendar
+            </button>
+          </div>
         </div>
       </div>
 
@@ -228,6 +226,8 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
           readOnly={effectiveReadOnly}
           viewMode={effectiveViewMode}
           onSelectedCourseCountChange={setSelectedCourseCount}
+          warnings={warnings}
+          dismissWarning={dismissWarning}
         />
       )}
     </div>

@@ -41,6 +41,8 @@ const defaultWsReturn: wsModule.UseScheduleWebSocketResult = {
   locks: new Map(),
   loading: false,
   status: 'connected',
+  warnings: new Map(),
+  dismissWarning: vi.fn(),
 };
 
 function renderAtRoute(path: string) {

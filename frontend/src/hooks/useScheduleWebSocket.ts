@@ -15,21 +15,35 @@ export interface LockInfo {
   expires_at: string;
 }
 
+export interface UpdateInfo {
+  section_id: number;
+  warnings: string[];
+}
+
 export interface UseScheduleWebSocketResult {
   sections: SectionRichResponse[];
   locks: Map<number, LockInfo>;
   loading: boolean;
   status: WsStatus;
+  warnings: Map<number, string[]>;
+  dismissWarning: (sectionId: number) => void;
 }
 
 export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketResult {
   const { getAccessTokenSilently } = useAuth0();
+  const [warnings, setWarnings] = useState<Map<number, string[]>>(new Map());
+  const warningsRef = useRef<Map<number, string[]>>(new Map());
   const [sections, setSections] = useState<SectionRichResponse[]>([]);
   const [locks, setLocks] = useState<Map<number, LockInfo>>(new Map());
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<WsStatus>('connecting');
   const sectionsRef = useRef<SectionRichResponse[]>([]);
   const locksRef = useRef<Map<number, LockInfo>>(new Map());
+  const dismissWarning = (sectionId: number) => {
+    warningsRef.current = new Map(warningsRef.current);
+    warningsRef.current.delete(sectionId);
+    setWarnings(new Map(warningsRef.current));
+  };
 
   // Fetch initial lock state (locks are not broadcast on connect, only on change)
   useEffect(() => {
@@ -41,7 +55,7 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
       }
       locksRef.current = map;
       setLocks(new Map(map));
-    }).catch(() => {});
+    }).catch(() => { });
   }, [scheduleId]);
 
   useEffect(() => {
@@ -105,6 +119,12 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
               s.section_id === section_id ? data : s,
             );
             setSections(sectionsRef.current);
+            // clear any stale warnings now that the section saved cleanly
+            if (warningsRef.current.has(section_id)) {
+              warningsRef.current = new Map(warningsRef.current);
+              warningsRef.current.delete(section_id);
+              setWarnings(new Map(warningsRef.current));
+            }
             break;
           }
           case 'section_deleted': {
@@ -133,6 +153,12 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
             setLocks(new Map(locksRef.current));
             break;
           }
+          case 'schedule_warnings': {
+            const { section_id, warnings: newWarnings } = msg.payload as UpdateInfo
+            warningsRef.current = new Map(warningsRef.current).set(section_id, newWarnings);
+            setWarnings(new Map(warningsRef.current));
+            break;
+          }
         }
       };
 
@@ -158,5 +184,5 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
     };
   }, [scheduleId]); // getAccessTokenSilently is stable
 
-  return { sections, locks, loading, status };
+  return { sections, locks, loading, status, warnings, dismissWarning };
 }

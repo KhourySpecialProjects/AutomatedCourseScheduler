@@ -20,6 +20,8 @@ interface Props {
   readOnly?: boolean;
   viewMode?: 'table' | 'calendar';
   onSelectedCourseCountChange?: (count: number) => void;
+  warnings?: Map<number, string[]>;
+  dismissWarning?: (sectionId: number) => void;
 }
 
 function hasConflict(section: SectionRichResponse): boolean {
@@ -119,6 +121,8 @@ export default function ScheduleSectionRowView({
   readOnly,
   viewMode = 'table',
   onSelectedCourseCountChange,
+  warnings,
+  dismissWarning,
 }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('course');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -383,11 +387,10 @@ export default function ScheduleSectionRowView({
             <button
               key={f}
               onClick={() => setDayFilter(f)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                dayFilter === f
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${dayFilter === f
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
             >
               {f === 'all' ? 'All days' : f}
             </button>
@@ -482,11 +485,10 @@ export default function ScheduleSectionRowView({
                                   }}
                                   onMouseLeave={handleInstructorMouseLeave}
                                   title={isLocked ? `Locked by ${lock!.display_name}` : `${section.course.name} §${section.section_number}`}
-                                  className={`relative w-full aspect-square text-left rounded-xl border p-3 transition-colors shadow-sm overflow-hidden ${
-                                    isLocked
-                                      ? 'bg-amber-50/40 border-amber-200 text-amber-800 cursor-not-allowed opacity-70'
-                                      : `${colors.card} hover:bg-white`
-                                  }`}
+                                  className={`relative w-full aspect-square text-left rounded-xl border p-3 transition-colors shadow-sm overflow-hidden ${isLocked
+                                    ? 'bg-amber-50/40 border-amber-200 text-amber-800 cursor-not-allowed opacity-70'
+                                    : `${colors.card} hover:bg-white`
+                                    }`}
                                 >
                                   {!readOnly && (
                                     <button
@@ -611,6 +613,20 @@ export default function ScheduleSectionRowView({
                           {lock && <LockBadge lock={lock} />}
                         </div>
                         <div className="text-xs text-gray-400 mt-0.5">{section.course.credits} cr</div>
+                        {/* Warning strip — persistent until dismissed or fixed */}
+                        {warnings?.get(section.section_id)?.map((w, i) => (
+                          <div key={i} className="mt-1 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                            <span className="shrink-0">⚠</span>
+                            <span className="truncate">{w}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); dismissWarning?.(section.section_id); }}
+                              className="ml-auto shrink-0 text-amber-500 hover:text-amber-800"
+                              title="Dismiss"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
                       </td>
 
                       {/* Section # */}
