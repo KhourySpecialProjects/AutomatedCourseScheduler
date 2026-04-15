@@ -188,6 +188,10 @@ def update_section(
     _validate_update_refs(db, section)
     existing_partner_id = section_obj.crosslisted_section_id
     partner_ids_to_broadcast: set[int] = set()
+    explicit_uncrosslist = (
+        "crosslisted_section_id" in section.model_fields_set
+        and section.crosslisted_section_id is None
+    )
     if "time_block_id" in section.model_fields_set:
         section_obj.time_block_id = section.time_block_id
     if "course_id" in section.model_fields_set:
@@ -221,6 +225,19 @@ def update_section(
                 section_repo.save(db, old_partner)
                 partner_ids_to_broadcast.add(old_partner.section_id)
 
+        # Legacy: if only a reverse pointer exists and the client explicitly uncrosslists,
+        # clear that reverse pointer too.
+        if explicit_uncrosslist and existing_partner_id is None:
+            reverse = (
+                db.query(Section)
+                .filter(Section.crosslisted_section_id == section_obj.section_id)
+                .first()
+            )
+            if reverse is not None:
+                reverse.crosslisted_section_id = None
+                section_repo.save(db, reverse)
+                partner_ids_to_broadcast.add(reverse.section_id)
+
         # Apply the new link bidirectionally.
         section_obj.crosslisted_section_id = new_partner_id
         if partner is not None:
@@ -235,7 +252,7 @@ def update_section(
 
     synced_partner_id: int | None = None
     partner_id = saved.crosslisted_section_id
-    if partner_id is None:
+    if partner_id is None and not explicit_uncrosslist:
         # Backward-compat: if only the partner points at this row, still treat it as crosslisted.
         reverse = (
             db.query(Section).filter(Section.crosslisted_section_id == saved.section_id).first()
@@ -275,16 +292,18 @@ def update_section(
     return saved, sorted(partner_ids_to_broadcast)
 
 
-def delete_section(db: Session, section_id: int) -> bool:
+def delete_section(db: Session, section_id: int) -> tuple[bool, list[int]]:
     section_obj = section_repo.get_by_id(db, section_id)
     if section_obj is None:
-        return False
+        return False, []
+    partner_ids_to_broadcast: set[int] = set()
     # If this section is crosslisted, clear the partner pointer as well.
     if section_obj.crosslisted_section_id is not None:
         partner = section_repo.get_by_id(db, section_obj.crosslisted_section_id)
         if partner is not None and partner.crosslisted_section_id == section_obj.section_id:
             partner.crosslisted_section_id = None
             section_repo.save(db, partner)
+            partner_ids_to_broadcast.add(partner.section_id)
     else:
         reverse = (
             db.query(Section)
@@ -294,5 +313,6 @@ def delete_section(db: Session, section_id: int) -> bool:
         if reverse is not None:
             reverse.crosslisted_section_id = None
             section_repo.save(db, reverse)
+            partner_ids_to_broadcast.add(reverse.section_id)
     section_repo.delete(db, section_obj)
-    return True
+    return True, sorted(partner_ids_to_broadcast)

@@ -75,16 +75,19 @@ def post_reply(db: Session, replyIn: CommentSchema, parent_id: int) -> CommentRe
     return reply
 
 
-def delete_comment(db: Session, comment: Comment) -> Comment:
+def delete_comment(db: Session, comment: Comment) -> list[Comment]:
     """Soft-delete a comment.
     deleting a parent also soft-deletes its direct replies.
     """
     comment.active = False
+    deleted: list[Comment] = [comment]
     for reply in list(comment.replies):
         reply.active = False
+        deleted.append(reply)
     db.commit()
-    db.refresh(comment)
-    return comment
+    for c in deleted:
+        db.refresh(c)
+    return deleted
 
 
 def resolve_comment(db: Session, comment: CommentSchema) -> list[CommentResponse]:

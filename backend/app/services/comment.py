@@ -64,6 +64,9 @@ def post_reply(db: Session, replyIn: CommentSchema, parent_id: int) -> CommentRe
     if errors:
         raise ValueError(errors)
 
+    if parent_comment.section_id != replyIn.section_id:
+        raise ValueError("Parent comment section does not match reply section")
+
     # If you "reply to a reply", re-parent to the top-level comment.
     root_parent_id = (
         parent_comment.parent_id
@@ -76,7 +79,7 @@ def post_reply(db: Session, replyIn: CommentSchema, parent_id: int) -> CommentRe
     return reply
 
 
-def delete_comment(db: Session, comment_id: int) -> CommentResponse:
+def delete_comment(db: Session, comment_id: int) -> list[CommentResponse]:
     comment = comment_repo.get_by_id(db, comment_id)
     if not comment:
         raise ValueError(f"Comment with id '{comment_id}' not found")
