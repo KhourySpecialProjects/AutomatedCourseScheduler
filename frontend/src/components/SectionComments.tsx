@@ -149,10 +149,23 @@ export default function SectionComments({ sectionId }: { sectionId: number }) {
                 <div className="mt-3 space-y-2 pl-3 border-l border-gray-100">
                   {repliesFor(c.comment_id).map((r) => (
                     <div key={r.comment_id} className="text-sm text-gray-700">
-                      <div className="text-xs text-gray-500 mb-0.5">
-                        <span className="font-medium text-gray-700">{authorLabel(r)}</span>
-                        <span className="mx-2">·</span>
-                        <span>{formatDate(r.created_at)}</span>
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <div className="text-xs text-gray-500">
+                          <span className="font-medium text-gray-700">{authorLabel(r)}</span>
+                          <span className="mx-2">·</span>
+                          <span>{formatDate(r.created_at)}</span>
+                        </div>
+                        {me && r.user_id === me.user_id && r.active && (
+                          <button
+                            type="button"
+                            disabled={deleting === r.comment_id}
+                            onClick={() => deleteComment(r.comment_id)}
+                            className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50 shrink-0"
+                            title="Delete your comment"
+                          >
+                            {deleting === r.comment_id ? 'Deleting…' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                       {r.content}
                     </div>

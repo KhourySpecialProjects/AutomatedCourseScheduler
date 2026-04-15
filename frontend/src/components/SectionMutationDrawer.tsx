@@ -3,11 +3,70 @@ import {
   getAutomatedCourseSchedulerAPI,
   type CourseResponse,
   type FacultyResponse,
+  type InstructorInfo,
+  type SectionCreate,
   type SectionRichResponse,
   type TimeBlockInfo,
 } from '../api/generated';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
 import MultiSearchableSelect from './MultiSearchableSelect';
+import SectionComments from './SectionComments';
+
+function courseOptionFromApi(c: CourseResponse): SelectOption<number> {
+  const r = c as unknown as Record<string, unknown>;
+  const id = Number(r.CourseID ?? r.course_id ?? 0);
+  const name = String(r.CourseName ?? r.name ?? `Course ${id}`);
+  const subj = r.CourseSubject ?? r.subject;
+  const no = r.CourseNo ?? r.code;
+  const sub = [subj, no].filter((x) => x != null && x !== '').join(' ');
+  return { value: id, label: name, sublabel: sub || undefined };
+}
+
+function facultyOptionFromApi(f: FacultyResponse): SelectOption<number> {
+  const r = f as unknown as Record<string, unknown>;
+  const nuid = Number(r.NUID ?? r.nuid ?? 0);
+  const fn = String(r.FirstName ?? r.first_name ?? '').trim();
+  const ln = String(r.LastName ?? r.last_name ?? '').trim();
+  const title = r.Title ?? r.title;
+  const label = [fn, ln].filter(Boolean).join(' ').trim() || `NUID ${nuid}`;
+  const sublabel =
+    typeof title === 'string' && title.trim() ? title.trim() : undefined;
+  return { value: nuid, label, sublabel };
+}
+
+/** Lower = sort earlier. Eager first, then willing, unknown, not interested. */
+function rankCoursePreferenceForSort(preference: string | undefined): number {
+  switch (preference) {
+    case 'Eager to teach':
+      return 0;
+    case 'Willing to teach':
+      return 1;
+    case 'Not my cup of tea':
+      return 3;
+    default:
+      return 2;
+  }
+}
+
+function coursePreferenceHintForSelectedCourse(
+  preference: string | undefined,
+): string | null {
+  switch (preference) {
+    case 'Eager to teach':
+      return 'Eager for this course';
+    case 'Willing to teach':
+      return 'Willing to teach this course';
+    case 'Not my cup of tea':
+      return 'Not interested in this course';
+    default:
+      return null;
+  }
+}
+
+function preferenceForCourse(ins: InstructorInfo | undefined, courseId: number | null): string | undefined {
+  if (!ins || courseId === null) return undefined;
+  return ins.course_preferences.find((p) => p.course_id === courseId)?.preference;
+}
 
 interface BaseProps {
   scheduleId: number;
@@ -49,6 +108,9 @@ export default function SectionMutationDrawer(props: Props) {
   const [selectedNuids, setSelectedNuids] = useState<number[]>(
     section?.instructors.map((i) => i.nuid) ?? [],
   );
+  const [crosslistedSectionId, setCrosslistedSectionId] = useState<number | null>(
+    section?.crosslisted_section_id ?? null,
+  );
 
   // Remote data
   const [courses, setCourses] = useState<CourseResponse[]>([]);
@@ -81,12 +143,67 @@ export default function SectionMutationDrawer(props: Props) {
     });
   }, [campusName, scheduleId]);
 
-  const warning = useMemo<string | null>(() => {
+  useEffect(() => {
+    if (section) {
+      setCrosslistedSectionId(section.crosslisted_section_id ?? null);
+    }
+  }, [section?.section_id]);
+
+  const crosslistOptions = useMemo((): SelectOption<number | null>[] => {
+    const none: SelectOption<number | null> = { value: null, label: 'Not crosslisted' };
+    if (!section) return [none];
+    const unavailableTargets = new Set<number>();
+    for (const s of scheduleSections) {
+      if (s.section_id === section.section_id) continue;
+      if (s.crosslisted_section_id != null) {
+        unavailableTargets.add(s.crosslisted_section_id);
+      }
+    }
+    const partners = scheduleSections
+      .filter((s) => s.section_id !== section.section_id)
+      .filter(
+        (s) => !unavailableTargets.has(s.section_id) || s.section_id === crosslistedSectionId,
+      )
+      .map((s) => ({
+        value: s.section_id,
+        label: `${s.course.name} §${s.section_number}`,
+        sublabel: `${s.time_block.days} ${s.time_block.start_time} – ${s.time_block.end_time}`,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    return [none, ...partners];
+  }, [scheduleSections, section, crosslistedSectionId]);
+
+  const crosslistPartnerLabel = useMemo(() => {
+    if (crosslistedSectionId == null) return null;
+    const p = scheduleSections.find((s) => s.section_id === crosslistedSectionId);
+    if (!p) return null;
+    return `${p.course.name} §${p.section_number}`;
+  }, [scheduleSections, crosslistedSectionId]);
+
+  /** Create mode: same course + section # already on this schedule. */
+  const duplicateCourseSectionMessage = useMemo(() => {
+    if (isEdit || courseId === null || sectionNumber === '') return null;
+    const n = Number(sectionNumber);
+    if (Number.isNaN(n) || n < 1) return null;
+    const existing = scheduleSections.find(
+      (s) => s.course.course_id === courseId && s.section_number === n,
+    );
+    if (!existing) return null;
+    return `This schedule already has ${existing.course.name} §${n}. Use a different section number or course.`;
+  }, [isEdit, courseId, sectionNumber, scheduleSections]);
+
+  /** Only when at least one selected instructor is already assigned to another section in this time block. */
+  const doubleBookWarning = useMemo<string | null>(() => {
     if (timeBlockId === null || selectedNuids.length === 0) return null;
 
     const selected = new Set(selectedNuids);
     const conflicts = scheduleSections
       .filter((s) => (section ? s.section_id !== section.section_id : true))
+      .filter((s) => {
+        if (crosslistedSectionId != null && s.section_id === crosslistedSectionId) return false;
+        if (section && s.crosslisted_section_id === section.section_id) return false;
+        return true;
+      })
       .filter((s) => s.time_block.time_block_id === timeBlockId)
       .flatMap((s) =>
         s.instructors
@@ -106,25 +223,50 @@ export default function SectionMutationDrawer(props: Props) {
       .slice(0, 4);
     const more = conflicts.length > 4 ? ` (+${conflicts.length - 4} more)` : '';
     return `Professor double-booked: ${lines.join('; ')}${more}`;
-  }, [scheduleSections, section, selectedNuids, timeBlockId]);
+  }, [scheduleSections, section, selectedNuids, timeBlockId, crosslistedSectionId]);
+
+  /** Preferences for faculty appear on schedule rows */
+  const instructorByNuid = useMemo(() => {
+    const m = new Map<number, InstructorInfo>();
+    for (const s of scheduleSections) {
+      for (const ins of s.instructors) {
+        if (!m.has(ins.nuid)) m.set(ins.nuid, ins);
+      }
+    }
+    return m;
+  }, [scheduleSections]);
 
   // Build typed SelectOption arrays once data is loaded
-  const courseOptions: SelectOption<number>[] = courses.map((c) => ({
-    value: c.CourseID,
-    label: c.CourseName ?? `Course ${c.CourseID}`,
-    sublabel: [c.CourseSubject, c.CourseNo].filter(Boolean).join(' ') || undefined,
-  }));
+  const courseOptions: SelectOption<number>[] = courses.map(courseOptionFromApi);
 
   const timeBlockOptions: SelectOption<number>[] = timeBlocks.map((tb) => ({
     value: tb.time_block_id,
     label: `${tb.days}  ${tb.start_time} – ${tb.end_time}`,
   }));
 
-  const facultyOptions: SelectOption<number>[] = faculty.map((f) => ({
-    value: f.NUID,
-    label: `${f.FirstName ?? ''} ${f.LastName ?? ''}`.trim(),
-    sublabel: f.Title ?? undefined,
-  }));
+  const facultyOptions: SelectOption<number>[] = useMemo(() => {
+    const rows = faculty.map((f) => {
+      const base = facultyOptionFromApi(f);
+      const ins = instructorByNuid.get(base.value);
+      const pref = preferenceForCourse(ins, courseId);
+      const hint = coursePreferenceHintForSelectedCourse(pref);
+      const subParts = [hint, base.sublabel].filter((x) => x && String(x).trim());
+      return {
+        value: base.value,
+        label: base.label,
+        sublabel: subParts.length ? subParts.join(' · ') : base.sublabel,
+      };
+    });
+    rows.sort((a, b) => {
+      const pa = preferenceForCourse(instructorByNuid.get(a.value), courseId);
+      const pb = preferenceForCourse(instructorByNuid.get(b.value), courseId);
+      const ra = rankCoursePreferenceForSort(pa);
+      const rb = rankCoursePreferenceForSort(pb);
+      if (ra !== rb) return ra - rb;
+      return a.label.localeCompare(b.label);
+    });
+    return rows;
+  }, [faculty, instructorByNuid, courseId]);
 
   async function handleDelete() {
     if (!section) return;
@@ -141,13 +283,24 @@ export default function SectionMutationDrawer(props: Props) {
 
   async function handleSave() {
     setError(null);
-    if (courseId === null || timeBlockId === null || capacity === '') {
-      setError('Course, time block, and capacity are required.');
+    if (courseId === null) {
+      setError('Course is required.');
       return;
     }
-    if (!isEdit && sectionNumber === '') {
-      setError('Section number is required.');
-      return;
+    if (isEdit && section) {
+      if (timeBlockId === null || capacity === '') {
+        setError('Time block and capacity are required.');
+        return;
+      }
+    } else if (!isEdit) {
+      if (timeBlockId === null || sectionNumber === '') {
+        setError('Course, time block, and section number are required.');
+        return;
+      }
+      if (duplicateCourseSectionMessage) {
+        setError(duplicateCourseSectionMessage);
+        return;
+      }
     }
 
     setSaving(true);
@@ -160,25 +313,30 @@ export default function SectionMutationDrawer(props: Props) {
           time_block_id: timeBlockId,
           capacity: capacity as number,
           room: room || null,
+          crosslisted_section_id: crosslistedSectionId,
           faculty_nuids: selectedNuids,
         });
       } else {
-        await api.createSectionSectionsPost({
+        const body: SectionCreate = {
           schedule_id: scheduleId,
           course_id: courseId,
-          time_block_id: timeBlockId,
-          capacity: capacity as number,
+          time_block_id: timeBlockId!,
           section_number: sectionNumber as number,
-          faculty_nuids: selectedNuids,
-        });
+        };
+        if (capacity !== '') body.capacity = capacity as number;
+        if (selectedNuids.length > 0) body.faculty_nuids = selectedNuids;
+        await api.createSectionSectionsPost(body);
       }
       onClose();
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
+      const res = (err as { response?: { status?: number; data?: { detail?: unknown } } })?.response;
+      const status = res?.status;
+      const detail = res?.data?.detail;
+      const detailStr = typeof detail === 'string' ? detail : null;
       if (status === 423) {
         setError('This section is locked by another user. Please try again later.');
       } else {
-        setError('Failed to save. Please try again.');
+        setError(detailStr ?? 'Failed to save. Please try again.');
       }
       setSaving(false);
     }
@@ -234,7 +392,7 @@ export default function SectionMutationDrawer(props: Props) {
 
               {/* Time Block */}
               <div>
-                <Label>Time Block</Label>
+                <Label>Time block</Label>
                 <SearchableSelect
                   options={timeBlockOptions}
                   value={timeBlockId}
@@ -246,14 +404,14 @@ export default function SectionMutationDrawer(props: Props) {
               {/* Capacity + Section # */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Capacity</Label>
+                  <Label>{isEdit ? 'Capacity' : 'Capacity (optional)'}</Label>
                   <input
                     type="number"
                     min={1}
                     value={capacity}
                     onChange={(e) => setCapacity(e.target.value ? Number(e.target.value) : '')}
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="e.g. 25"
+                    placeholder={isEdit ? 'e.g. 25' : 'Default 30 if empty'}
                   />
                 </div>
                 <div>
@@ -269,6 +427,11 @@ export default function SectionMutationDrawer(props: Props) {
                   />
                 </div>
               </div>
+              {!isEdit && duplicateCourseSectionMessage && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+                  {duplicateCourseSectionMessage}
+                </div>
+              )}
 
               {/* Room (edit only) */}
               {isEdit && (
@@ -284,21 +447,60 @@ export default function SectionMutationDrawer(props: Props) {
                 </div>
               )}
 
+              {isEdit && section && (
+                <div>
+                  <Label>Crosslisted section</Label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Choose another section in this schedule this offering is paired with (e.g. undergrad / graduate).
+                  </p>
+                  <SearchableSelect<number | null>
+                    options={crosslistOptions}
+                    value={crosslistedSectionId}
+                    onChange={setCrosslistedSectionId}
+                    placeholder="Not crosslisted"
+                  />
+                  {crosslistedSectionId != null && (
+                    <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+                      <p className="font-medium">Crosslisted section will match this row</p>
+                      <p className="mt-1 text-amber-800">
+                        When you save,{' '}
+                        <span className="font-semibold">
+                          {crosslistPartnerLabel ?? 'the selected section'}
+                        </span>{' '}
+                        will be updated to use this section&apos;s time block and instructors.
+                        Different time or instructors on that row will be replaced.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Faculty */}
               <div>
                 <Label>Instructors</Label>
+                <p className="text-xs text-gray-500 mb-2">
+                  {courseId != null
+                    ? 'Ordered by teaching preference for this course (eager first) when preferences appear elsewhere on this schedule.'
+                    : 'Select a course to order instructors by preference for that course.'}
+                </p>
                 <MultiSearchableSelect
                   options={facultyOptions}
                   value={selectedNuids}
                   onChange={setSelectedNuids}
                   placeholder="Add instructors…"
                 />
-                {warning && (
+                {doubleBookWarning && (
                   <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-                    {warning}
+                    {doubleBookWarning}
                   </div>
                 )}
               </div>
+
+              {isEdit && section && (
+                <div className="pt-4 border-t border-gray-100">
+                  <SectionComments sectionId={section.section_id} />
+                </div>
+              )}
 
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -355,7 +557,11 @@ export default function SectionMutationDrawer(props: Props) {
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={saving || loadingData}
+                  disabled={
+                    saving ||
+                    loadingData ||
+                    (!isEdit && duplicateCourseSectionMessage != null)
+                  }
                   className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                 >
                   {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add section'}

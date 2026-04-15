@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { InstructorInfo, SectionRichResponse, TimeBlockInfo } from '../api/generated';
 import { getAutomatedCourseSchedulerAPI } from '../api/generated';
 import type { LockInfo } from '../hooks/useScheduleWebSocket';
+import CrosslistSectionHint from './CrosslistSectionHint';
 import FacultyTooltip from './FacultyTooltip';
 import MultiSearchableSelect from './MultiSearchableSelect';
 import SectionDetailPanel from './SectionDetailPanel';
@@ -17,17 +18,11 @@ interface Props {
   scheduleId: number;
   locks: Map<number, LockInfo>;
   campusName: string | null;
-  readOnly?: boolean;
   viewMode?: 'table' | 'calendar';
   onSelectedCourseCountChange?: (count: number) => void;
-}
-
-function hasConflict(section: SectionRichResponse): boolean {
-  return section.instructors.some((inst) =>
-    inst.course_preferences.some(
-      (cp) => cp.course_id === section.course.course_id && cp.preference === 'Not my cup of tea',
-    ),
-  );
+  onSelectedInstructorCountChange?: (count: number) => void;
+  isAdmin: boolean;
+  userRoleLoaded: boolean;
 }
 
 function primaryInstructor(section: SectionRichResponse): InstructorInfo | undefined {
@@ -72,6 +67,28 @@ function LockBadge({ lock }: { lock: LockInfo }) {
   );
 }
 
+function SectionCommentIndicator({ count }: { count: number }) {
+  if (count <= 0) return null;
+  const label = `${count} comment${count === 1 ? '' : 's'}`;
+  return (
+    <span
+      title={label}
+      className="inline-flex items-center gap-0.5 text-slate-500 shrink-0"
+      aria-label={label}
+    >
+      <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.75}
+          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+        />
+      </svg>
+      <span className="text-[11px] font-medium tabular-nums leading-none">{count}</span>
+    </span>
+  );
+}
+
 function dayLabel(letter: string): string {
   return (
     {
@@ -93,7 +110,7 @@ function expandDays(days: string): string[] {
 }
 
 function courseColor(): { card: string; accent: string } {
-  return { card: 'bg-violet-50 border-violet-200', accent: 'bg-violet-500' };
+  return { card: 'bg-indigo-50 border-indigo-200', accent: 'bg-indigo-600' };
 }
 
 function parseTimeToMinutes(raw: string): number {
@@ -116,9 +133,11 @@ export default function ScheduleSectionRowView({
   scheduleId,
   locks,
   campusName,
-  readOnly,
   viewMode = 'table',
   onSelectedCourseCountChange,
+  onSelectedInstructorCountChange,
+  isAdmin,
+  userRoleLoaded,
 }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('course');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -128,39 +147,56 @@ export default function ScheduleSectionRowView({
   const [instructorQuery, setInstructorQuery] = useState('');
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
   const [selectedSection, setSelectedSection] = useState<SectionRichResponse | null>(null);
+  const [editingSection, setEditingSection] = useState<SectionRichResponse | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [lockError, setLockError] = useState<{ sectionId: number; msg: string } | null>(null);
   const [hoveredInstructor, setHoveredInstructor] = useState<{
     instructor: InstructorInfo;
     rect: DOMRect;
   } | null>(null);
-  const [editingSection, setEditingSection] = useState<SectionRichResponse | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [lockError, setLockError] = useState<{ sectionId: number; msg: string } | null>(null);
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSortKey(key); setSortDir('asc'); }
-  };
-
-  const handleInstructorMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>, instructor: InstructorInfo) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-      hoverTimeout.current = setTimeout(() => setHoveredInstructor({ instructor, rect }), 300);
-    },
-    [],
-  );
+  const handleInstructorMouseEnter = useCallback((e: React.MouseEvent<HTMLElement>, instructor: InstructorInfo) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    hoverTimeout.current = setTimeout(() => setHoveredInstructor({ instructor, rect }), 300);
+  }, []);
 
   const handleInstructorMouseLeave = useCallback(() => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
     hoverTimeout.current = setTimeout(() => setHoveredInstructor(null), 150);
   }, []);
 
-  useEffect(() => () => { if (hoverTimeout.current) clearTimeout(hoverTimeout.current); }, []);
+  useEffect(
+    () => () => {
+      if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    },
+    [],
+  );
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  useEffect(() => {
+    onSelectedInstructorCountChange?.(instructorFilterNuids.length);
+  }, [instructorFilterNuids.length, onSelectedInstructorCountChange]);
 
   useEffect(() => {
     onSelectedCourseCountChange?.(courseFilterIds.length);
   }, [courseFilterIds.length, onSelectedCourseCountChange]);
+
+  useEffect(() => {
+    if (isAdmin) return;
+    setCreating(false);
+    setEditingSection((current) => {
+      if (!current) return null;
+      const id = current.section_id;
+      void getAutomatedCourseSchedulerAPI().releaseLockSectionsSectionIdUnlockPost(id).catch(() => {});
+      return null;
+    });
+  }, [isAdmin]);
 
   // Derive unique time blocks from loaded sections for use in the mutation drawer
   const timeBlocks = useMemo<TimeBlockInfo[]>(() => {
@@ -248,9 +284,11 @@ export default function ScheduleSectionRowView({
       .slice(0, 8);
   }, [instructorOptions, instructorFilterNuids, instructorQuery]);
 
-  async function handleEditClick(e: React.MouseEvent, section: SectionRichResponse) {
-    e.stopPropagation();
-    if (readOnly) return;
+  function isLockedFor(section: SectionRichResponse): boolean {
+    return Boolean(locks.get(section.section_id));
+  }
+
+  async function openAdminSectionEditor(section: SectionRichResponse) {
     setLockError(null);
     try {
       await getAutomatedCourseSchedulerAPI().acquireLockSectionsSectionIdLockPost(section.section_id);
@@ -264,6 +302,12 @@ export default function ScheduleSectionRowView({
         setTimeout(() => setLockError(null), 3000);
       }
     }
+  }
+
+  function handleRowActivate(section: SectionRichResponse) {
+    if (!userRoleLoaded || isLockedFor(section)) return;
+    if (isAdmin) void openAdminSectionEditor(section);
+    else setSelectedSection(section);
   }
 
   async function handleEditClose() {
@@ -398,7 +442,7 @@ export default function ScheduleSectionRowView({
           {sorted.length} of {sections.length} section{sections.length !== 1 ? 's' : ''}
         </span>
 
-        {!readOnly && (
+        {isAdmin && (
           <button
             onClick={() => setCreating(true)}
             className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
@@ -410,6 +454,12 @@ export default function ScheduleSectionRowView({
           </button>
         )}
       </div>
+
+      {lockError && (
+        <p className="text-sm text-amber-700 mb-3" role="status">
+          {lockError.msg}
+        </p>
+      )}
 
       {viewMode === 'calendar' ? (
         <div className="rounded-lg border border-gray-200 bg-white overflow-auto max-h-[72vh]">
@@ -466,62 +516,52 @@ export default function ScheduleSectionRowView({
                               const lock = locks.get(section.section_id);
                               const isLocked = Boolean(lock);
                               const instructor = primaryInstructor(section);
-                              const conflict = hasConflict(section);
                               const colors = courseColor();
+                              const calendarTitle = isLocked
+                                ? `Locked by ${lock!.display_name}`
+                                : `${section.course.name} §${section.section_number}`;
                               return (
                                 <button
                                   key={section.section_id}
                                   type="button"
                                   disabled={isLocked}
-                                  onClick={() => !isLocked && setSelectedSection(section)}
-                                  onMouseEnter={(e) => {
-                                    if (!instructor) return;
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-                                    hoverTimeout.current = setTimeout(() => setHoveredInstructor({ instructor, rect }), 250);
-                                  }}
-                                  onMouseLeave={handleInstructorMouseLeave}
-                                  title={isLocked ? `Locked by ${lock!.display_name}` : `${section.course.name} §${section.section_number}`}
-                                  className={`relative w-full aspect-square text-left rounded-xl border p-3 transition-colors shadow-sm overflow-hidden ${
+                                  onClick={() => handleRowActivate(section)}
+                                  title={calendarTitle}
+                                  className={`relative w-full aspect-square text-left rounded-xl border p-3 transition-colors shadow-sm overflow-visible ${
                                     isLocked
                                       ? 'bg-amber-50/40 border-amber-200 text-amber-800 cursor-not-allowed opacity-70'
                                       : `${colors.card} hover:bg-white`
                                   }`}
                                 >
-                                  {!readOnly && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => handleEditClick(e, section)}
-                                      disabled={isLocked}
-                                      title={isLocked ? `Locked by ${lock!.display_name}` : 'Edit section'}
-                                      className="absolute bottom-2 right-2 p-1.5 rounded-md text-gray-400 hover:text-violet-700 hover:bg-white/70 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={1.75}
-                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                        />
-                                      </svg>
-                                    </button>
-                                  )}
                                   <div className="h-full flex flex-col">
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-2">
-                                        {conflict && (
-                                          <span
-                                            title="Instructor preference conflict"
-                                            className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"
-                                          />
-                                        )}
                                         {!isLocked && <span className={`w-1 h-4 rounded-full ${colors.accent}`} />}
                                         <div className="text-sm font-semibold text-gray-900 truncate">{section.course.name}</div>
                                       </div>
-                                      <div className="mt-1 text-[11px] text-gray-500">
-                                        <span className="font-medium">§{section.section_number}</span>
+                                      <div className="mt-1 text-[11px] text-gray-500 flex items-center gap-2 flex-wrap">
+                                        <span className="font-medium inline-flex items-center gap-1">
+                                          §{section.section_number}
+                                          <CrosslistSectionHint section={section} allSections={sections} />
+                                        </span>
+                                        <SectionCommentIndicator count={section.comment_count ?? 0} />
                                       </div>
                                     </div>
+                                    {instructor &&
+                                      (isLocked ? (
+                                        <div className="mt-2 truncate text-[11px] text-gray-600">
+                                          {instructor.first_name} {instructor.last_name}
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="mt-2 inline-block max-w-full cursor-default truncate text-left text-[11px] text-indigo-700 underline decoration-dotted decoration-indigo-400 underline-offset-2 hover:text-indigo-900"
+                                          onClick={(e) => e.stopPropagation()}
+                                          onMouseEnter={(e) => handleInstructorMouseEnter(e, instructor)}
+                                          onMouseLeave={handleInstructorMouseLeave}
+                                        >
+                                          {instructor.first_name} {instructor.last_name}
+                                        </span>
+                                      ))}
                                     <div className="mt-auto flex items-end justify-between gap-2">
                                       <div className="text-[11px] text-gray-500">
                                         Cap {section.capacity}
@@ -565,7 +605,7 @@ export default function ScheduleSectionRowView({
                     <span className="flex items-center gap-1">
                       {label}
                       {sortKey === key ? (
-                        <svg className="w-3 h-3 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-3 h-3 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
                         </svg>
                       ) : (
@@ -576,38 +616,40 @@ export default function ScheduleSectionRowView({
                     </span>
                   </th>
                 ))}
-                {/* Actions column */}
-                {!readOnly && <th className="px-4 py-3 w-24" />}
               </tr>
             </thead>
 
             <tbody className="bg-white divide-y divide-gray-100">
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">
                     No sections match your filters.
                   </td>
                 </tr>
               ) : (
                 sorted.map((section) => {
-                  const conflict = hasConflict(section);
                   const instructor = primaryInstructor(section);
                   const lock = locks.get(section.section_id);
                   const isLocked = Boolean(lock);
+                  const rowInteractive = userRoleLoaded && !isLocked;
 
                   return (
                     <tr
                       key={section.section_id}
-                      onClick={() => !isLocked && setSelectedSection(section)}
-                      className={`transition-colors ${isLocked ? 'bg-amber-50/40 cursor-default' : 'hover:bg-indigo-50/40 cursor-pointer'}`}
+                      onClick={() => rowInteractive && handleRowActivate(section)}
+                      className={`transition-colors ${
+                        !userRoleLoaded
+                          ? 'cursor-wait opacity-70'
+                          : isLocked
+                            ? 'bg-amber-50/40 cursor-default'
+                            : 'hover:bg-indigo-50/40 cursor-pointer'
+                      }`}
                     >
                       {/* Course */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                          {conflict && (
-                            <span title="Instructor preference conflict" className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                          )}
                           <span className="text-sm font-medium text-gray-900">{section.course.name}</span>
+                          <SectionCommentIndicator count={section.comment_count ?? 0} />
                           {lock && <LockBadge lock={lock} />}
                         </div>
                         <div className="text-xs text-gray-400 mt-0.5">{section.course.credits} cr</div>
@@ -615,7 +657,10 @@ export default function ScheduleSectionRowView({
 
                       {/* Section # */}
                       <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                        §{section.section_number}
+                        <span className="inline-flex items-center gap-1">
+                          §{section.section_number}
+                          <CrosslistSectionHint section={section} allSections={sections} />
+                        </span>
                       </td>
 
                       {/* Time */}
@@ -630,10 +675,11 @@ export default function ScheduleSectionRowView({
                       <td className="px-4 py-3 whitespace-nowrap">
                         {instructor ? (
                           <button
+                            type="button"
+                            className="cursor-default text-left text-sm text-indigo-700 underline decoration-dotted decoration-indigo-400 underline-offset-2 hover:text-indigo-900"
                             onClick={(e) => e.stopPropagation()}
                             onMouseEnter={(e) => handleInstructorMouseEnter(e, instructor)}
                             onMouseLeave={handleInstructorMouseLeave}
-                            className="text-sm text-indigo-700 hover:text-indigo-900 underline decoration-dotted underline-offset-2 cursor-default"
                           >
                             {instructor.first_name} {instructor.last_name}
                           </button>
@@ -651,27 +697,6 @@ export default function ScheduleSectionRowView({
                       <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                         {section.capacity}
                       </td>
-
-                      {/* Actions */}
-                      {!readOnly && (
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-1 justify-end">
-                            {lockError?.sectionId === section.section_id && (
-                              <span className="text-xs text-amber-600 mr-1">{lockError.msg}</span>
-                            )}
-                            <button
-                              onClick={(e) => handleEditClick(e, section)}
-                              disabled={isLocked}
-                              title={isLocked ? `Locked by ${lock!.display_name}` : 'Edit section'}
-                              className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      )}
                     </tr>
                   );
                 })
@@ -681,10 +706,11 @@ export default function ScheduleSectionRowView({
         </div>
       )}
 
-      {/* Tooltip */}
       {hoveredInstructor && (
         <div
-          onMouseEnter={() => { if (hoverTimeout.current) clearTimeout(hoverTimeout.current); }}
+          onMouseEnter={() => {
+            if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+          }}
           onMouseLeave={handleInstructorMouseLeave}
         >
           <FacultyTooltip
@@ -700,12 +726,13 @@ export default function ScheduleSectionRowView({
       {selectedSection && (
         <SectionDetailPanel
           section={selectedSection}
+          allSections={sections}
           onClose={() => setSelectedSection(null)}
         />
       )}
 
       {/* Edit drawer */}
-      {!readOnly && editingSection && (
+      {isAdmin && editingSection && (
         <SectionMutationDrawer
           mode="edit"
           scheduleId={scheduleId}
@@ -717,7 +744,7 @@ export default function ScheduleSectionRowView({
       )}
 
       {/* Create drawer */}
-      {!readOnly && creating && (
+      {isAdmin && creating && (
         <SectionMutationDrawer
           mode="create"
           scheduleId={scheduleId}

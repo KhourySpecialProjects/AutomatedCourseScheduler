@@ -18,10 +18,10 @@ class SectionResponse(BaseModel):
 
 class SectionCreate(BaseModel):
     schedule_id: int
-    time_block_id: int
     course_id: int
-    capacity: int
+    time_block_id: int
     section_number: int
+    capacity: int | None = None
     faculty_nuids: list[int] | None = None
 
 
@@ -78,6 +78,8 @@ class SectionRichResponse(BaseModel):
     capacity: int
     room: str | None = None
     schedule_id: int
+    comment_count: int = 0
+    crosslisted_section_id: int | None = None
     course: CourseInfo
     time_block: TimeBlockInfo
     instructors: list[InstructorInfo]

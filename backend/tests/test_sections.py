@@ -2,6 +2,7 @@ from datetime import time
 
 from app.core.enums import PreferenceLevel
 from app.models import (
+    Comment,
     Course,
     CoursePreference,
     Faculty,
@@ -10,6 +11,7 @@ from app.models import (
     Schedule,
     Section,
     TimeBlock,
+    User,
 )
 from app.models.campus import Campus as CampusModel
 from app.models.semester import Semester as SemesterModel
@@ -229,6 +231,60 @@ def test_get_rich_sections_nested_shape(client, db_session):
     assert inst["course_preferences"][0]["course_name"] == "Intro CS"
     assert len(inst["meeting_preferences"]) == 1
     assert inst["meeting_preferences"][0]["time_block_id"] == tb.time_block_id
+    assert row["comment_count"] == 0
+    assert row["crosslisted_section_id"] is None
+
+
+def test_get_rich_sections_includes_comment_count(client, db_session):
+    campus = _make_campus(db_session)
+    semester = _make_semester(db_session)
+
+    schedule = Schedule(name="Sched", semester_id=semester.semester_id, campus=campus.campus_id)
+    course = Course(name="Intro CS", description="Fun", credits=4)
+    db_session.add_all([schedule, course])
+    db_session.flush()
+
+    tb = TimeBlock(
+        meeting_days="MW",
+        start_time=time(10, 30),
+        end_time=time(11, 45),
+        campus=campus.campus_id,
+    )
+    db_session.add(tb)
+    db_session.flush()
+
+    section = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=tb.time_block_id,
+        course_id=course.course_id,
+        section_number=1,
+        capacity=40,
+    )
+    db_session.add(section)
+    db_session.flush()
+
+    user = User(
+        nuid=5001,
+        first_name="Test",
+        last_name="User",
+        email="commentcount@test.edu",
+        role="ADMIN",
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    db_session.add_all(
+        [
+            Comment(user_id=user.user_id, section_id=section.section_id, content="One"),
+            Comment(user_id=user.user_id, section_id=section.section_id, content="Two"),
+        ]
+    )
+    db_session.commit()
+
+    response = client.get(f"/schedules/{schedule.schedule_id}/sections/rich")
+    assert response.status_code == 200
+    row = response.json()[0]
+    assert row["comment_count"] == 2
 
 
 # ---------------------------------------------------------------------------
@@ -255,6 +311,46 @@ def test_create_section_success(client, db_session):
     assert data["time_block_id"] == time_block.time_block_id
     assert data["capacity"] == 30
     assert data["section_number"] == 1
+
+
+def test_create_section_omitted_capacity_defaults_to_30(client, db_session):
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
+    response = client.post(
+        "/sections",
+        json={
+            "schedule_id": schedule.schedule_id,
+            "time_block_id": time_block.time_block_id,
+            "course_id": course.course_id,
+            "section_number": 1,
+        },
+    )
+    assert response.status_code == 201
+    assert response.json()["capacity"] == 30
+
+
+def test_create_section_duplicate_course_section_number_returns_400(client, db_session):
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
+    db_session.add(
+        Section(
+            schedule_id=schedule.schedule_id,
+            time_block_id=time_block.time_block_id,
+            course_id=course.course_id,
+            capacity=25,
+            section_number=1,
+        )
+    )
+    db_session.commit()
+    response = client.post(
+        "/sections",
+        json={
+            "schedule_id": schedule.schedule_id,
+            "time_block_id": time_block.time_block_id,
+            "course_id": course.course_id,
+            "section_number": 1,
+        },
+    )
+    assert response.status_code == 400
+    assert "already exists" in response.json()["detail"]
 
 
 def test_create_section_invalid_schedule_returns_400(client, db_session):
@@ -343,6 +439,61 @@ def test_patch_section_success(client, db_session):
     assert data["course_id"] == new_course.course_id
     assert data["capacity"] == 40
     assert data["section_number"] == 1
+
+    db_session.refresh(crosslisted_target)
+    assert crosslisted_target.time_block_id == new_time_block.time_block_id
+
+
+def test_patch_section_crosslisted_syncs_partner_instructors(client, db_session):
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
+    campus = _make_campus(db_session, "Oakland")
+    partner = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=20,
+        section_number=2,
+    )
+    section = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=25,
+        section_number=1,
+    )
+    f1 = Faculty(
+        nuid=9001,
+        first_name="A",
+        last_name="One",
+        email="a1@example.com",
+        campus=campus.campus_id,
+    )
+    f2 = Faculty(
+        nuid=9002,
+        first_name="B",
+        last_name="Two",
+        email="b2@example.com",
+        campus=campus.campus_id,
+    )
+    db_session.add_all([partner, section, f1, f2])
+    db_session.flush()
+    db_session.add(FacultyAssignment(faculty_nuid=f1.nuid, section_id=section.section_id))
+    db_session.add(FacultyAssignment(faculty_nuid=f2.nuid, section_id=partner.section_id))
+    db_session.commit()
+
+    response = client.patch(
+        f"/sections/{section.section_id}",
+        json={"crosslisted_section_id": partner.section_id},
+    )
+    assert response.status_code == 200
+
+    nuids_partner = (
+        db_session.query(FacultyAssignment.faculty_nuid)
+        .filter(FacultyAssignment.section_id == partner.section_id)
+        .order_by(FacultyAssignment.faculty_assignment_id)
+        .all()
+    )
+    assert [n[0] for n in nuids_partner] == [f1.nuid]
 
 
 def test_patch_section_not_found_returns_404(client, db_session):

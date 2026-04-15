@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.comment import Comment
@@ -8,6 +8,18 @@ from app.schemas.comment import CommentResponse, CommentSchema
 
 def get_all(db: Session) -> list[Comment]:
     return db.query(Comment).all()
+
+
+def count_active_by_schedule(db: Session, schedule_id: int) -> dict[int, int]:
+    """Return mapping section_id -> number of active comments for all sections in the schedule."""
+    rows = (
+        db.query(Comment.section_id, func.count(Comment.comment_id))
+        .join(Section, Comment.section_id == Section.section_id)
+        .filter(Section.schedule_id == schedule_id, Comment.active.is_(True))
+        .group_by(Comment.section_id)
+        .all()
+    )
+    return {int(sid): int(n) for sid, n in rows}
 
 
 def get_by_section(db: Session, section_id: int) -> list[Comment]:
@@ -63,20 +75,15 @@ def post_reply(db: Session, replyIn: CommentSchema, parent_id: int) -> CommentRe
     return reply
 
 
-def delete_comment(db: Session, comment: Comment) -> list[CommentResponse]:
+def delete_comment(db: Session, comment: Comment) -> Comment:
+    """Soft-delete only this comment. Direct replies are re-parented to this comment's parent."""
+    new_parent_id = comment.parent_id
+    for reply in list(comment.replies):
+        reply.parent_id = new_parent_id
     comment.active = False
-    replies = comment.replies
-
-    for reply in replies:
-        reply.active = False
-
-    all = [comment] + replies
     db.commit()
-
-    for comment in all:
-        db.refresh(comment)
-
-    return all
+    db.refresh(comment)
+    return comment
 
 
 def resolve_comment(db: Session, comment: CommentSchema) -> list[CommentResponse]:

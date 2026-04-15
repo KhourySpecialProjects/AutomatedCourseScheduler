@@ -303,6 +303,38 @@ def test_delete_comment_success(client, db_session):
     assert updated.active is False
 
 
+def test_delete_comment_does_not_remove_other_comments(client, db_session):
+    user = _make_user(db_session)
+    section = _make_section(db_session, _make_schedule(db_session).schedule_id)
+    c1 = _make_comment(db_session, user.user_id, section.section_id, "First")
+    c2 = _make_comment(db_session, user.user_id, section.section_id, "Second")
+
+    response = client.delete(f"/comments/{c1.comment_id}")
+    assert response.status_code == 200
+
+    db_session.expire_all()
+    assert db_session.get(Comment, c1.comment_id).active is False
+    assert db_session.get(Comment, c2.comment_id).active is True
+
+
+def test_delete_parent_comment_promotes_replies(client, db_session):
+    user = _make_user(db_session)
+    section = _make_section(db_session, _make_schedule(db_session).schedule_id)
+    parent = _make_comment(db_session, user.user_id, section.section_id, "Parent")
+    r1 = _make_comment(db_session, user.user_id, section.section_id, "R1", parent_id=parent.comment_id)
+    r2 = _make_comment(db_session, user.user_id, section.section_id, "R2", parent_id=parent.comment_id)
+
+    response = client.delete(f"/comments/{parent.comment_id}")
+    assert response.status_code == 200
+
+    db_session.expire_all()
+    assert db_session.get(Comment, parent.comment_id).active is False
+    assert db_session.get(Comment, r1.comment_id).active is True
+    assert db_session.get(Comment, r1.comment_id).parent_id is None
+    assert db_session.get(Comment, r2.comment_id).active is True
+    assert db_session.get(Comment, r2.comment_id).parent_id is None
+
+
 def test_delete_comment_not_found_returns_404(client, db_session):
     response = client.delete("/comments/9999")
     assert response.status_code == 404

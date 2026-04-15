@@ -133,6 +133,28 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
             setLocks(new Map(locksRef.current));
             break;
           }
+          case 'comment_added': {
+            const payload = msg.payload as { section_id: number };
+            const { section_id: sid } = payload;
+            sectionsRef.current = sectionsRef.current.map((s) =>
+              s.section_id === sid
+                ? { ...s, comment_count: (s.comment_count ?? 0) + 1 }
+                : s,
+            );
+            setSections([...sectionsRef.current]);
+            break;
+          }
+          case 'comment_deleted': {
+            const payload = msg.payload as { section_id: number };
+            const { section_id: sid } = payload;
+            sectionsRef.current = sectionsRef.current.map((s) =>
+              s.section_id === sid
+                ? { ...s, comment_count: Math.max(0, (s.comment_count ?? 0) - 1) }
+                : s,
+            );
+            setSections([...sectionsRef.current]);
+            break;
+          }
         }
       };
 

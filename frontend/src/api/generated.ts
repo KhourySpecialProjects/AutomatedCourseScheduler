@@ -277,10 +277,10 @@ export type SectionCreateFacultyNuids = number[] | null;
 
 export interface SectionCreate {
   schedule_id: number;
-  time_block_id: number;
   course_id: number;
-  capacity: number;
+  time_block_id: number;
   section_number: number;
+  capacity?: number | null;
   faculty_nuids?: SectionCreateFacultyNuids;
 }
 
@@ -318,6 +318,8 @@ export interface SectionRichResponse {
   capacity: number;
   room?: SectionRichResponseRoom;
   schedule_id: number;
+  comment_count?: number;
+  crosslisted_section_id?: number | null;
   course: CourseInfo;
   time_block: TimeBlockInfo;
   instructors: InstructorInfo[];
@@ -944,7 +946,7 @@ const getCommentsCommentsSectionIdGet = (
 const deleteCommentCommentsCommentIdDelete = (
     commentId: number,
  ) => {
-      return axiosInstance<CommentResponse[]>(
+      return axiosInstance<CommentResponse>(
       {url: `/comments/${commentId}`, method: 'DELETE'
     },
       );

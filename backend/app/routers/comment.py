@@ -64,7 +64,7 @@ def get_comments(section_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
-@router.delete("/{comment_id}", response_model=list[CommentResponse])
+@router.delete("/{comment_id}", response_model=CommentResponse)
 async def delete_comment(comment_id: int, db: Session = Depends(get_db)):
     comment = comment_service.get_by_id(db, comment_id)
     try:

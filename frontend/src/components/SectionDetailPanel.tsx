@@ -1,8 +1,10 @@
 import type { SectionRichResponse } from '../api/generated';
+import CrosslistSectionHint from './CrosslistSectionHint';
 import SectionComments from './SectionComments';
 
 interface Props {
   section: SectionRichResponse;
+  allSections: SectionRichResponse[];
   onClose: () => void;
 }
 
@@ -23,9 +25,20 @@ function meetingPreferenceFor(
   instructor: SectionRichResponse['instructors'][0],
   days: string,
   startHour: number,
+  timeBlockId: number,
 ) {
   const category = deriveMeetingCategory(days, startHour);
-  return instructor.meeting_preferences.find((mp) => mp.meeting_time === category);
+  const prefs = instructor.meeting_preferences;
+  const byCategory = prefs.find((mp) => {
+    const mt = typeof mp.meeting_time === 'string' ? mp.meeting_time : '';
+    return mt === category;
+  });
+  if (byCategory) return byCategory;
+  return prefs.find((mp) => {
+    const r = mp as unknown as Record<string, unknown>;
+    const id = r.time_block_id;
+    return typeof id === 'number' && id === timeBlockId;
+  });
 }
 
 function deriveMeetingCategory(days: string, startHour: number): string {
@@ -42,7 +55,7 @@ function parseHour(timeStr: string): number {
   return h;
 }
 
-export default function SectionDetailPanel({ section, onClose }: Props) {
+export default function SectionDetailPanel({ section, allSections, onClose }: Props) {
   const startHour = parseHour(section.time_block.start_time);
 
   return (
@@ -56,11 +69,14 @@ export default function SectionDetailPanel({ section, onClose }: Props) {
       {/* Panel */}
       <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-xl z-50 overflow-y-auto flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-gray-100">
-          <div>
+        <div className="flex items-start justify-between overflow-visible p-6 border-b border-gray-100">
+          <div className="min-w-0 overflow-visible">
             <h2 className="text-lg font-semibold text-gray-900">{section.course.name}</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Section {section.section_number} · {section.course.credits} credits
+            <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <span>
+                Section {section.section_number} · {section.course.credits} credits
+              </span>
+              <CrosslistSectionHint section={section} allSections={allSections} />
             </p>
           </div>
           <button
@@ -115,7 +131,12 @@ export default function SectionDetailPanel({ section, onClose }: Props) {
               <div className="space-y-4">
                 {section.instructors.map((instructor) => {
                   const coursePref = coursePreferenceFor(instructor, section.course.course_id);
-                  const meetingPref = meetingPreferenceFor(instructor, section.time_block.days, startHour);
+                  const meetingPref = meetingPreferenceFor(
+                    instructor,
+                    section.time_block.days,
+                    startHour,
+                    section.time_block.time_block_id,
+                  );
 
                   return (
                     <div key={instructor.nuid} className="border border-gray-100 rounded-lg p-3">

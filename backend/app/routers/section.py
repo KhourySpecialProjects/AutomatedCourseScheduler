@@ -63,25 +63,31 @@ async def update_section(
             detail={"locked_by": e.lock.locked_by, "expires_at": str(e.lock.expires_at)},
         ) from e
     try:
-        updated = section_service.update_section(db, section_id, section)
+        updated, synced_partner_id = section_service.update_section(db, section_id, section)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     if updated is None:
         raise HTTPException(status_code=404, detail="Section not found")
 
     rich_sections = section_service.get_rich_sections(db, updated.schedule_id)
-    rich_section = next((s for s in rich_sections if s.section_id == section_id), None)
-    if rich_section:
-        await manager.broadcast(
-            updated.schedule_id,
-            {
-                "type": "section_updated",
-                "payload": {
-                    "section_id": section_id,
-                    "data": rich_section.model_dump(mode="json"),
+
+    async def _broadcast_section_updated(sid: int) -> None:
+        rich = next((s for s in rich_sections if s.section_id == sid), None)
+        if rich:
+            await manager.broadcast(
+                updated.schedule_id,
+                {
+                    "type": "section_updated",
+                    "payload": {
+                        "section_id": sid,
+                        "data": rich.model_dump(mode="json"),
+                    },
                 },
-            },
-        )
+            )
+
+    await _broadcast_section_updated(section_id)
+    if synced_partner_id is not None and synced_partner_id != section_id:
+        await _broadcast_section_updated(synced_partner_id)
 
     return updated
 
