@@ -238,7 +238,7 @@ def test_get_rich_sections_includes_comment_count(client, db_session):
     semester = _make_semester(db_session)
 
     schedule = Schedule(name="Sched", semester_id=semester.semester_id, campus=campus.campus_id)
-    course = Course(name="Intro CS", description="Fun", credits=4)
+    course = Course(subject="CS", code=2500, name="Intro CS", description="Fun", credits=4)
     db_session.add_all([schedule, course])
     db_session.flush()
 
@@ -494,6 +494,151 @@ def test_patch_section_crosslisted_syncs_partner_instructors(client, db_session)
     assert [n[0] for n in nuids_partner] == [f1.nuid]
 
 
+def test_patch_section_crosslisted_sets_bidirectional_link(client, db_session):
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
+    a = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=25,
+        section_number=1,
+    )
+    b = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=20,
+        section_number=2,
+    )
+    db_session.add_all([a, b])
+    db_session.commit()
+
+    resp = client.patch(f"/sections/{a.section_id}", json={"crosslisted_section_id": b.section_id})
+    assert resp.status_code == 200
+
+    db_session.refresh(a)
+    db_session.refresh(b)
+    assert a.crosslisted_section_id == b.section_id
+    assert b.crosslisted_section_id == a.section_id
+
+
+def test_patch_section_can_change_crosslist_partner_and_unlinks_old_partner(client, db_session):
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
+    a = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=25,
+        section_number=1,
+    )
+    b = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=20,
+        section_number=2,
+    )
+    c = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=20,
+        section_number=3,
+    )
+    db_session.add_all([a, b, c])
+    db_session.commit()
+
+    # First crosslist A<->B
+    resp1 = client.patch(f"/sections/{a.section_id}", json={"crosslisted_section_id": b.section_id})
+    assert resp1.status_code == 200
+
+    # Now swap partner directly to C: should succeed and unlink B.
+    resp2 = client.patch(f"/sections/{a.section_id}", json={"crosslisted_section_id": c.section_id})
+    assert resp2.status_code == 200
+
+    db_session.refresh(a)
+    db_session.refresh(b)
+    db_session.refresh(c)
+    assert a.crosslisted_section_id == c.section_id
+    assert c.crosslisted_section_id == a.section_id
+    assert b.crosslisted_section_id is None
+
+
+def test_patch_section_when_editing_partner_syncs_other_side(client, db_session):
+    schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
+    campus = _make_campus(db_session, "Oakland")
+    new_tb = TimeBlock(
+        meeting_days="TR",
+        start_time=time(12, 0),
+        end_time=time(13, 0),
+        campus=campus.campus_id,
+    )
+    f1 = Faculty(
+        nuid=9101,
+        first_name="X",
+        last_name="One",
+        email="x1@example.com",
+        campus=campus.campus_id,
+    )
+    f2 = Faculty(
+        nuid=9102,
+        first_name="Y",
+        last_name="Two",
+        email="y2@example.com",
+        campus=campus.campus_id,
+    )
+    a = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=25,
+        section_number=1,
+    )
+    b = Section(
+        schedule_id=schedule.schedule_id,
+        time_block_id=time_block.time_block_id,
+        course_id=course.course_id,
+        capacity=20,
+        section_number=2,
+    )
+    db_session.add_all([new_tb, f1, f2, a, b])
+    db_session.flush()
+    db_session.add(FacultyAssignment(faculty_nuid=f1.nuid, section_id=a.section_id))
+    db_session.add(FacultyAssignment(faculty_nuid=f2.nuid, section_id=b.section_id))
+    a.crosslisted_section_id = b.section_id
+    b.crosslisted_section_id = a.section_id
+    db_session.commit()
+
+    # Edit B: change shared attributes; A should match.
+    resp = client.patch(
+        f"/sections/{b.section_id}",
+        json={
+            "time_block_id": new_tb.time_block_id,
+            "faculty_nuids": [f2.nuid],
+            "capacity": 88,
+            "room": "SAC 200",
+        },
+    )
+    assert resp.status_code == 200
+
+    db_session.refresh(a)
+    db_session.refresh(b)
+    assert a.time_block_id == new_tb.time_block_id
+    assert b.time_block_id == new_tb.time_block_id
+    assert a.capacity == 88
+    assert b.capacity == 88
+    assert a.room == "SAC 200"
+    assert b.room == "SAC 200"
+
+    nuids_a = (
+        db_session.query(FacultyAssignment.faculty_nuid)
+        .filter(FacultyAssignment.section_id == a.section_id)
+        .order_by(FacultyAssignment.faculty_assignment_id)
+        .all()
+    )
+    assert [n[0] for n in nuids_a] == [f2.nuid]
+
+
 def test_patch_section_not_found_returns_404(client, db_session):
     response = client.patch("/sections/99999", json={"capacity": 10})
     assert response.status_code == 404
@@ -583,6 +728,13 @@ def test_patch_section_clear_nullable_fields(client, db_session):
     assert reloaded is not None
     assert reloaded.room is None
     assert reloaded.crosslisted_section_id is None
+    other_reloaded = (
+        db_session.query(Section)
+        .filter(Section.section_id == other.section_id)
+        .first()
+    )
+    assert other_reloaded is not None
+    assert other_reloaded.crosslisted_section_id is None
 
 
 def test_patch_section_replace_faculty_assignments(client, db_session):

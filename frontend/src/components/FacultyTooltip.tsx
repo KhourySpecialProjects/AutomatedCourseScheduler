@@ -1,12 +1,15 @@
 import { createPortal } from 'react-dom';
 import type { InstructorInfo, MeetingPreferenceInfo, SectionRichResponse } from '../api/generated';
 
-function meetingPreferenceLabel(mp: MeetingPreferenceInfo): string {
+function meetingPreferenceLabel(
+  mp: MeetingPreferenceInfo,
+  timeBlockLabelById: Map<number, string>,
+): string {
   const r = mp as unknown as Record<string, unknown>;
   const mt = r.meeting_time ?? r.meetingTime;
   if (typeof mt === 'string' && mt.trim()) return mt;
   const id = r.time_block_id ?? r.timeBlockId;
-  if (typeof id === 'number') return `Time block #${id}`;
+  if (typeof id === 'number') return timeBlockLabelById.get(id) ?? `Time block #${id}`;
   return '—';
 }
 
@@ -43,6 +46,14 @@ export default function FacultyTooltip({ instructor, allSections, scheduleId, an
     (s) =>
       s.schedule_id === scheduleId && s.instructors.some((i) => i.nuid === instructor.nuid),
   );
+  const timeBlockLabelById = new Map<number, string>();
+  for (const s of allSections) {
+    if (s.schedule_id !== scheduleId) continue;
+    const tb = s.time_block;
+    if (!timeBlockLabelById.has(tb.time_block_id)) {
+      timeBlockLabelById.set(tb.time_block_id, `${tb.days} ${tb.start_time}–${tb.end_time}`);
+    }
+  }
 
   const pad = 8;
   const width = 288;
@@ -106,7 +117,7 @@ export default function FacultyTooltip({ instructor, allSections, scheduleId, an
           <ul className="space-y-1">
             {instructor.meeting_preferences.map((mp, i) => (
               <li key={i} className="flex items-center justify-between gap-2">
-                <span className="text-xs text-gray-700">{meetingPreferenceLabel(mp)}</span>
+                <span className="text-xs text-gray-700">{meetingPreferenceLabel(mp, timeBlockLabelById)}</span>
                 <PreferenceBadge preference={mp.preference} />
               </li>
             ))}

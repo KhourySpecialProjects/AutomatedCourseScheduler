@@ -63,7 +63,7 @@ async def update_section(
             detail={"locked_by": e.lock.locked_by, "expires_at": str(e.lock.expires_at)},
         ) from e
     try:
-        updated, synced_partner_id = section_service.update_section(db, section_id, section)
+        updated, partner_ids_to_broadcast = section_service.update_section(db, section_id, section)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     if updated is None:
@@ -86,8 +86,9 @@ async def update_section(
             )
 
     await _broadcast_section_updated(section_id)
-    if synced_partner_id is not None and synced_partner_id != section_id:
-        await _broadcast_section_updated(synced_partner_id)
+    for pid in partner_ids_to_broadcast:
+        if pid != section_id:
+            await _broadcast_section_updated(pid)
 
     return updated
 

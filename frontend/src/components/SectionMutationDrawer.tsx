@@ -98,6 +98,9 @@ export default function SectionMutationDrawer(props: Props) {
   const { scheduleId, timeBlocks, campusName, onClose } = props;
   const isEdit = props.mode === 'edit';
   const section = isEdit ? props.section : null;
+  const [originalCrosslistedId, setOriginalCrosslistedId] = useState<number | null>(
+    section?.crosslisted_section_id ?? null,
+  );
 
   // Form state
   const [courseId, setCourseId] = useState<number | null>(section?.course.course_id ?? null);
@@ -145,9 +148,12 @@ export default function SectionMutationDrawer(props: Props) {
 
   useEffect(() => {
     if (section) {
-      setCrosslistedSectionId(section.crosslisted_section_id ?? null);
+      queueMicrotask(() => {
+        setCrosslistedSectionId(section.crosslisted_section_id ?? null);
+        setOriginalCrosslistedId(section.crosslisted_section_id ?? null);
+      });
     }
-  }, [section?.section_id]);
+  }, [section]);
 
   const crosslistOptions = useMemo((): SelectOption<number | null>[] => {
     const none: SelectOption<number | null> = { value: null, label: 'Not crosslisted' };
@@ -179,6 +185,32 @@ export default function SectionMutationDrawer(props: Props) {
     if (!p) return null;
     return `${p.course.name} §${p.section_number}`;
   }, [scheduleSections, crosslistedSectionId]);
+
+  const uncrosslistWarning = useMemo(() => {
+    if (!isEdit) return null;
+    if (originalCrosslistedId == null) return null;
+    if (crosslistedSectionId != null) return null;
+    const p = scheduleSections.find((s) => s.section_id === originalCrosslistedId);
+    const label = p ? `${p.course.name} §${p.section_number}` : `section #${originalCrosslistedId}`;
+    return `You are uncrosslisting from ${label}. Both sections will keep their current time block and instructors; review both rows after saving.`;
+  }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections]);
+
+  const changeCrosslistPartnerWarning = useMemo(() => {
+    if (!isEdit) return null;
+    if (originalCrosslistedId == null) return null;
+    if (crosslistedSectionId == null) return null;
+    if (crosslistedSectionId === originalCrosslistedId) return null;
+    const prev = scheduleSections.find((s) => s.section_id === originalCrosslistedId);
+    const next = scheduleSections.find((s) => s.section_id === crosslistedSectionId);
+    const prevLabel = prev ? `${prev.course.name} §${prev.section_number}` : `section #${originalCrosslistedId}`;
+    const nextLabel = next ? `${next.course.name} §${next.section_number}` : `section #${crosslistedSectionId}`;
+    return `This section will be uncrosslisted with ${prevLabel} and crosslisted with ${nextLabel} when you save.`;
+  }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections]);
+
+  const showNewCrosslistSyncNotice = useMemo(() => {
+    if (!isEdit) return false;
+    return originalCrosslistedId == null && crosslistedSectionId != null;
+  }, [isEdit, originalCrosslistedId, crosslistedSectionId]);
 
   /** Create mode: same course + section # already on this schedule. */
   const duplicateCourseSectionMessage = useMemo(() => {
@@ -316,6 +348,7 @@ export default function SectionMutationDrawer(props: Props) {
           crosslisted_section_id: crosslistedSectionId,
           faculty_nuids: selectedNuids,
         });
+        setOriginalCrosslistedId(crosslistedSectionId);
       } else {
         const body: SectionCreate = {
           schedule_id: scheduleId,
@@ -459,16 +492,26 @@ export default function SectionMutationDrawer(props: Props) {
                     onChange={setCrosslistedSectionId}
                     placeholder="Not crosslisted"
                   />
-                  {crosslistedSectionId != null && (
+                  {uncrosslistWarning && (
                     <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
-                      <p className="font-medium">Crosslisted section will match this row</p>
+                      {uncrosslistWarning}
+                    </div>
+                  )}
+                  {changeCrosslistPartnerWarning && (
+                    <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+                      {changeCrosslistPartnerWarning}
+                    </div>
+                  )}
+                  {showNewCrosslistSyncNotice && (
+                    <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+                      <p className="font-medium">Crosslisted sections stay in sync</p>
                       <p className="mt-1 text-amber-800">
                         When you save,{' '}
                         <span className="font-semibold">
                           {crosslistPartnerLabel ?? 'the selected section'}
                         </span>{' '}
-                        will be updated to use this section&apos;s time block and instructors.
-                        Different time or instructors on that row will be replaced.
+                        will be updated to match this section&apos;s time block, instructors, capacity, and room. After that,
+                        if you change any of those fields on either crosslisted section, the other section will be updated too.
                       </p>
                     </div>
                   )}

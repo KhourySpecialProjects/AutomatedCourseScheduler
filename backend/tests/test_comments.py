@@ -229,6 +229,26 @@ def test_post_reply_invalid_parent_returns_422(client, db_session):
     assert any("9999" in e for e in errors)
 
 
+def test_post_reply_to_reply_is_reparented_to_top_level(client, db_session):
+    user = _make_user(db_session)
+    section = _make_section(db_session, _make_schedule(db_session).schedule_id)
+    parent = _make_comment(db_session, user.user_id, section.section_id, "Parent comment")
+
+    r1 = client.post(
+        f"/comments/{parent.comment_id}",
+        json={"user_id": user.user_id, "section_id": section.section_id, "content": "Reply 1"},
+    )
+    assert r1.status_code == 201
+    reply1_id = r1.json()["comment_id"]
+
+    r2 = client.post(
+        f"/comments/{reply1_id}",
+        json={"user_id": user.user_id, "section_id": section.section_id, "content": "Reply 2"},
+    )
+    assert r2.status_code == 201
+    assert r2.json()["parent_id"] == parent.comment_id
+
+
 # ---------------------------------------------------------------------------
 # GET /comments/{section_id}
 # ---------------------------------------------------------------------------
@@ -321,18 +341,29 @@ def test_delete_parent_comment_promotes_replies(client, db_session):
     user = _make_user(db_session)
     section = _make_section(db_session, _make_schedule(db_session).schedule_id)
     parent = _make_comment(db_session, user.user_id, section.section_id, "Parent")
-    r1 = _make_comment(db_session, user.user_id, section.section_id, "R1", parent_id=parent.comment_id)
-    r2 = _make_comment(db_session, user.user_id, section.section_id, "R2", parent_id=parent.comment_id)
+    r1 = _make_comment(
+        db_session,
+        user.user_id,
+        section.section_id,
+        "R1",
+        parent_id=parent.comment_id,
+    )
+    r2 = _make_comment(
+        db_session,
+        user.user_id,
+        section.section_id,
+        "R2",
+        parent_id=parent.comment_id,
+    )
 
     response = client.delete(f"/comments/{parent.comment_id}")
     assert response.status_code == 200
 
     db_session.expire_all()
     assert db_session.get(Comment, parent.comment_id).active is False
-    assert db_session.get(Comment, r1.comment_id).active is True
-    assert db_session.get(Comment, r1.comment_id).parent_id is None
-    assert db_session.get(Comment, r2.comment_id).active is True
-    assert db_session.get(Comment, r2.comment_id).parent_id is None
+    # Matches main behavior: deleting a parent also deletes its direct replies.
+    assert db_session.get(Comment, r1.comment_id).active is False
+    assert db_session.get(Comment, r2.comment_id).active is False
 
 
 def test_delete_comment_not_found_returns_404(client, db_session):

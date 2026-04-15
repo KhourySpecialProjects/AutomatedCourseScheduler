@@ -12,7 +12,6 @@ import type { SelectOption } from './SearchableSelect';
 
 type SortKey = 'course' | 'section' | 'time' | 'instructor' | 'capacity';
 type SortDir = 'asc' | 'desc';
-type DayFilter = 'all' | 'MWR' | 'MR' | 'WF';
 
 interface Props {
   sections: SectionRichResponse[];
@@ -46,13 +45,6 @@ function getSortValue(section: SectionRichResponse, key: SortKey): string | numb
     case 'capacity':
       return section.capacity;
   }
-}
-
-function dayCategory(days: string): DayFilter {
-  if (days === 'MWR') return 'MWR';
-  if (days === 'MR') return 'MR';
-  if (days === 'WF') return 'WF';
-  return 'MWR';
 }
 
 function SectionCommentIndicator({ count }: { count: number }) {
@@ -95,7 +87,7 @@ export default function ScheduleSectionRowView({
   const [courseQuery, setCourseQuery] = useState('');
   const [instructorFilterNuids, setInstructorFilterNuids] = useState<number[]>([]);
   const [instructorQuery, setInstructorQuery] = useState('');
-  const [dayFilter, setDayFilter] = useState<DayFilter>('all');
+  const [timeBlockFilterIds, setTimeBlockFilterIds] = useState<number[]>([]);
   const [selectedSection, setSelectedSection] = useState<SectionRichResponse | null>(null);
   const [editingSection, setEditingSection] = useState<SectionRichResponse | null>(null);
   const [creating, setCreating] = useState(false);
@@ -139,12 +131,14 @@ export default function ScheduleSectionRowView({
 
   useEffect(() => {
     if (isAdmin) return;
-    setCreating(false);
-    setEditingSection((current) => {
-      if (!current) return null;
-      const id = current.section_id;
-      void getAutomatedCourseSchedulerAPI().releaseLockSectionsSectionIdUnlockPost(id).catch(() => {});
-      return null;
+    queueMicrotask(() => {
+      setCreating(false);
+      setEditingSection((current) => {
+        if (!current) return null;
+        const id = current.section_id;
+        void getAutomatedCourseSchedulerAPI().releaseLockSectionsSectionIdUnlockPost(id).catch(() => {});
+        return null;
+      });
     });
   }, [isAdmin]);
 
@@ -218,6 +212,30 @@ export default function ScheduleSectionRowView({
       .slice(0, 8);
   }, [instructorOptions, instructorFilterNuids, instructorQuery]);
 
+  const timeBlockOptions = useMemo<SelectOption<number>[]>(() => {
+    const byId = new Map<number, { days: string; start: string; end: string; opt: SelectOption<number> }>();
+    for (const s of sections) {
+      const tb = s.time_block;
+      if (byId.has(tb.time_block_id)) continue;
+      byId.set(tb.time_block_id, {
+        days: tb.days,
+        start: tb.start_time,
+        end: tb.end_time,
+        opt: { value: tb.time_block_id, label: `${tb.days} ${tb.start_time} – ${tb.end_time}` },
+      });
+    }
+    const rows = [...byId.values()];
+    rows.sort((a, b) => {
+      const ta = parseTimeToMinutes(a.start);
+      const tb = parseTimeToMinutes(b.start);
+      if (ta !== tb) return ta - tb;
+      const da = a.days.localeCompare(b.days);
+      if (da !== 0) return da;
+      return a.end.localeCompare(b.end);
+    });
+    return rows.map((r) => r.opt);
+  }, [sections]);
+
   function isLockedFor(section: SectionRichResponse): boolean {
     return Boolean(locks.get(section.section_id));
   }
@@ -263,8 +281,8 @@ export default function ScheduleSectionRowView({
     const courseMatch = courseFilterIds.length === 0 || courseFilterIds.includes(s.course.course_id);
     const instructorMatch =
       instructorFilterNuids.length === 0 || s.instructors.some((i) => instructorFilterNuids.includes(i.nuid));
-    const dayMatch = dayFilter === 'all' || dayCategory(s.time_block.days) === dayFilter;
-    return courseMatch && instructorMatch && dayMatch;
+    const timeBlockMatch = timeBlockFilterIds.length === 0 || timeBlockFilterIds.includes(s.time_block.time_block_id);
+    return courseMatch && instructorMatch && timeBlockMatch;
   });
 
 
@@ -337,20 +355,15 @@ export default function ScheduleSectionRowView({
           )}
         </div>
 
-        <div className="flex gap-1">
-          {(['all', 'MWR', 'MR', 'WF'] as DayFilter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setDayFilter(f)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                dayFilter === f
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {f === 'all' ? 'All days' : f}
-            </button>
-          ))}
+        <div className="relative flex-1 min-w-56 max-w-[22rem]">
+          <div className="mb-1">
+            <MultiSearchableSelect
+              options={timeBlockOptions}
+              value={timeBlockFilterIds}
+              onChange={setTimeBlockFilterIds}
+              placeholder="Selected time blocks…"
+            />
+          </div>
         </div>
 
         <span className="text-xs text-gray-400 whitespace-nowrap">

@@ -14,10 +14,6 @@ function crosslistedTooltip(section: SectionRichResponse, allSections: SectionRi
     if (!partner) return null;
     return `${formatSectionLabel(section)} is crosslisted with ${formatSectionLabel(partner)}`;
   }
-  const pointer = allSections.find((s) => s.crosslisted_section_id === section.section_id);
-  if (pointer) {
-    return `${formatSectionLabel(section)} is crosslisted with ${formatSectionLabel(pointer)}`;
-  }
   return null;
 }
 

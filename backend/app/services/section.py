@@ -176,16 +176,18 @@ def create_section(db: Session, section: SectionCreate) -> Section:
 
 def update_section(
     db: Session, section_id: int, section: SectionUpdate
-) -> tuple[Section | None, int | None]:
+) -> tuple[Section | None, list[int]]:
     """Update a section. If it has a crosslisted partner, copy this section's time block and
     instructors onto the partner row (crosslisted offerings share meeting time and faculty).
 
-    Returns (updated_section, partner_section_id_if_synced).
+    Returns (updated_section, partner_section_ids_to_broadcast).
     """
     section_obj = section_repo.get_by_id(db, section_id)
     if section_obj is None:
-        return None, None
+        return None, []
     _validate_update_refs(db, section)
+    existing_partner_id = section_obj.crosslisted_section_id
+    partner_ids_to_broadcast: set[int] = set()
     if "time_block_id" in section.model_fields_set:
         section_obj.time_block_id = section.time_block_id
     if "course_id" in section.model_fields_set:
@@ -195,17 +197,36 @@ def update_section(
     if "room" in section.model_fields_set:
         section_obj.room = section.room
     if "crosslisted_section_id" in section.model_fields_set:
-        if (
-            section.crosslisted_section_id is not None
-            and section.crosslisted_section_id == section_obj.section_id
-        ):
+        new_partner_id = section.crosslisted_section_id
+
+        if new_partner_id is not None and new_partner_id == section_obj.section_id:
             raise ValueError("CrosslistedSectionID is invalid")
-        if (
-            section.crosslisted_section_id is not None
-            and section_repo.get_by_id(db, section.crosslisted_section_id) is None
-        ):
-            raise ValueError("CrosslistedSectionID is invalid")
-        section_obj.crosslisted_section_id = section.crosslisted_section_id
+
+        partner: Section | None = None
+        if new_partner_id is not None:
+            partner = section_repo.get_by_id(db, new_partner_id)
+            if partner is None or partner.schedule_id != section_obj.schedule_id:
+                raise ValueError("CrosslistedSectionID is invalid")
+            if partner.crosslisted_section_id not in (None, section_obj.section_id):
+                raise ValueError("CrosslistedSectionID is invalid")
+
+        # If we're changing/clearing, detach the existing partner's back-link.
+        if existing_partner_id is not None and existing_partner_id != new_partner_id:
+            old_partner = section_repo.get_by_id(db, existing_partner_id)
+            if (
+                old_partner is not None
+                and old_partner.crosslisted_section_id == section_obj.section_id
+            ):
+                old_partner.crosslisted_section_id = None
+                section_repo.save(db, old_partner)
+                partner_ids_to_broadcast.add(old_partner.section_id)
+
+        # Apply the new link bidirectionally.
+        section_obj.crosslisted_section_id = new_partner_id
+        if partner is not None:
+            partner.crosslisted_section_id = section_obj.section_id
+            section_repo.save(db, partner)
+            partner_ids_to_broadcast.add(partner.section_id)
     if "faculty_nuids" in section.model_fields_set:
         section_repo.replace_faculty_assignments(
             db, section_obj.section_id, section.faculty_nuids or []
@@ -214,11 +235,31 @@ def update_section(
 
     synced_partner_id: int | None = None
     partner_id = saved.crosslisted_section_id
+    if partner_id is None:
+        # Backward-compat: if only the partner points at this row, still treat it as crosslisted.
+        reverse = (
+            db.query(Section)
+            .filter(Section.crosslisted_section_id == saved.section_id)
+            .first()
+        )
+        partner_id = reverse.section_id if reverse is not None else None
+
     if partner_id is not None:
         partner = section_repo.get_by_id(db, partner_id)
         if partner is None or partner.schedule_id != saved.schedule_id:
             raise ValueError("CrosslistedSectionID is invalid")
+        # Ensure bidirectional pointers exist (including legacy one-way records).
+        if partner.crosslisted_section_id != saved.section_id:
+            partner.crosslisted_section_id = saved.section_id
+            section_repo.save(db, partner)
+            partner_ids_to_broadcast.add(partner.section_id)
+        if saved.crosslisted_section_id != partner.section_id:
+            saved.crosslisted_section_id = partner.section_id
+            saved = section_repo.save(db, saved)
+            partner_ids_to_broadcast.add(saved.section_id)
         partner.time_block_id = saved.time_block_id
+        partner.capacity = saved.capacity
+        partner.room = saved.room
         nuids = [
             fa.faculty_nuid
             for fa in db.query(FacultyAssignment)
@@ -229,13 +270,31 @@ def update_section(
         section_repo.replace_faculty_assignments(db, partner.section_id, nuids)
         section_repo.save(db, partner)
         synced_partner_id = partner.section_id
+        partner_ids_to_broadcast.add(partner.section_id)
 
-    return saved, synced_partner_id
+    if synced_partner_id is not None:
+        partner_ids_to_broadcast.add(synced_partner_id)
+    return saved, sorted(partner_ids_to_broadcast)
 
 
 def delete_section(db: Session, section_id: int) -> bool:
     section_obj = section_repo.get_by_id(db, section_id)
     if section_obj is None:
         return False
+    # If this section is crosslisted, clear the partner pointer as well.
+    if section_obj.crosslisted_section_id is not None:
+        partner = section_repo.get_by_id(db, section_obj.crosslisted_section_id)
+        if partner is not None and partner.crosslisted_section_id == section_obj.section_id:
+            partner.crosslisted_section_id = None
+            section_repo.save(db, partner)
+    else:
+        reverse = (
+            db.query(Section)
+            .filter(Section.crosslisted_section_id == section_obj.section_id)
+            .first()
+        )
+        if reverse is not None:
+            reverse.crosslisted_section_id = None
+            section_repo.save(db, reverse)
     section_repo.delete(db, section_obj)
     return True

@@ -64,7 +64,14 @@ def post_reply(db: Session, replyIn: CommentSchema, parent_id: int) -> CommentRe
     if errors:
         raise ValueError(errors)
 
-    reply = comment_repo.post_reply(db, replyIn, parent_id)
+    # If you "reply to a reply", re-parent to the top-level comment.
+    root_parent_id = (
+        parent_comment.parent_id
+        if parent_comment.parent_id is not None
+        else parent_comment.comment_id
+    )
+
+    reply = comment_repo.post_reply(db, replyIn, root_parent_id)
 
     return reply
 
