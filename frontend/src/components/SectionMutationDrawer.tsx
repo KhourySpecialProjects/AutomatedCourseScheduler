@@ -110,9 +110,9 @@ export default function SectionMutationDrawer(props: Props) {
 
   // Build typed SelectOption arrays once data is loaded
   const courseOptions: SelectOption<number>[] = courses.map((c) => ({
-    value: c.CourseID,
-    label: c.CourseName ?? `Course ${c.CourseID}`,
-    sublabel: [c.CourseSubject, c.CourseNo].filter(Boolean).join(' ') || undefined,
+    value: c.course_id,
+    label: c.name ?? `Course ${c.course_id}`,
+    sublabel: [c.subject, c.code].filter(Boolean).join(' ') || undefined,
   }));
 
   const timeBlockOptions: SelectOption<number>[] = timeBlocks.map((tb) => ({
@@ -121,9 +121,9 @@ export default function SectionMutationDrawer(props: Props) {
   }));
 
   const facultyOptions: SelectOption<number>[] = faculty.map((f) => ({
-    value: f.NUID,
-    label: `${f.FirstName ?? ''} ${f.LastName ?? ''}`.trim(),
-    sublabel: f.Title ?? undefined,
+    value: f.nuid,
+    label: `${f.first_name ?? ''} ${f.last_name ?? ''}`.trim(),
+    // sublabel: f.nuid ?? undefined,
   }));
 
   async function handleDelete() {

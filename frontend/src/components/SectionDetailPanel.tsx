@@ -24,8 +24,9 @@ function meetingPreferenceFor(
   days: string,
   startHour: number,
 ) {
+  // This needs to change - currently we are managing time blocks by string descriptions in FE, not by id
   const category = deriveMeetingCategory(days, startHour);
-  return instructor.meeting_preferences.find((mp) => mp.meeting_time === category);
+  return instructor.meeting_preferences.find((mp) => mp.preference === category);
 }
 
 function deriveMeetingCategory(days: string, startHour: number): string {
@@ -123,7 +124,6 @@ export default function SectionDetailPanel({ section, onClose }: Props) {
                         <div className="font-medium text-gray-900 text-sm">
                           {instructor.first_name} {instructor.last_name}
                         </div>
-                        <div className="text-xs text-gray-500">{instructor.title}</div>
                         <a
                           href={`mailto:${instructor.email}`}
                           className="text-xs text-indigo-600 hover:underline"

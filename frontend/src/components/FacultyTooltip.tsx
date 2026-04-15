@@ -48,7 +48,6 @@ export default function FacultyTooltip({ instructor, allSections, scheduleId, an
         <div className="font-semibold text-gray-900">
           {instructor.first_name} {instructor.last_name}
         </div>
-        <div className="text-xs text-gray-500">{instructor.title}</div>
         <div className="text-xs text-indigo-600">{instructor.email}</div>
       </div>
 
@@ -96,7 +95,8 @@ export default function FacultyTooltip({ instructor, allSections, scheduleId, an
           <ul className="space-y-1">
             {instructor.meeting_preferences.map((mp, i) => (
               <li key={i} className="flex items-center justify-between gap-2">
-                <span className="text-xs text-gray-700">{mp.meeting_time}</span>
+                {/* need to get the actual time block rather than id */}
+                <span className="text-xs text-gray-700">{mp.time_block_id}</span>
                 <PreferenceBadge preference={mp.preference} />
               </li>
             ))}

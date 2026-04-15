@@ -23,8 +23,6 @@ class Faculty(Base):
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
     email: Mapped[str] = mapped_column(String(100), unique=True)
-    phone_number: Mapped[str | None] = mapped_column(String(15))
-    title: Mapped[str | None] = mapped_column(String(100))
     campus: Mapped[int] = mapped_column(ForeignKey("campus.campus_id"))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     max_load: Mapped[int] = mapped_column(Integer, default=3)

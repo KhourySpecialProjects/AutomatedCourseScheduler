@@ -10,7 +10,6 @@ class FacultyResponse(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
-    title: str | None = None
     campus: int | None = None
     active: bool | None = None
     maxLoad: int | None = None
@@ -24,9 +23,8 @@ class FacultyCreate(BaseModel):
     last_name: str = Field(..., min_length=1)
     email: str = Field(..., min_length=1)
     campus: int = Field(..., gt=0)
-    phone_number: str | None = None
-    title: str | None = None
     active: bool = True
+    max_load: int = Field(default=3, ge=1)
 
     @field_validator("first_name", "last_name", "email")
     @classmethod
@@ -41,8 +39,6 @@ class FacultyUpdate(BaseModel):
     last_name: str | None = None
     email: str | None = None
     campus: int | None = None
-    phone_number: str | None = None
-    title: str | None = None
     active: bool | None = None
     max_load: int | None = None
 
@@ -53,13 +49,19 @@ class FacultyUpdate(BaseModel):
             raise ValueError("Field cannot be empty")
         return v
 
+    @field_validator("max_load")
+    @classmethod
+    def not_negative_optional(cls, v: int | None) -> int | None:
+        if v < 1:
+            raise ValueError("Max_load cannot be less than 1")
+        return v
+
 
 class FacultyProfileResponse(BaseModel):
     nuid: int
     first_name: str
     last_name: str
     email: str
-    title: str | None = None
     campus: int
     active: bool
     maxLoad: int | None = None

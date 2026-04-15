@@ -28,6 +28,12 @@ def run_algorithm(
     background_tasks.add_task(run_algorithm_task, db, schedule_id, request.parameters)
     manager.broadcast(schedule_id, {"type": "schedule_generated", "payload": {}})
     return {"schedule_id": schedule_id, "status": "running"}
+    # TODO (websocket): when run_algorithm_task completes, broadcast to connected clients:
+    #   type: "schedule_regenerated", payload: all rich sections for the generated schedule_id
+    #   This requires passing db + schedule_id into the background task and calling
+    #   manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": [...]})
+    background_tasks.add_task(run_algorithm_task, request.parameters)
+    return {"status": "running"}
 
 
 @router.post("/{schedule_id}/regenerate", status_code=202)
@@ -41,6 +47,11 @@ def regenerate_algorithm(
         raise HTTPException(status_code=404, detail="Schedule not found")
 
     background_tasks.add_task(run_regenerate_task, db, schedule_id, request.parameters)
+    # TODO (websocket): when run_regenerate_task completes, broadcast to connected clients:
+    #   type: "schedule_regenerated", payload: all rich sections for schedule_id
+    #   This requires passing db + schedule_id into the background task and calling
+    #   manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": [...]})
+    background_tasks.add_task(run_regenerate_task, schedule_id, request.parameters)
     manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": {}})
 
     return {"schedule_id": schedule_id, "status": "running"}

@@ -23,7 +23,7 @@ def get_all(
         query = query.filter(Schedule.campus == campus_id)
     if semester_id is not None:
         query = query.filter(Schedule.semester_id == semester_id)
-    return query.all()
+    return query.order_by(Schedule.semester_id.desc(), Schedule.schedule_id.desc()).all()
 
 
 def get_by_id(db: Session, schedule_id: int) -> Schedule | None:

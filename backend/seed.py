@@ -53,61 +53,85 @@ def seed(db: Session) -> None:
     # ------------------------------------------------------------------
     courses = [
         Course(
+            subject="CS",
+            code=2500,
             name="Fundamentals of CS 1",
             description="Introduction to programming using Python.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=2510,
             name="Fundamentals of CS 2",
             description="Object-oriented programming and data structures.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=3500,
             name="Object-Oriented Design",
             description="Design patterns and OO principles.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=3000,
             name="Algorithms and Data",
             description="Core algorithms, complexity, and data structures.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=3650,
             name="Computer Systems",
             description="Memory, OS concepts, and systems programming in C.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=4500,
             name="Software Development",
             description="Agile practices, version control, and team projects.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=3800,
             name="Theory of Computation",
             description="Automata, formal languages, and computability.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=4100,
             name="Foundations of AI",
             description="Search, knowledge representation, and machine learning.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=3200,
             name="Database Design",
             description="Relational databases, SQL, and normalization.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=3700,
             name="Networks and Distributed Systems",
             description="Protocols, sockets, and distributed computing.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=4400,
             name="Programming Languages",
             description="Language paradigms, type systems, and interpreters.",
             credits=4,
         ),
         Course(
+            subject="CS",
+            code=4970,
             name="Capstone Project",
             description="Year-long software engineering capstone.",
             credits=4,
@@ -125,8 +149,6 @@ def seed(db: Session) -> None:
             first_name="Alice",
             last_name="Chen",
             email="a.chen@univ.edu",
-            phone_number="617-555-0101",
-            title="Associate Professor",
             campus=boston.campus_id,
             active=True,
         ),
@@ -135,8 +157,6 @@ def seed(db: Session) -> None:
             first_name="Bob",
             last_name="Martinez",
             email="b.martinez@univ.edu",
-            phone_number="617-555-0102",
-            title="Professor",
             campus=boston.campus_id,
             active=True,
         ),
@@ -145,8 +165,6 @@ def seed(db: Session) -> None:
             first_name="Carol",
             last_name="Okafor",
             email="c.okafor@univ.edu",
-            phone_number="617-555-0103",
-            title="Assistant Professor",
             campus=boston.campus_id,
             active=True,
         ),
@@ -155,8 +173,6 @@ def seed(db: Session) -> None:
             first_name="David",
             last_name="Kim",
             email="d.kim@univ.edu",
-            phone_number="617-555-0104",
-            title="Associate Professor",
             campus=boston.campus_id,
             active=True,
         ),
@@ -165,8 +181,6 @@ def seed(db: Session) -> None:
             first_name="Eve",
             last_name="Patel",
             email="e.patel@univ.edu",
-            phone_number="617-555-0105",
-            title="Lecturer",
             campus=boston.campus_id,
             active=True,
         ),
@@ -175,8 +189,6 @@ def seed(db: Session) -> None:
             first_name="Frank",
             last_name="Torres",
             email="f.torres@univ.edu",
-            phone_number="617-555-0106",
-            title="Professor",
             campus=boston.campus_id,
             active=True,
         ),
@@ -185,8 +197,6 @@ def seed(db: Session) -> None:
             first_name="Grace",
             last_name="Liu",
             email="g.liu@univ.edu",
-            phone_number="617-555-0107",
-            title="Assistant Professor",
             campus=boston.campus_id,
             active=True,
         ),
@@ -195,14 +205,48 @@ def seed(db: Session) -> None:
             first_name="Henry",
             last_name="Nguyen",
             email="h.nguyen@univ.edu",
-            phone_number="617-555-0108",
-            title="Lecturer",
             campus=boston.campus_id,
             active=True,
         ),
     ]
     db.add_all(faculty_list)
     db.flush()
+
+    # ------------------------------------------------------------------
+    # Seed admins (representative dev data — emails are fake so Auth0
+    # login won't work for these. Run bootstrap_admin.py to insert a
+    # real admin with your own NUID and email for end-to-end testing.)
+    # ------------------------------------------------------------------
+    seed_admins = [
+        User(
+            nuid=faculty_list[0].nuid,
+            first_name=faculty_list[0].first_name,
+            last_name=faculty_list[0].last_name,
+            email=faculty_list[0].email,
+            role="ADMIN",
+            auth0_sub=None,
+            active=True,
+        ),
+        User(
+            nuid=faculty_list[1].nuid,
+            first_name=faculty_list[1].first_name,
+            last_name=faculty_list[1].last_name,
+            email=faculty_list[1].email,
+            role="ADMIN",
+            auth0_sub=None,
+            active=True,
+        ),
+        User(
+            nuid=faculty_list[2].nuid,
+            first_name=faculty_list[2].first_name,
+            last_name=faculty_list[2].last_name,
+            email=faculty_list[2].email,
+            role="ADMIN",
+            auth0_sub=None,
+            active=True,
+        ),
+    ]
+    db.add_all(seed_admins)
 
     # ------------------------------------------------------------------
     # Time blocks
@@ -283,6 +327,7 @@ def seed(db: Session) -> None:
     schedule_log = ScheduleLog(
         schedule_id=schedule.schedule_id,
         content="Initial seed — auto-generated draft schedule.",
+        updated_by=1,
     )
     db.add(schedule_log)
 
@@ -580,42 +625,6 @@ def seed(db: Session) -> None:
         ),
     ]
     db.add_all(meeting_prefs)
-
-    # ------------------------------------------------------------------
-    # Seed admins (representative dev data — emails are fake so Auth0
-    # login won't work for these. Run bootstrap_admin.py to insert a
-    # real admin with your own NUID and email for end-to-end testing.)
-    # ------------------------------------------------------------------
-    seed_admins = [
-        User(
-            nuid=faculty_list[0].nuid,
-            first_name=faculty_list[0].first_name,
-            last_name=faculty_list[0].last_name,
-            email=faculty_list[0].email,
-            role="ADMIN",
-            auth0_sub=None,
-            active=True,
-        ),
-        User(
-            nuid=faculty_list[1].nuid,
-            first_name=faculty_list[1].first_name,
-            last_name=faculty_list[1].last_name,
-            email=faculty_list[1].email,
-            role="ADMIN",
-            auth0_sub=None,
-            active=True,
-        ),
-        User(
-            nuid=faculty_list[2].nuid,
-            first_name=faculty_list[2].first_name,
-            last_name=faculty_list[2].last_name,
-            email=faculty_list[2].email,
-            role="ADMIN",
-            auth0_sub=None,
-            active=True,
-        ),
-    ]
-    db.add_all(seed_admins)
 
     db.commit()
     print("Seed complete.")

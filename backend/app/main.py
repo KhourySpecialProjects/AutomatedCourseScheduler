@@ -12,6 +12,7 @@ from app.routers import (
     schedule,
     section,
     section_lock,
+    semester,
     time_block,
     upload,
     user,
@@ -58,6 +59,7 @@ setup_cors(app)
 
 app.include_router(section.router, dependencies=[Depends(get_current_user)])
 app.include_router(schedule.router, dependencies=[Depends(get_current_user)])
+app.include_router(semester.router, dependencies=[Depends(get_current_user)])
 app.include_router(course.router, dependencies=[Depends(get_current_user)])
 app.include_router(faculty.router, dependencies=[Depends(get_current_user)])
 app.include_router(time_block.router, dependencies=[Depends(get_current_user)])

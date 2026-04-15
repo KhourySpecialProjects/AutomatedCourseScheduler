@@ -57,14 +57,12 @@ def _make_schedule(db, campus_id, semester_id, *, name="Test Schedule"):
     return schedule
 
 
-def _make_user(db, user_id):
+def _make_user(db, nuid):
     user = User(
-        user_id=user_id,
-        nuid=user_id,
+        nuid=nuid,
         first_name="Test",
         last_name="User",
-        email=f"user{user_id}@example.com",
-        phone_number="1234567890",
+        email=f"user{nuid}@example.com",
         role="ADMIN",
     )
     db.add(user)
@@ -72,8 +70,12 @@ def _make_user(db, user_id):
     return user
 
 
-def _make_course(db, name="CS 1800", description="Discrete Structures", credits=4):
-    course = CourseModel(name=name, description=description, credits=credits)
+def _make_course(
+    db, subject="CS", code=1800, name="CS 1800", description="Discrete Structures", credits=4
+):
+    course = CourseModel(
+        subject=subject, code=code, name=name, description=description, credits=credits
+    )
     db.add(course)
     db.flush()
     return course
@@ -259,7 +261,7 @@ def test_create_schedule_course_list_populated_from_history(client, db_session):
     assert response.status_code == 201
     course_list = response.json()["course_list"]
     assert len(course_list) == 1
-    assert course_list[0]["CourseID"] == historical_course.course_id
+    assert course_list[0]["course_id"] == historical_course.course_id
 
 
 def test_create_schedule_course_list_item_fields(client, db_session):
@@ -277,14 +279,14 @@ def test_create_schedule_course_list_item_fields(client, db_session):
     )
     item = response.json()["course_list"][0]
     expected_keys = {
-        "CourseID",
-        "CourseName",
-        "CourseDescription",
-        "CourseNo",
-        "CourseSubject",
-        "SectionCount",
-        "Priority",
-        "QualifiedFaculty",
+        "course_id",
+        "subject",
+        "code",
+        "name",
+        "description",
+        "section_count",
+        "priority",
+        "qualified_faculty",
     }
     assert expected_keys.issubset(set(item.keys()))
 
@@ -305,11 +307,11 @@ def test_create_schedule_course_list_item_correct_values(client, db_session):
         },
     )
     item = response.json()["course_list"][0]
-    assert item["CourseID"] == historical_course.course_id
-    assert item["CourseName"] == historical_course.name  # "CS 1800"
-    assert item["CourseSubject"] == "CS"
-    assert item["CourseNo"] == 1800
-    assert item["SectionCount"] == 1  # one section in the historical schedule
+    assert item["course_id"] == historical_course.course_id
+    assert item["subject"] == "CS"
+    assert item["code"] == 1800
+    assert item["name"] == historical_course.name  # "CS 1800"
+    assert item["section_count"] == 1  # one section in the historical schedule
 
 
 def test_create_schedule_course_list_includes_new_courses(client, db_session):
@@ -331,12 +333,12 @@ def test_create_schedule_course_list_includes_new_courses(client, db_session):
         },
     )
     assert response.status_code == 201
-    course_ids = [c["CourseID"] for c in response.json()["course_list"]]
+    course_ids = [c["course_id"] for c in response.json()["course_list"]]
     assert new_course.course_id in course_ids
 
 
 def test_create_schedule_new_courses_section_count_is_one(client, db_session):
-    """Courses added via new_courses always have SectionCount == 1."""
+    """Courses added via new_courses always have section_count == 1."""
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
     _make_historical_context(db_session, campus, season="Fall", current_year=2024)
@@ -354,8 +356,8 @@ def test_create_schedule_new_courses_section_count_is_one(client, db_session):
         },
     )
     course_list = response.json()["course_list"]
-    new_entry = next(c for c in course_list if c["CourseID"] == new_course.course_id)
-    assert new_entry["SectionCount"] == 1
+    new_entry = next(c for c in course_list if c["course_id"] == new_course.course_id)
+    assert new_entry["section_count"] == 1
 
 
 def test_create_multiple_schedules_same_campus(client, db_session):
@@ -714,7 +716,7 @@ def test_get_schedule_locks_non_empty(client: TestClient, db_session: Session) -
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
-    user = _make_user(db_session, user_id=1)
+    user = _make_user(db_session, nuid=1)
     course = _make_course(db_session)
     time_block = _make_time_block(db_session, campus.campus_id)
     section = _make_section(
@@ -737,9 +739,9 @@ def test_get_schedule_locks_returns_active(client: TestClient, db_session: Sessi
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule = _make_schedule(db_session, campus.campus_id, semester.semester_id)
-    user1 = _make_user(db_session, user_id=1)
-    user2 = _make_user(db_session, user_id=2)
-    user3 = _make_user(db_session, user_id=3)
+    user1 = _make_user(db_session, nuid=1)
+    user2 = _make_user(db_session, nuid=2)
+    user3 = _make_user(db_session, nuid=3)
     course = _make_course(db_session)
     time_block = _make_time_block(db_session, campus.campus_id)
     section1 = _make_section(
@@ -783,7 +785,7 @@ def test_get_schedule_locks_excludes_other_schedules(
     semester = _make_semester(db_session)
     schedule1 = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S1")
     schedule2 = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S2")
-    user = _make_user(db_session, user_id=1)
+    user = _make_user(db_session, nuid=1)
     course = _make_course(db_session)
     time_block = _make_time_block(db_session, campus.campus_id)
     section = _make_section(

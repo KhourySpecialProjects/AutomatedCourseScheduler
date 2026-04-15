@@ -77,7 +77,6 @@ def get_rich_sections(db: Session, schedule_id: int) -> list[SectionRichResponse
                         nuid=fa.faculty.nuid,
                         first_name=fa.faculty.first_name,
                         last_name=fa.faculty.last_name,
-                        title=fa.faculty.title or "",
                         email=fa.faculty.email,
                         course_preferences=[
                             CoursePreferenceInfo(
