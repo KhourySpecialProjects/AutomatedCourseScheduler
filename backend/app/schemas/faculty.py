@@ -24,6 +24,7 @@ class FacultyCreate(BaseModel):
     email: str = Field(..., min_length=1)
     campus: int = Field(..., gt=0)
     active: bool = True
+    max_load: int = Field(default=3, ge=1)
 
     @field_validator("first_name", "last_name", "email")
     @classmethod
@@ -46,6 +47,13 @@ class FacultyUpdate(BaseModel):
     def not_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and not v.strip():
             raise ValueError("Field cannot be empty")
+        return v
+
+    @field_validator("max_load")
+    @classmethod
+    def not_negative_optional(cls, v: int | None) -> int | None:
+        if v < 1:
+            raise ValueError("Max_load cannot be less than 1")
         return v
 
 

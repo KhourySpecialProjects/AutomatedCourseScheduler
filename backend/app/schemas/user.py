@@ -30,3 +30,10 @@ class InviteRequest(BaseModel):
 class InviteResponse(BaseModel):
     user: UserResponse
     signup_url: str
+
+
+class InviteLinkResponse(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    invite_link: str

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_db_user, require_admin
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.user import InviteRequest, InviteResponse, UserResponse
+from app.schemas.user import InviteLinkResponse, InviteRequest, InviteResponse, UserResponse
 from app.services import user as user_service
 
 router = APIRouter(prefix="/api", tags=["users"])
@@ -29,6 +29,19 @@ def create_invite(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return InviteResponse(user=result.user, signup_url=result.signup_url)
+
+
+@router.get("/invites/export", response_model=list[InviteLinkResponse])
+def export_invites(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Return invite links for all active faculty without a linked account.
+
+    Creates pending User records for any who were not yet invited.
+    Requires admin role.
+    """
+    return user_service.export_invites(db)
 
 
 @router.get("/users", response_model=list[UserResponse])

@@ -213,6 +213,42 @@ def seed(db: Session) -> None:
     db.flush()
 
     # ------------------------------------------------------------------
+    # Seed admins (representative dev data — emails are fake so Auth0
+    # login won't work for these. Run bootstrap_admin.py to insert a
+    # real admin with your own NUID and email for end-to-end testing.)
+    # ------------------------------------------------------------------
+    seed_admins = [
+        User(
+            nuid=faculty_list[0].nuid,
+            first_name=faculty_list[0].first_name,
+            last_name=faculty_list[0].last_name,
+            email=faculty_list[0].email,
+            role="ADMIN",
+            auth0_sub=None,
+            active=True,
+        ),
+        User(
+            nuid=faculty_list[1].nuid,
+            first_name=faculty_list[1].first_name,
+            last_name=faculty_list[1].last_name,
+            email=faculty_list[1].email,
+            role="ADMIN",
+            auth0_sub=None,
+            active=True,
+        ),
+        User(
+            nuid=faculty_list[2].nuid,
+            first_name=faculty_list[2].first_name,
+            last_name=faculty_list[2].last_name,
+            email=faculty_list[2].email,
+            role="ADMIN",
+            auth0_sub=None,
+            active=True,
+        ),
+    ]
+    db.add_all(seed_admins)
+
+    # ------------------------------------------------------------------
     # Time blocks
     # ------------------------------------------------------------------
     # time_block indices: 0=MWR 8:00, 1=MWR 9:15, 2=MWR 10:30,
@@ -291,6 +327,7 @@ def seed(db: Session) -> None:
     schedule_log = ScheduleLog(
         schedule_id=schedule.schedule_id,
         content="Initial seed — auto-generated draft schedule.",
+        updated_by=1,
     )
     db.add(schedule_log)
 
@@ -588,42 +625,6 @@ def seed(db: Session) -> None:
         ),
     ]
     db.add_all(meeting_prefs)
-
-    # ------------------------------------------------------------------
-    # Seed admins (representative dev data — emails are fake so Auth0
-    # login won't work for these. Run bootstrap_admin.py to insert a
-    # real admin with your own NUID and email for end-to-end testing.)
-    # ------------------------------------------------------------------
-    seed_admins = [
-        User(
-            nuid=faculty_list[0].nuid,
-            first_name=faculty_list[0].first_name,
-            last_name=faculty_list[0].last_name,
-            email=faculty_list[0].email,
-            role="ADMIN",
-            auth0_sub=None,
-            active=True,
-        ),
-        User(
-            nuid=faculty_list[1].nuid,
-            first_name=faculty_list[1].first_name,
-            last_name=faculty_list[1].last_name,
-            email=faculty_list[1].email,
-            role="ADMIN",
-            auth0_sub=None,
-            active=True,
-        ),
-        User(
-            nuid=faculty_list[2].nuid,
-            first_name=faculty_list[2].first_name,
-            last_name=faculty_list[2].last_name,
-            email=faculty_list[2].email,
-            role="ADMIN",
-            auth0_sub=None,
-            active=True,
-        ),
-    ]
-    db.add_all(seed_admins)
 
     db.commit()
     print("Seed complete.")

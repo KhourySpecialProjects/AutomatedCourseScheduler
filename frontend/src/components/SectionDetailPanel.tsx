@@ -24,8 +24,9 @@ function meetingPreferenceFor(
   days: string,
   startHour: number,
 ) {
+  // This needs to change - currently we are managing time blocks by string descriptions in FE, not by id
   const category = deriveMeetingCategory(days, startHour);
-  return instructor.meeting_preferences.find((mp) => mp.meeting_time === category);
+  return instructor.meeting_preferences.find((mp) => mp.preference === category);
 }
 
 function deriveMeetingCategory(days: string, startHour: number): string {
