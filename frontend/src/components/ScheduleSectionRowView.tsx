@@ -5,6 +5,7 @@ import type { LockInfo } from '../hooks/useScheduleWebSocket';
 import CrosslistSectionHint from './CrosslistSectionHint';
 import FacultyTooltip from './FacultyTooltip';
 import MultiSearchableSelect from './MultiSearchableSelect';
+import SectionCalendarGrid, { LockBadge, parseTimeToMinutes } from './SectionCalendarGrid';
 import SectionDetailPanel from './SectionDetailPanel';
 import SectionMutationDrawer from './SectionMutationDrawer';
 import type { SelectOption } from './SearchableSelect';
@@ -18,6 +19,7 @@ interface Props {
   scheduleId: number;
   locks: Map<number, LockInfo>;
   campusName: string | null;
+  readOnly?: boolean;
   viewMode?: 'table' | 'calendar';
   onSelectedCourseCountChange?: (count: number) => void;
   onSelectedInstructorCountChange?: (count: number) => void;
@@ -53,20 +55,6 @@ function dayCategory(days: string): DayFilter {
   return 'MWR';
 }
 
-function LockBadge({ lock }: { lock: LockInfo }) {
-  return (
-    <span
-      title={`Locked by ${lock.display_name}`}
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200"
-    >
-      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-      </svg>
-      {lock.display_name}
-    </span>
-  );
-}
-
 function SectionCommentIndicator({ count }: { count: number }) {
   if (count <= 0) return null;
   const label = `${count} comment${count === 1 ? '' : 's'}`;
@@ -89,50 +77,12 @@ function SectionCommentIndicator({ count }: { count: number }) {
   );
 }
 
-function dayLabel(letter: string): string {
-  return (
-    {
-      M: 'Mon',
-      T: 'Tue',
-      W: 'Wed',
-      R: 'Thu',
-      F: 'Fri',
-    }[letter] ?? letter
-  );
-}
-
-function expandDays(days: string): string[] {
-  const result: string[] = [];
-  for (const ch of days) {
-    if ('MTWRF'.includes(ch)) result.push(ch);
-  }
-  return result;
-}
-
-function courseColor(): { card: string; accent: string } {
-  return { card: 'bg-indigo-50 border-indigo-200', accent: 'bg-indigo-600' };
-}
-
-function parseTimeToMinutes(raw: string): number {
-  const s = raw.trim();
-  // Supports: "09:00", "9:00", "09:00:00", "9:00 AM", "1:35 PM"
-  const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?$/);
-  if (!m) return Number.POSITIVE_INFINITY;
-  let h = Number(m[1]);
-  const mins = Number(m[2]);
-  const ampm = m[4]?.toLowerCase();
-  if (ampm) {
-    if (h === 12) h = 0;
-    if (ampm === 'pm') h += 12;
-  }
-  return h * 60 + mins;
-}
-
 export default function ScheduleSectionRowView({
   sections,
   scheduleId,
   locks,
   campusName,
+  readOnly = false,
   viewMode = 'table',
   onSelectedCourseCountChange,
   onSelectedInstructorCountChange,
@@ -219,22 +169,6 @@ export default function ScheduleSectionRowView({
     });
   }, [sections]);
 
-  // Calendar rows should group by time range, regardless of day pattern.
-  const calendarTimeRows = useMemo(() => {
-    const byRange = new Map<string, { start_time: string; end_time: string }>();
-    for (const s of sections) {
-      const tb = s.time_block;
-      const key = `${tb.start_time}|${tb.end_time}`;
-      if (!byRange.has(key)) byRange.set(key, { start_time: tb.start_time, end_time: tb.end_time });
-    }
-    const rows = [...byRange.values()];
-    return rows.sort((a, b) => {
-      const ta = parseTimeToMinutes(a.start_time);
-      const tb = parseTimeToMinutes(b.start_time);
-      if (ta !== tb) return ta - tb;
-      return a.end_time.localeCompare(b.end_time);
-    });
-  }, [sections]);
 
   const courseOptions = useMemo<SelectOption<number>[]>(() => {
     const byId = new Map<number, SelectOption<number>>();
@@ -327,31 +261,6 @@ export default function ScheduleSectionRowView({
     return courseMatch && instructorMatch && dayMatch;
   });
 
-  const daysInView = useMemo(() => ['M', 'T', 'W', 'R', 'F'], []);
-
-  const calendarMap = useMemo(() => {
-    const map = new Map<string, Map<string, SectionRichResponse[]>>();
-    for (const s of filtered) {
-      const key = `${s.time_block.start_time}|${s.time_block.end_time}`;
-      if (!map.has(key)) map.set(key, new Map());
-      const row = map.get(key)!;
-      for (const d of expandDays(s.time_block.days)) {
-        const arr = row.get(d) ?? [];
-        arr.push(s);
-        row.set(d, arr);
-      }
-    }
-    // stable order inside a cell
-    for (const row of map.values()) {
-      for (const [d, arr] of row.entries()) {
-        row.set(
-          d,
-          [...arr].sort((a, b) => a.course.name.localeCompare(b.course.name) || a.section_number - b.section_number),
-        );
-      }
-    }
-    return map;
-  }, [filtered]);
 
   const sorted = [...filtered].sort((a, b) => {
     const av = getSortValue(a, sortKey);
@@ -462,126 +371,16 @@ export default function ScheduleSectionRowView({
       )}
 
       {viewMode === 'calendar' ? (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-auto max-h-[72vh]">
-          {sorted.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-gray-400">No sections match your filters.</div>
-          ) : (
-            <div className="min-w-[64rem]">
-              {/* Header row */}
-              <div className="sticky top-0 z-30 bg-white">
-                <div
-                  className="grid border-b border-gray-200 bg-gray-50"
-                  style={{
-                    gridTemplateColumns: `clamp(10rem, 16vw, 14rem) repeat(${daysInView.length || 1}, minmax(10.5rem, 1fr))`,
-                  }}
-                >
-                  <div className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky left-0 z-40 bg-gray-50 border-r border-gray-200">
-                    Time
-                  </div>
-                  {(daysInView.length ? daysInView : ['M']).map((d) => (
-                    <div
-                      key={d}
-                      className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
-                    >
-                      {dayLabel(d)}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Body */}
-              <div>
-                {calendarTimeRows.map((tb) => (
-                  <div
-                    key={`${tb.start_time}|${tb.end_time}`}
-                    className="grid border-b border-gray-100"
-                    style={{
-                      gridTemplateColumns: `clamp(10rem, 16vw, 14rem) repeat(${daysInView.length || 1}, minmax(10.5rem, 1fr))`,
-                    }}
-                  >
-                    <div className="px-4 py-5 text-sm text-gray-700 bg-white sticky left-0 z-20 border-r border-gray-100 min-h-[clamp(10.5rem,12vw,14rem)] flex flex-col justify-center">
-                      <div className="text-sm font-semibold text-gray-900">{tb.start_time}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">{tb.end_time}</div>
-                    </div>
-
-                    {daysInView.map((d) => {
-                      const items = calendarMap.get(`${tb.start_time}|${tb.end_time}`)?.get(d) ?? [];
-                      return (
-                        <div
-                          key={d}
-                          className="px-3 py-3 min-h-[clamp(10.5rem,12vw,14rem)] bg-white border-r border-gray-100 last:border-r-0"
-                        >
-                          <div className="grid grid-cols-1 gap-2">
-                            {items.map((section) => {
-                              const lock = locks.get(section.section_id);
-                              const isLocked = Boolean(lock);
-                              const instructor = primaryInstructor(section);
-                              const colors = courseColor();
-                              const calendarTitle = isLocked
-                                ? `Locked by ${lock!.display_name}`
-                                : `${section.course.name} §${section.section_number}`;
-                              return (
-                                <button
-                                  key={section.section_id}
-                                  type="button"
-                                  disabled={isLocked}
-                                  onClick={() => handleRowActivate(section)}
-                                  title={calendarTitle}
-                                  className={`relative w-full aspect-square text-left rounded-xl border p-3 transition-colors shadow-sm overflow-visible ${
-                                    isLocked
-                                      ? 'bg-amber-50/40 border-amber-200 text-amber-800 cursor-not-allowed opacity-70'
-                                      : `${colors.card} hover:bg-white`
-                                  }`}
-                                >
-                                  <div className="h-full flex flex-col">
-                                    <div className="min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        {!isLocked && <span className={`w-1 h-4 rounded-full ${colors.accent}`} />}
-                                        <div className="text-sm font-semibold text-gray-900 truncate">{section.course.name}</div>
-                                      </div>
-                                      <div className="mt-1 text-[11px] text-gray-500 flex items-center gap-2 flex-wrap">
-                                        <span className="font-medium inline-flex items-center gap-1">
-                                          §{section.section_number}
-                                          <CrosslistSectionHint section={section} allSections={sections} />
-                                        </span>
-                                        <SectionCommentIndicator count={section.comment_count ?? 0} />
-                                      </div>
-                                    </div>
-                                    {instructor &&
-                                      (isLocked ? (
-                                        <div className="mt-2 truncate text-[11px] text-gray-600">
-                                          {instructor.first_name} {instructor.last_name}
-                                        </div>
-                                      ) : (
-                                        <span
-                                          className="mt-2 inline-block max-w-full cursor-default truncate text-left text-[11px] text-indigo-700 underline decoration-dotted decoration-indigo-400 underline-offset-2 hover:text-indigo-900"
-                                          onClick={(e) => e.stopPropagation()}
-                                          onMouseEnter={(e) => handleInstructorMouseEnter(e, instructor)}
-                                          onMouseLeave={handleInstructorMouseLeave}
-                                        >
-                                          {instructor.first_name} {instructor.last_name}
-                                        </span>
-                                      ))}
-                                    <div className="mt-auto flex items-end justify-between gap-2">
-                                      <div className="text-[11px] text-gray-500">
-                                        Cap {section.capacity}
-                                      </div>
-                                      {lock ? <LockBadge lock={lock} /> : null}
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <SectionCalendarGrid
+          sections={sections}
+          displaySections={filtered}
+          locks={locks}
+          readOnly={readOnly || !isAdmin}
+          onSectionClick={(section) => handleRowActivate(section)}
+          onEditClick={handleEditClick}
+          onInstructorMouseEnter={handleInstructorMouseEnter}
+          onInstructorMouseLeave={handleInstructorMouseLeave}
+        />
       ) : (
         /* Table */
         <div className="overflow-x-auto rounded-lg border border-gray-200">

@@ -51,8 +51,8 @@ def test_get_courses_empty(client, db_session):
 def test_get_courses_returns_all(client, db_session):
     db_session.add_all(
         [
-            Course(name="CS 2500", description="Fundamentals", credits=4),
-            Course(name="CS 3200", description="DB Design", credits=4),
+            Course(subject="CS", code=2500, name="CS 2500", description="Fundamentals", credits=4),
+            Course(subject="CS", code=3200, name="CS 3200", description="DB Design", credits=4),
         ]
     )
     db_session.commit()
@@ -66,7 +66,7 @@ def test_get_courses_includes_section_count(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
 
-    course = Course(name="Algorithms", description="Algo", credits=4)
+    course = Course(subject="CS", code=3000, name="Algorithms", description="Algo", credits=4)
     db_session.add(course)
     db_session.flush()
 
@@ -100,8 +100,8 @@ def test_get_courses_includes_section_count(client, db_session):
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["SectionCount"] == 2
-    assert data[0]["CourseName"] == "Algorithms"
+    assert data[0]["section_count"] == 2
+    assert data[0]["name"] == "Algorithms"
 
     response = client.get("/courses?schedule_id=99999")
     assert response.status_code == 400
@@ -112,8 +112,8 @@ def test_get_courses_filter_by_schedule_id(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
 
-    c1 = Course(name="CS 2500", description="A", credits=4)
-    c2 = Course(name="CS 3200", description="B", credits=4)
+    c1 = Course(subject="CS", code=2500, name="CS 2500", description="A", credits=4)
+    c2 = Course(subject="CS", code=3200, name="CS 3200", description="B", credits=4)
     db_session.add_all([c1, c2])
     db_session.flush()
 
@@ -148,7 +148,7 @@ def test_get_courses_filter_by_schedule_id(client, db_session):
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["CourseName"] == "CS 2500"
+    assert data[0]["name"] == "CS 2500"
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +157,7 @@ def test_get_courses_filter_by_schedule_id(client, db_session):
 
 
 def test_get_course_by_id_invalid_schedule_id_returns_400(client, db_session):
-    course = Course(name="OOD", description="Object-oriented", credits=4)
+    course = Course(subject="CS", code=3500, name="OOD", description="Object-oriented", credits=4)
     db_session.add(course)
     db_session.commit()
     response = client.get(f"/courses/{course.course_id}?schedule_id=99999")
@@ -166,16 +166,16 @@ def test_get_course_by_id_invalid_schedule_id_returns_400(client, db_session):
 
 
 def test_get_course_by_id(client, db_session):
-    course = Course(name="OOD", description="Object-oriented", credits=4)
+    course = Course(subject="CS", code=3500, name="OOD", description="Object-oriented", credits=4)
     db_session.add(course)
     db_session.commit()
     response = client.get(f"/courses/{course.course_id}")
     assert response.status_code == 200
     data = response.json()
-    assert data["CourseID"] == course.course_id
-    assert data["CourseName"] == "OOD"
-    assert data["CourseDescription"] == "Object-oriented"
-    assert "SectionCount" in data
+    assert data["course_id"] == course.course_id
+    assert data["name"] == "OOD"
+    assert data["description"] == "Object-oriented"
+    assert "section_count" in data
 
 
 def test_get_course_not_found(client, db_session):
@@ -188,6 +188,8 @@ def test_create_course_success(client, db_session):
     response = client.post(
         "/courses",
         json={
+            "subject": "CS",
+            "code": 1800,
             "name": "CS 1800",
             "description": "Discrete structures",
             "credits": 4,
@@ -196,15 +198,17 @@ def test_create_course_success(client, db_session):
     )
     assert response.status_code == 201
     data = response.json()
-    assert data["CourseName"] == "CS 1800"
-    assert data["CourseDescription"] == "Discrete structures"
-    assert data["Priority"] is True
-    assert data["SectionCount"] == 0
-    assert "CourseID" in data
+    assert data["name"] == "CS 1800"
+    assert data["description"] == "Discrete structures"
+    assert data["priority"] is True
+    assert data["section_count"] == 0
+    assert "course_id" in data
 
 
 def test_patch_course_success(client, db_session):
-    course = Course(name="CS 2500", description="Was old", credits=4, priority=True)
+    course = Course(
+        subject="CS", code=2500, name="CS 2500", description="Was old", credits=4, priority=True
+    )
     db_session.add(course)
     db_session.commit()
 
@@ -214,9 +218,9 @@ def test_patch_course_success(client, db_session):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["CourseName"] == "CS 2510"
-    assert data["CourseDescription"] == "Was old"
-    assert data["CourseID"] == course.course_id
+    assert data["name"] == "CS 2510"
+    assert data["description"] == "Was old"
+    assert data["course_id"] == course.course_id
     db_session.expire_all()
     reloaded = db_session.get(Course, course.course_id)
     assert reloaded is not None
@@ -225,7 +229,9 @@ def test_patch_course_success(client, db_session):
 
 
 def test_patch_course_priority_null_returns_400(client, db_session):
-    course = Course(name="CS 2600", description="X", credits=4, priority=False)
+    course = Course(
+        subject="CS", code=2600, name="CS 2600", description="X", credits=4, priority=False
+    )
     db_session.add(course)
     db_session.commit()
 
@@ -243,7 +249,7 @@ def test_patch_course_not_found_returns_404(client, db_session):
 
 
 def test_patch_course_invalid_credits_returns_400(client, db_session):
-    course = Course(name="X", description="Y", credits=4)
+    course = Course(subject="CS", code=2500, name="X", description="Y", credits=4)
     db_session.add(course)
     db_session.commit()
 
@@ -256,7 +262,7 @@ def test_patch_course_invalid_credits_returns_400(client, db_session):
 
 
 def test_delete_course_success(client, db_session):
-    course = Course(name="To go", description="Bye", credits=1)
+    course = Course(subject="CS", code=2500, name="To go", description="Bye", credits=1)
     db_session.add(course)
     db_session.commit()
 
@@ -271,7 +277,7 @@ def test_delete_course_not_found_returns_404(client, db_session):
 
 
 def test_delete_course_with_sections_returns_400(client, db_session):
-    course = Course(name="Busy", description="Has sections", credits=4)
+    course = Course(subject="CS", code=2500, name="Busy", description="Has sections", credits=4)
     db_session.add(course)
     db_session.flush()
     campus = _make_campus(db_session, name="Boston")

@@ -59,7 +59,6 @@ export default function FacultyTooltip({ instructor, allSections, scheduleId, an
         <div className="font-semibold text-gray-900">
           {instructor.first_name} {instructor.last_name}
         </div>
-        <div className="text-xs text-gray-500">{instructor.title}</div>
         <div className="text-xs text-indigo-600">{instructor.email}</div>
       </div>
 

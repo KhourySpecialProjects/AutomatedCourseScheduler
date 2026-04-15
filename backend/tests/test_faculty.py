@@ -145,7 +145,6 @@ def test_get_faculty_profile(client, db_session):
         first_name="Jane",
         last_name="Doe",
         email="jane@example.com",
-        title="Professor",
         campus=campus.campus_id,
     )
     db_session.add(faculty)
@@ -158,14 +157,13 @@ def test_get_faculty_profile(client, db_session):
     assert data["first_name"] == "Jane"
     assert data["last_name"] == "Doe"
     assert data["email"] == "jane@example.com"
-    assert data["title"] == "Professor"
     assert data["campus"] == 1
     assert "course_preferences" in data
     assert "meeting_preferences" in data
 
 
 def test_get_faculty_profile_with_preferences(client, db_session):
-    course = Course(name="Algorithms", description="Algo", credits=4)
+    course = Course(subject="CS", code=3000, name="Algorithms", description="Algo", credits=4)
     db_session.add(course)
     db_session.flush()
     campus = _make_campus(db_session)
@@ -174,7 +172,6 @@ def test_get_faculty_profile_with_preferences(client, db_session):
         first_name="John",
         last_name="Smith",
         email="john@example.com",
-        title="Associate Professor",
         campus=campus.campus_id,
     )
     db_session.add(faculty)
@@ -225,7 +222,6 @@ def test_create_faculty_success(client, db_session):
             "last_name": "Kim",
             "email": "pat.kim@example.edu",
             "campus": 1,
-            "title": "Lecturer",
         },
     )
     assert response.status_code == 201
@@ -306,14 +302,12 @@ def test_patch_faculty_success(client, db_session):
         json={
             "first_name": "New",
             "active": False,
-            "title": "Professor",
         },
     )
     assert response.status_code == 200
     data = response.json()
     assert data["first_name"] == "New"
     assert data["active"] is False
-    assert data["title"] == "Professor"
 
 
 def test_patch_faculty_not_found_returns_404(client, db_session):
@@ -368,7 +362,7 @@ def test_delete_faculty_success(client, db_session):
 
 
 def test_delete_faculty_removes_preferences_and_assignments(client, db_session):
-    course = Course(name="PL", description="PL", credits=4)
+    course = Course(subject="CS", code=9999, name="PL", description="PL", credits=4)
     campus = _make_campus(db_session, name="Boston")
     tb = _make_time_block(db_session, campus_id=campus.campus_id)
     faculty = Faculty(
@@ -435,7 +429,6 @@ def _make_faculty(db, campus_id, nuid=1001):
         first_name="Jane",
         last_name="Doe",
         email=f"faculty{nuid}@example.com",
-        title="Professor",
         campus=campus_id,
     )
     db.add(faculty)
@@ -443,8 +436,8 @@ def _make_faculty(db, campus_id, nuid=1001):
     return faculty
 
 
-def _make_course(db, name="Algorithms"):
-    course = Course(name=name, description="desc", credits=4)
+def _make_course(db, subject="CS", code=3000, name="Algorithms"):
+    course = Course(subject=subject, code=code, name=name, description="desc", credits=4)
     db.add(course)
     db.flush()
     return course
@@ -500,8 +493,8 @@ class TestBuildProfile:
         campus = _make_campus(db_session)
         _make_time_block(db_session, campus.campus_id)
         faculty = _make_faculty(db_session, campus.campus_id)
-        course1 = _make_course(db_session, name="Algorithms")
-        course2 = _make_course(db_session, name="OS")
+        course1 = _make_course(db_session, "CS", 3000, name="Algorithms")
+        course2 = _make_course(db_session, "CSYE", 6230, name="OS")
 
         db_session.add(
             CoursePreference(

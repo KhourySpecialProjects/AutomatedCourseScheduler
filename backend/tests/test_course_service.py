@@ -45,8 +45,17 @@ def _make_schedule(db, campus_id, semester_id, *, name="Test Schedule"):
     return schedule
 
 
-def _make_course(db, priority=False, name="CS 1800", description="Discrete", credits=4):
-    course = Course(name=name, description=description, credits=credits, priority=priority)
+def _make_course(
+    db, subject, code, name, description="Test description", credits=4, priority=False
+):
+    course = Course(
+        subject=subject,
+        code=code,
+        name=name,
+        description=description,
+        credits=credits,
+        priority=priority,
+    )
     db.add(course)
     db.flush()
     return course
@@ -109,52 +118,52 @@ def _make_preference(db, faculty_nuid, course_id, preference: PreferenceLevel):
 class TestCourseToResponse:
     def test_course_subject_is_prefix(self, db_session):
         """CourseSubject should be 'CS', not '1800'."""
-        course = _make_course(db_session, name="CS 1800")
+        course = _make_course(db_session, subject="CS", code=1800, name="CS 1800")
         response = course_service._course_to_response(course, section_count=1)
-        assert response.CourseSubject == "CS"
+        assert response.subject == "CS"
 
     def test_course_no_is_numeric_part(self, db_session):
         """CourseNo should be 1800 (int), not 'CS' (string)."""
-        course = _make_course(db_session, name="CS 1800")
+        course = _make_course(db_session, subject="CS", code=1800, name="CS 1800")
         response = course_service._course_to_response(course, section_count=1)
-        assert response.CourseNo == 1800
+        assert response.code == 1800
 
     def test_course_no_is_int_not_string(self, db_session):
-        course = _make_course(db_session, name="DS 3000")
+        course = _make_course(db_session, subject="DS", code=3000, name="DS 3000")
         response = course_service._course_to_response(course, section_count=1)
-        assert isinstance(response.CourseNo, int)
+        assert isinstance(response.code, int)
 
     def test_different_subject_prefix(self, db_session):
         """Works with DS and CY prefixes, not just CS."""
-        course = _make_course(db_session, name="DS 4400")
+        course = _make_course(db_session, subject="DS", code=4400, name="DS 4400")
         response = course_service._course_to_response(course, section_count=1)
-        assert response.CourseSubject == "DS"
-        assert response.CourseNo == 4400
+        assert response.subject == "DS"
+        assert response.code == 4400
 
     def test_section_count_preserved(self, db_session):
-        course = _make_course(db_session, name="CS 2000")
+        course = _make_course(db_session, subject="CS", code=2000, name="CS 2000")
         response = course_service._course_to_response(course, section_count=3)
-        assert response.SectionCount == 3
+        assert response.section_count == 3
 
     def test_priority_defaults_false(self, db_session):
-        course = _make_course(db_session, name="CS 9999")
+        course = _make_course(db_session, subject="CS", code=9999, name="CS 9999")
         response = course_service._course_to_response(course, section_count=1)
-        assert response.Priority is False
+        assert response.priority is False
 
     def test_priority_explicit_true(self, db_session):
-        course = _make_course(db_session, name="CS 1800", priority=True)
+        course = _make_course(db_session, subject="CS", code=1800, name="CS 1800", priority=True)
         response = course_service._course_to_response(course, section_count=2)
-        assert response.Priority is True
+        assert response.priority is True
 
     def test_course_name_preserved(self, db_session):
-        course = _make_course(db_session, name="CY 2550")
+        course = _make_course(db_session, subject="CY", code=2550, name="CY 2550")
         response = course_service._course_to_response(course, section_count=1)
-        assert response.CourseName == "CY 2550"
+        assert response.name == "CY 2550"
 
     def test_qualified_faculty_counts_pref_1_to_3_only(self, db_session):
         """EAGER(1), READY(2), WILLING(3) count; NOT_INTERESTED(4) does not."""
         campus = _make_campus(db_session)
-        course = _make_course(db_session, name="CS 3000")
+        course = _make_course(db_session, subject="CS", code=3000, name="CS 3000")
         f1 = _make_faculty(db_session, campus.campus_id, nuid=1)
         f2 = _make_faculty(db_session, campus.campus_id, nuid=2)
         f3 = _make_faculty(db_session, campus.campus_id, nuid=3)
@@ -165,21 +174,21 @@ class TestCourseToResponse:
         _make_preference(db_session, f4.nuid, course.course_id, PreferenceLevel.NOT_INTERESTED)
         db_session.refresh(course)
         response = course_service._course_to_response(course, section_count=1)
-        assert response.QualifiedFaculty == 3
+        assert response.qualified_faculty == 3
 
     def test_qualified_faculty_zero_when_no_preferences(self, db_session):
-        course = _make_course(db_session, name="CS 4000")
+        course = _make_course(db_session, subject="CS", code=4000, name="CS 4000")
         response = course_service._course_to_response(course, section_count=1)
-        assert response.QualifiedFaculty == 0
+        assert response.qualified_faculty == 0
 
     def test_not_interested_does_not_count(self, db_session):
         campus = _make_campus(db_session)
-        course = _make_course(db_session, name="CS 5000")
+        course = _make_course(db_session, subject="CS", code=5000, name="CS 5000")
         faculty = _make_faculty(db_session, campus.campus_id, nuid=10)
         _make_preference(db_session, faculty.nuid, course.course_id, PreferenceLevel.NOT_INTERESTED)
         db_session.refresh(course)
         response = course_service._course_to_response(course, section_count=1)
-        assert response.QualifiedFaculty == 0
+        assert response.qualified_faculty == 0
 
 
 # ---------------------------------------------------------------------------
@@ -188,68 +197,64 @@ class TestCourseToResponse:
 
 
 class TestSortCourseList:
-    def _resp(self, course_id, priority, qualified_faculty, course_no):
+    def _resp(self, course_id, subject, code, priority, qualified_faculty):
         return CourseResponse(
-            CourseID=course_id,
-            Priority=priority,
-            QualifiedFaculty=qualified_faculty,
-            CourseNo=course_no,
-            SectionCount=1,
+            course_id=course_id,
+            subject=subject,
+            code=code,
+            name=f"{subject} {code}",
+            credits=4,
+            priority=priority,
+            section_count=1,
+            qualified_faculty=qualified_faculty,
         )
 
     def test_priority_courses_come_before_non_priority(self):
-        non_priority = self._resp(1, priority=False, qualified_faculty=1, course_no=1000)
-        priority = self._resp(2, priority=True, qualified_faculty=10, course_no=9999)
+        non_priority = self._resp(1, "CS", 1000, priority=False, qualified_faculty=1)
+        priority = self._resp(2, "CS", 9999, priority=True, qualified_faculty=10)
         result = course_service.sort_course_list([non_priority, priority])
-        assert result[0].CourseID == 2
+        assert result[0].course_id == 2
 
     def test_most_constrained_first_within_same_priority(self):
         """Fewest qualified faculty (most constrained) comes first."""
-        constrained = self._resp(1, priority=True, qualified_faculty=1, course_no=2000)
-        unconstrained = self._resp(2, priority=True, qualified_faculty=10, course_no=1000)
+        constrained = self._resp(1, "CS", 2000, priority=True, qualified_faculty=1)
+        unconstrained = self._resp(2, "CS", 1000, priority=True, qualified_faculty=10)
         result = course_service.sort_course_list([unconstrained, constrained])
-        assert result[0].CourseID == 1
+        assert result[0].course_id == 1
 
     def test_course_no_ascending_tiebreak(self):
-        a = self._resp(1, priority=False, qualified_faculty=5, course_no=1000)
-        b = self._resp(2, priority=False, qualified_faculty=5, course_no=2000)
+        a = self._resp(1, "CS", 1000, priority=False, qualified_faculty=5)
+        b = self._resp(2, "CS", 2000, priority=False, qualified_faculty=5)
         result = course_service.sort_course_list([b, a])
-        assert result[0].CourseID == 1
+        assert result[0].course_id == 1
 
     def test_full_ordering_priority_then_constrained_then_number(self):
         # priority=True, fewer faculty, higher number — first
-        a = self._resp(1, priority=True, qualified_faculty=2, course_no=9000)
+        a = self._resp(1, "CS", 9000, priority=True, qualified_faculty=2)
         # priority=True, more faculty, lower number — second
-        b = self._resp(2, priority=True, qualified_faculty=8, course_no=1000)
+        b = self._resp(2, "CS", 1000, priority=True, qualified_faculty=8)
         # priority=False, fewer faculty, lower number — third
-        c = self._resp(3, priority=False, qualified_faculty=1, course_no=500)
+        c = self._resp(3, "CS", 500, priority=False, qualified_faculty=1)
         # priority=False, more faculty, higher number — fourth
-        d = self._resp(4, priority=False, qualified_faculty=10, course_no=8000)
+        d = self._resp(4, "CS", 8000, priority=False, qualified_faculty=10)
         result = course_service.sort_course_list([d, c, b, a])
-        assert [r.CourseID for r in result] == [1, 2, 3, 4]
+        assert [r.course_id for r in result] == [1, 2, 3, 4]
 
     def test_empty_list_returns_empty(self):
         assert course_service.sort_course_list([]) == []
 
     def test_single_element_unchanged(self):
-        item = self._resp(1, priority=True, qualified_faculty=3, course_no=1000)
+        item = self._resp(1, "CS", 1000, priority=True, qualified_faculty=3)
         result = course_service.sort_course_list([item])
-        assert result[0].CourseID == 1
-
-    def test_course_no_none_treated_as_zero(self):
-        """None CourseNo sorts before any positive number (treated as 0)."""
-        a = self._resp(1, priority=False, qualified_faculty=5, course_no=None)
-        b = self._resp(2, priority=False, qualified_faculty=5, course_no=1000)
-        result = course_service.sort_course_list([b, a])
-        assert result[0].CourseID == 1
+        assert result[0].course_id == 1
 
     def test_non_priority_never_precedes_priority_regardless_of_faculty(self):
         """Even a non-priority course with 0 faculty should rank after
         any priority course."""
-        non_priority = self._resp(1, priority=False, qualified_faculty=0, course_no=1)
-        priority = self._resp(2, priority=True, qualified_faculty=100, course_no=9999)
+        non_priority = self._resp(1, "CS", 1, priority=False, qualified_faculty=0)
+        priority = self._resp(2, "CS", 9999, priority=True, qualified_faculty=100)
         result = course_service.sort_course_list([non_priority, priority])
-        assert result[0].CourseID == 2
+        assert result[0].course_id == 2
 
 
 # ---------------------------------------------------------------------------
@@ -263,7 +268,7 @@ class TestGetSectionCount:
         sem = _make_semester(db_session)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
-        course = _make_course(db_session, name="CS 2100")
+        course = _make_course(db_session, subject="CS", code=2100, name="CS 2100")
         _make_section(
             db_session,
             schedule.schedule_id,
@@ -283,19 +288,19 @@ class TestGetSectionCount:
         result = course_service.get_section_count(schedule, [course], [])
 
         assert len(result) == 1
-        assert result[0].SectionCount == 2
+        assert result[0].section_count == 2
 
     def test_new_courses_default_to_one_section(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
-        new_course = _make_course(db_session, name="CS 9001")
+        new_course = _make_course(db_session, subject="CS", code=9001, name="CS 9001")
         db_session.refresh(schedule)
 
         result = course_service.get_section_count(schedule, [], [new_course])
 
         assert len(result) == 1
-        assert result[0].SectionCount == 1
+        assert result[0].section_count == 1
 
     def test_raises_when_existing_course_has_zero_sections(self, db_session):
         """A course listed as existing but absent from the schedule should
@@ -303,7 +308,7 @@ class TestGetSectionCount:
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
-        course = _make_course(db_session, name="CS 3200")
+        course = _make_course(db_session, subject="CS", code=3200, name="CS 3200")
         db_session.refresh(schedule)
 
         with pytest.raises(ValueError):
@@ -314,26 +319,26 @@ class TestGetSectionCount:
         sem = _make_semester(db_session)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
-        course = _make_course(db_session, name="CS 1800", priority=True)
+        course = _make_course(db_session, subject="CS", code=1800, name="CS 1800", priority=True)
         _make_section(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
         db_session.refresh(schedule)
 
         result = course_service.get_section_count(schedule, [course], [])
 
-        assert result[0].Priority is True
+        assert result[0].priority is True
 
     def test_non_priority_course_not_flagged(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
-        course = _make_course(db_session, name="CS 9999")
+        course = _make_course(db_session, subject="CS", code=9999, name="CS 9999")
         _make_section(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
         db_session.refresh(schedule)
 
         result = course_service.get_section_count(schedule, [course], [])
 
-        assert result[0].Priority is False
+        assert result[0].priority is False
 
     def test_all_high_priority_course_names_flagged(self, db_session):
         """Every name in HIGH_PRIORITY_COURSES should yield Priority=True."""
@@ -344,7 +349,10 @@ class TestGetSectionCount:
 
         priority_courses = []
         for i, name in enumerate(course_service.HIGH_PRIORITY_COURSES):
-            c = _make_course(db_session, name=name, priority=True)
+            split = name.split(" ")
+            c = _make_course(
+                db_session, subject=split[0], code=int(split[1]), name=name, priority=True
+            )
             _make_section(
                 db_session,
                 schedule.schedule_id,
@@ -357,7 +365,7 @@ class TestGetSectionCount:
 
         result = course_service.get_section_count(schedule, priority_courses, [])
 
-        assert all(r.Priority is True for r in result)
+        assert all(r.priority is True for r in result)
 
     def test_new_courses_not_flagged_high_priority(self, db_session):
         """New courses always get Priority=False even if their name
@@ -365,38 +373,40 @@ class TestGetSectionCount:
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
-        new_course = _make_course(db_session, name="CS 1800")
+        new_course = _make_course(db_session, subject="CS", code=1800, name="CS 1800")
         db_session.refresh(schedule)
 
         result = course_service.get_section_count(schedule, [], [new_course])
 
-        assert result[0].Priority is False
-        assert result[0].SectionCount == 1
+        assert result[0].priority is False
+        assert result[0].section_count == 1
 
     def test_combined_existing_and_new_courses(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
-        existing = _make_course(db_session, name="CS 2000")
-        new_course = _make_course(db_session, name="CS 9999", description="new", credits=3)
+        existing = _make_course(db_session, subject="CS", code=2000, name="CS 2000")
+        new_course = _make_course(
+            db_session, subject="CS", code=9999, name="CS 9999", description="new", credits=3
+        )
         _make_section(db_session, schedule.schedule_id, existing.course_id, tb.time_block_id)
         db_session.refresh(schedule)
 
         result = course_service.get_section_count(schedule, [existing], [new_course])
 
         assert len(result) == 2
-        existing_resp = next(r for r in result if r.CourseName == "CS 2000")
-        new_resp = next(r for r in result if r.CourseName == "CS 9999")
-        assert existing_resp.SectionCount == 1
-        assert new_resp.SectionCount == 1
+        existing_resp = next(r for r in result if r.name == "CS 2000")
+        new_resp = next(r for r in result if r.name == "CS 9999")
+        assert existing_resp.section_count == 1
+        assert new_resp.section_count == 1
 
     def test_multiple_sections_counted_correctly(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
-        course = _make_course(db_session, name="CS 2800")
+        course = _make_course(db_session, subject="CS", code=2800, name="CS 2800")
         for i in range(3):
             _make_section(
                 db_session,
@@ -409,7 +419,7 @@ class TestGetSectionCount:
 
         result = course_service.get_section_count(schedule, [course], [])
 
-        assert result[0].SectionCount == 3
+        assert result[0].section_count == 3
 
 
 # ---------------------------------------------------------------------------
@@ -465,14 +475,14 @@ class TestGenerateCourseList:
         sem_prev = _make_semester(db_session, season="Fall", year=2025)
         schedule = _make_schedule(db_session, campus.campus_id, sem_prev.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
-        course = _make_course(db_session, name="CS 2000")
+        course = _make_course(db_session, subject="CS", code=2000, name="CS 2000")
         _make_section(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
 
         result = course_service.generate_course_list(
             db_session, sem_prev.semester_id, [], campus.campus_id
         )
 
-        assert any(r.CourseName == "CS 2000" for r in result)
+        assert any(r.name == "CS 2000" for r in result)
 
     def test_result_is_sorted_priority_first(self, db_session):
         campus = _make_campus(db_session)
@@ -480,9 +490,13 @@ class TestGenerateCourseList:
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
 
-        priority_course = _make_course(db_session, name="CS 1800", priority=True)
+        priority_course = _make_course(
+            db_session, subject="CS", code=1800, name="CS 1800", priority=True
+        )
         other_course = _make_course(
             db_session,
+            subject="CS",
+            code=9999,
             name="CS 9999",
             description="d",
             credits=3,
@@ -506,8 +520,8 @@ class TestGenerateCourseList:
             db_session, sem.semester_id, [], campus.campus_id
         )
 
-        assert result[0].Priority is True
-        assert result[0].CourseName == "CS 1800"
+        assert result[0].priority is True
+        assert result[0].name == "CS 1800"
 
     def test_new_course_ids_included_with_one_section(self, db_session):
         campus = _make_campus(db_session)
@@ -515,17 +529,19 @@ class TestGenerateCourseList:
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
 
-        existing = _make_course(db_session, name="CS 2000")
-        new_course = _make_course(db_session, name="CS 8888", description="New", credits=3)
+        existing = _make_course(db_session, subject="CS", code=2000, name="CS 2000")
+        new_course = _make_course(
+            db_session, subject="CS", code=8888, name="CS 8888", description="New", credits=3
+        )
         _make_section(db_session, schedule.schedule_id, existing.course_id, tb.time_block_id)
 
         result = course_service.generate_course_list(
             db_session, sem.semester_id, [new_course.course_id], campus.campus_id
         )
 
-        new_resp = next((r for r in result if r.CourseName == "CS 8888"), None)
+        new_resp = next((r for r in result if r.name == "CS 8888"), None)
         assert new_resp is not None
-        assert new_resp.SectionCount == 1
+        assert new_resp.section_count == 1
 
     def test_raises_when_multiple_schedules_for_semester(self, db_session):
         campus = _make_campus(db_session)
@@ -550,7 +566,7 @@ class TestGenerateCourseList:
         sem = _make_semester(db_session, season="Fall", year=2025)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
-        course = _make_course(db_session, name="CS 2800")
+        course = _make_course(db_session, subject="CS", code=2800, name="CS 2800")
         for i in range(3):
             _make_section(
                 db_session,
@@ -564,7 +580,7 @@ class TestGenerateCourseList:
             db_session, sem.semester_id, [], campus.campus_id
         )
 
-        assert result[0].SectionCount == 3
+        assert result[0].section_count == 3
 
     def test_sorted_by_constraint_within_non_priority_group(self, db_session):
         """Within non-priority courses, fewest qualified faculty comes first."""
@@ -573,8 +589,12 @@ class TestGenerateCourseList:
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
 
-        constrained = _make_course(db_session, name="CS 7000", description="d", credits=3)
-        unconstrained = _make_course(db_session, name="CS 8000", description="d", credits=3)
+        constrained = _make_course(
+            db_session, subject="CS", code=7000, name="CS 7000", description="d", credits=3
+        )
+        unconstrained = _make_course(
+            db_session, subject="CS", code=8000, name="CS 8000", description="d", credits=3
+        )
         _make_section(
             db_session,
             schedule.schedule_id,
@@ -607,8 +627,8 @@ class TestGenerateCourseList:
             db_session, sem.semester_id, [], campus.campus_id
         )
 
-        non_priority = [r for r in result if not r.Priority]
-        assert non_priority[0].CourseName == "CS 7000"
+        non_priority = [r for r in result if not r.priority]
+        assert non_priority[0].name == "CS 7000"
 
     def test_with_schedule_id_path(self, db_session):
         """When schedule_id is provided, courses are read from that
@@ -617,21 +637,21 @@ class TestGenerateCourseList:
         sem = _make_semester(db_session, season="Fall", year=2025)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
-        course = _make_course(db_session, name="CS 3100")
+        course = _make_course(db_session, subject="CS", code=3100, name="CS 3100")
         _make_section(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
 
         result = course_service.generate_course_list(
             db_session, sem.semester_id, [], campus.campus_id
         )
 
-        assert any(r.CourseName == "CS 3100" for r in result)
+        assert any(r.name == "CS 3100" for r in result)
 
     def test_empty_new_course_ids_list_works(self, db_session):
         campus = _make_campus(db_session)
         sem = _make_semester(db_session, season="Fall", year=2025)
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
-        course = _make_course(db_session, name="CS 2700")
+        course = _make_course(db_session, subject="CS", code=2700, name="CS 2700")
         _make_section(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
 
         result = course_service.generate_course_list(

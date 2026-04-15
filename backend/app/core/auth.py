@@ -1,16 +1,15 @@
 """Auth0 authentication dependencies."""
 
-import os
-
 from fastapi import Depends, HTTPException, Request
 from fastapi_plugin.fast_api_client import Auth0FastAPI
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.settings import settings
 from app.models.user import User
 
-auth0_domain = os.environ.get("AUTH0_DOMAIN")
-auth0_audience = os.environ.get("AUTH0_AUDIENCE")
+auth0_domain = settings.AUTH0_DOMAIN
+auth0_audience = settings.AUTH0_AUDIENCE
 
 if not auth0_domain or not auth0_audience:
     raise RuntimeError("AUTH0_DOMAIN and AUTH0_AUDIENCE must be set")

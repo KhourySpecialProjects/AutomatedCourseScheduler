@@ -22,6 +22,7 @@ class ScheduleLog(Base):
 
     # Foreign Keys
     schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("schedule.schedule_id"))
+    updated_by: Mapped[int] = mapped_column(Integer, ForeignKey("user.user_id"))
 
     # Relationships
     schedule: Mapped["Schedule"] = relationship("Schedule", back_populates="schedule_log")

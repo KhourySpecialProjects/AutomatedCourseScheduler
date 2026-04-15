@@ -114,13 +114,15 @@ def make_course_response(
     qualified_faculty: int = 5,
 ) -> CourseResponse:
     return CourseResponse(
-        CourseID=course_id,
-        CourseNo=1000,
-        CourseName=f"Course {course_id}",
-        CourseDescription="desc",
-        SectionCount=section_count,
-        Priority=priority,
-        QualifiedFaculty=qualified_faculty,
+        course_id=course_id,
+        subject="CS",
+        code=1000,
+        name=f"Course {course_id}",
+        description="desc",
+        credits=4,
+        section_count=section_count,
+        priority=priority,
+        qualified_faculty=qualified_faculty,
     )
 
 
@@ -142,7 +144,6 @@ def make_faculty_profile(
         first_name="Faculty",
         last_name=f"#{nuid}",
         email=f"f{nuid}@example.com",
-        title="Professor",
         campus=1,
         active=True,
         maxLoad=max_load,
