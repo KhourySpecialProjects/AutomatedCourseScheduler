@@ -238,9 +238,7 @@ def update_section(
     if partner_id is None:
         # Backward-compat: if only the partner points at this row, still treat it as crosslisted.
         reverse = (
-            db.query(Section)
-            .filter(Section.crosslisted_section_id == saved.section_id)
-            .first()
+            db.query(Section).filter(Section.crosslisted_section_id == saved.section_id).first()
         )
         partner_id = reverse.section_id if reverse is not None else None
 

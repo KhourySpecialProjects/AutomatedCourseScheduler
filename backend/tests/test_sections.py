@@ -729,9 +729,7 @@ def test_patch_section_clear_nullable_fields(client, db_session):
     assert reloaded.room is None
     assert reloaded.crosslisted_section_id is None
     other_reloaded = (
-        db_session.query(Section)
-        .filter(Section.section_id == other.section_id)
-        .first()
+        db_session.query(Section).filter(Section.section_id == other.section_id).first()
     )
     assert other_reloaded is not None
     assert other_reloaded.crosslisted_section_id is None
