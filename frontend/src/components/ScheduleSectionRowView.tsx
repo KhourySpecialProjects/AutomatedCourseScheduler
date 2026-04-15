@@ -244,6 +244,12 @@ export default function ScheduleSectionRowView({
     else setSelectedSection(section);
   }
 
+  function handleEditClick(e: React.MouseEvent<HTMLButtonElement>, section: SectionRichResponse) {
+    e.stopPropagation();
+    if (!userRoleLoaded || !isAdmin || isLockedFor(section)) return;
+    void openAdminSectionEditor(section);
+  }
+
   async function handleEditClose() {
     if (editingSection) {
       try {

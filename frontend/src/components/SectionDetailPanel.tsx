@@ -31,7 +31,8 @@ function meetingPreferenceFor(
   const category = deriveMeetingCategory(days, startHour);
   const prefs = instructor.meeting_preferences;
   const byCategory = prefs.find((mp) => {
-    const mt = typeof mp.meeting_time === 'string' ? mp.meeting_time : '';
+    const r = mp as unknown as Record<string, unknown>;
+    const mt = typeof r.meeting_time === 'string' ? r.meeting_time : '';
     return mt === category;
   });
   if (byCategory) return byCategory;
