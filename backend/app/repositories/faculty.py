@@ -104,6 +104,8 @@ def find_course_preference(db: Session, nuid: int, course_id: int) -> bool:
     if not pref or pref.preference == PreferenceLevel.NOT_INTERESTED:
         return False
     return True
+
+
 def get_uninvited_or_pending_active(db: Session) -> list[Faculty]:
     """Return active faculty who have no User record or a User record with
     auth0_sub=None (invited but never logged in)."""
