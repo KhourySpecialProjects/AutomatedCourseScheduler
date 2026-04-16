@@ -4,7 +4,6 @@ import ScheduleList from './pages/ScheduleList';
 import Schedules from './pages/Schedules';
 import Faculty from './pages/Faculty';
 import Courses from './pages/Courses';
-import Upload from './pages/Upload';
 import Sidebar from './components/Sidebar';
 import LoginButton from './components/LoginButton';
 import { useAuthInterceptor } from './hooks/useAuthInterceptor';
@@ -68,7 +67,6 @@ function App() {
                 <Route path="/faculty/schedules/:scheduleId" element={<Schedules readOnly />} />
                 <Route path="/faculty" element={<Faculty />} />
                 <Route path="/courses" element={<Courses />} />
-                <Route path="/upload" element={<Upload />} />
               </Routes>
             </div>
           </main>
