@@ -17,17 +17,130 @@ function ScheduleCard({
   schedule,
   onClick,
   isAdmin,
+  onUpdate,
   onDelete,
 }: {
   schedule: ScheduleResponse;
   onClick: () => void;
   isAdmin: boolean;
+  onUpdate: (id: number, data: { name?: string; draft?: boolean }) => Promise<void>;
   onDelete: (id: number) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(schedule.name);
+  const [editDraft, setEditDraft] = useState(schedule.draft);
+  const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  function openEdit(e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditName(schedule.name);
+    setEditDraft(schedule.draft);
+    setConfirmDelete(false);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    const changes: { name?: string; draft?: boolean } = {};
+    if (editName.trim() !== schedule.name) changes.name = editName.trim();
+    if (editDraft !== schedule.draft) changes.draft = editDraft;
+    if (Object.keys(changes).length === 0) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onUpdate(schedule.schedule_id, changes);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="bg-white border border-indigo-200 rounded-xl p-5 space-y-4">
+        {/* Name */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
+          <input
+            type="text"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
+
+        {/* Draft toggle */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-700">Status</span>
+          <button
+            type="button"
+            onClick={() => setEditDraft((d) => !d)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              editDraft
+                ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                : 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${editDraft ? 'bg-amber-400' : 'bg-green-500'}`} />
+            {editDraft ? 'Draft' : 'Published'}
+          </button>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+          <div>
+            {!confirmDelete ? (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete schedule
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-red-600 font-medium">Are you sure?</span>
+                <button
+                  onClick={() => onDelete(schedule.schedule_id)}
+                  className="px-2 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                >
+                  No
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setEditing(false)}
+              className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving || !editName.trim()}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative">
+    <div className="relative group/card">
       <button
         onClick={onClick}
         className="w-full text-left bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-sm transition-all group"
@@ -50,11 +163,6 @@ function ScheduleCard({
                   Published
                 </span>
               )}
-              {schedule.active && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  Active
-                </span>
-              )}
             </div>
           </div>
           <svg
@@ -69,38 +177,15 @@ function ScheduleCard({
       </button>
 
       {isAdmin && (
-        <div className="absolute top-4 right-12">
-          {!confirmDelete ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setConfirmDelete(true);
-              }}
-              className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-              title="Delete schedule"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          ) : (
-            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-              <span className="text-xs text-red-500 font-medium whitespace-nowrap">Are you sure?</span>
-              <button
-                onClick={() => onDelete(schedule.schedule_id)}
-                className="px-2 py-1 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-700 transition-colors"
-              >
-                Yes
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                No
-              </button>
-            </div>
-          )}
-        </div>
+        <button
+          onClick={openEdit}
+          className="absolute top-4 right-12 p-1.5 rounded-lg text-gray-300 opacity-0 group-hover/card:opacity-100 hover:text-indigo-500 hover:bg-indigo-50 transition-all"
+          title="Edit schedule"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </button>
       )}
     </div>
   );
@@ -420,6 +505,12 @@ export default function ScheduleList() {
     setSchedules((prev) => [s, ...prev]);
   }
 
+  async function handleUpdate(scheduleId: number, data: { name?: string; draft?: boolean }) {
+    const api = getAutomatedCourseSchedulerAPI();
+    const updated = await api.updateScheduleSchedulesScheduleIdPut(scheduleId, data);
+    setSchedules((prev) => prev.map((s) => (s.schedule_id === scheduleId ? updated : s)));
+  }
+
   async function handleDelete(scheduleId: number) {
     try {
       const api = getAutomatedCourseSchedulerAPI();
@@ -480,6 +571,7 @@ export default function ScheduleList() {
               schedule={s}
               isAdmin={isAdmin}
               onClick={() => navigate(`/schedules/${s.schedule_id}`)}
+              onUpdate={handleUpdate}
               onDelete={handleDelete}
             />
           ))}
