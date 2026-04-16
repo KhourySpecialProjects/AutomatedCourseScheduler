@@ -28,4 +28,4 @@ class ScheduleCreate(BaseModel):
 
 class ScheduleUpdate(BaseModel):
     name: str | None = None
-    active: bool | None = None
+    draft: bool | None = None
