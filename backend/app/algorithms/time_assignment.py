@@ -50,11 +50,14 @@ def _days_set(meeting_days: str) -> frozenset[str]:
 
 
 def _time_pref_level(prefs: Sequence[MeetingPreferenceInfo], time_block_id: int) -> int | None:
-    # Look up a faculty member's preference integer for one specific time block.
-    # Returns 1–4 from PreferenceLevel, or None if there is no row for this block.
+    # Returns 1–4 from PreferenceLevel, or None if unrated or preference is unrecognized.
     for p in prefs:
         if p.time_block_id == time_block_id:
-            return PreferenceLevel(p.preference).to_int()
+            try:
+                return PreferenceLevel(p.preference).to_int()
+            except ValueError:
+                # Malformed preference value — treat as unrated rather than aborting the run.
+                return None
     return None
 
 
