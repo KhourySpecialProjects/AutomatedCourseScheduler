@@ -29,8 +29,7 @@ async def create_section(section: SectionCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e)) from e
 
     rich_sections = section_service.get_rich_sections(db, created.schedule_id)
-    rich_section = next(
-        (s for s in rich_sections if s.section_id == created.section_id), None)
+    rich_section = next((s for s in rich_sections if s.section_id == created.section_id), None)
     if rich_section:
         await manager.broadcast(
             created.schedule_id,
@@ -61,8 +60,7 @@ async def update_section(
     except SectionLockConflictError as e:
         raise HTTPException(
             status_code=423,
-            detail={"locked_by": e.lock.locked_by,
-                    "expires_at": str(e.lock.expires_at)},
+            detail={"locked_by": e.lock.locked_by, "expires_at": str(e.lock.expires_at)},
         ) from e
     try:
         result = section_service.update_section(db, section_id, section)
@@ -73,8 +71,7 @@ async def update_section(
     updated = result.get("updated")
 
     rich_sections = section_service.get_rich_sections(db, updated.schedule_id)
-    rich_section = next(
-        (s for s in rich_sections if s.section_id == section_id), None)
+    rich_section = next((s for s in rich_sections if s.section_id == section_id), None)
     if rich_section:
         await manager.broadcast(
             updated.schedule_id,
