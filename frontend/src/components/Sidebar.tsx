@@ -27,14 +27,6 @@ function BookIcon() {
   );
 }
 
-function UploadIcon() {
-  return (
-    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-    </svg>
-  );
-}
-
 function ChevronLeftIcon() {
   return (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +55,6 @@ const NAV_ITEMS = [
   { to: '/schedules', label: 'Schedules', icon: <CalendarIcon />, adminOnly: false },
   { to: '/faculty', label: 'Faculty', icon: <UsersIcon />, adminOnly: true },
   { to: '/courses', label: 'Courses', icon: <BookIcon />, adminOnly: false },
-  { to: '/upload', label: 'Upload CSV', icon: <UploadIcon />, adminOnly: true },
 ];
 
 export default function Sidebar() {
