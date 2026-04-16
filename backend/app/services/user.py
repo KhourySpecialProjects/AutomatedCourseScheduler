@@ -62,6 +62,45 @@ def invite_user(db: Session, nuid: int, role: str) -> InviteResult:
     )
 
 
+def export_invites(db: Session) -> list:
+    """Return invite link data for all active faculty without a linked account.
+
+    Creates User records for any faculty without one (marking them as invited).
+    Faculty with a pending User record (auth0_sub=None) are included but not
+    re-created.
+    """
+    from app.repositories import faculty as faculty_repo
+    from app.schemas.user import InviteLinkResponse
+
+    targets = faculty_repo.get_uninvited_or_pending_active(db)
+    results = []
+
+    for faculty in targets:
+        if user_repo.get_by_nuid(db, faculty.nuid) is None:
+            user_repo.create(
+                db,
+                User(
+                    nuid=faculty.nuid,
+                    first_name=faculty.first_name,
+                    last_name=faculty.last_name,
+                    email=faculty.email,
+                    role="VIEWER",
+                    auth0_sub=None,
+                    active=True,
+                ),
+            )
+        results.append(
+            InviteLinkResponse(
+                first_name=faculty.first_name or "",
+                last_name=faculty.last_name or "",
+                email=faculty.email,
+                invite_link=auth0_service.build_signup_url(faculty.email),
+            )
+        )
+
+    return results
+
+
 def get_user_by_id(db: Session, user_id: int) -> User | None:
     return user_repo.get_by_id(db, user_id)
 

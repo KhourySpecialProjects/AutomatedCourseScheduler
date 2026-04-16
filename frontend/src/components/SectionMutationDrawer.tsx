@@ -110,9 +110,9 @@ export default function SectionMutationDrawer(props: Props) {
 
   // Build typed SelectOption arrays once data is loaded
   const courseOptions: SelectOption<number>[] = courses.map((c) => ({
-    value: c.CourseID,
-    label: c.CourseName ?? `Course ${c.CourseID}`,
-    sublabel: [c.CourseSubject, c.CourseNo].filter(Boolean).join(' ') || undefined,
+    value: c.course_id,
+    label: c.name ?? `Course ${c.course_id}`,
+    sublabel: [c.subject, c.code].filter(Boolean).join(' ') || undefined,
   }));
 
   const timeBlockOptions: SelectOption<number>[] = timeBlocks.map((tb) => ({

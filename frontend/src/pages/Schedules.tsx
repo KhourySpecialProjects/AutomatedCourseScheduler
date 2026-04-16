@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import ScheduleSectionRowView from '../components/ScheduleSectionRowView';
 import { useScheduleWebSocket, type WsStatus } from '../hooks/useScheduleWebSocket';
 import { getAutomatedCourseSchedulerAPI, type ScheduleResponse, type UserResponse } from '../api/generated';
-import FacultyLinkTools from '../components/FacultyLinkTools';
 
 type ViewMode = 'table' | 'calendar';
 
@@ -57,7 +56,6 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
   const [me, setMe] = useState<UserResponse | null>(null);
   const [meError, setMeError] = useState<string | null>(null);
   const [forceFacultyView, setForceFacultyView] = useState(false);
-  const [invitePanel, setInvitePanel] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -137,25 +135,13 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
 
         <div className="flex items-center gap-3">
           {!readOnly && (
-            <>
-              <button
-                onClick={() => setForceFacultyView((v) => !v)}
-                className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Temporary toggle for testing; invite link will eventually land here"
-              >
-                {toggleLabel}
-              </button>
-              <FacultyLinkTools
-                disabled={!isAdmin}
-                onGenerate={(facultyNuid) => {
-                  if (!facultyNuid) {
-                    setInvitePanel('Pick a faculty member first.');
-                    return;
-                  }
-                  setInvitePanel('To be implemented');
-                }}
-              />
-            </>
+            <button
+              onClick={() => setForceFacultyView((v) => !v)}
+              className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              title="Temporary toggle for testing"
+            >
+              {toggleLabel}
+            </button>
           )}
 
           {/* View toggle */}
@@ -189,23 +175,6 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
           </div>
         </div>
       </div>
-
-      {!readOnly && invitePanel && (
-        <div className="mb-4 bg-white border border-gray-200 rounded-xl p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Faculty link</div>
-              <div className="mt-1 text-sm text-gray-700">{invitePanel}</div>
-            </div>
-            <button
-              onClick={() => setInvitePanel(null)}
-              className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
 
       {loading && (
         <div className="flex items-center gap-2 text-gray-400 text-sm mt-8">
