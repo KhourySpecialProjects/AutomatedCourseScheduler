@@ -18,7 +18,7 @@ function bucketLabel(k: BucketKey) {
     case 'first': return '1st choice';
     case 'second': return '2nd choice';
     case 'third': return '3rd choice';
-    case 'none': return 'No preference';
+    case 'none': return 'Not Assigned Preference';
   }
 }
 
@@ -27,7 +27,7 @@ function bucketStyle(k: BucketKey) {
     case 'first': return 'bg-green-600';
     case 'second': return 'bg-amber-500';
     case 'third': return 'bg-red-500';
-    case 'none': return 'bg-slate-300';
+    case 'none': return 'bg-red-800';
   }
 }
 
@@ -508,12 +508,27 @@ export default function Faculty() {
                       <td className="px-4 py-3">
                         {selectedScheduleId !== null ? (
                           <span
-                            className={`text-sm font-medium ${overloaded ? 'text-red-600' : 'text-gray-700'}`}
-                            title={overloaded ? 'Exceeds max load' : undefined}
+                            className={`text-sm font-medium ${
+                              overloaded
+                                ? 'text-red-600'
+                                : currentLoad === 0
+                                  ? 'text-amber-600'
+                                  : 'text-gray-700'
+                            }`}
+                            title={
+                              overloaded
+                                ? 'Exceeds max load'
+                                : currentLoad === 0
+                                  ? 'No load assigned'
+                                  : undefined
+                            }
                           >
                             {currentLoad}
                             {overloaded && (
                               <span className="ml-1 text-xs text-red-500">⚠</span>
+                            )}
+                            {currentLoad === 0 && (
+                              <span className="ml-1 text-xs text-amber-500">⚠</span>
                             )}
                           </span>
                         ) : (
