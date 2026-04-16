@@ -209,7 +209,7 @@ export default function SectionCalendarGrid({
                               title={
                                 isLocked
                                   ? `Locked by ${lock!.display_name}`
-                                  : `${section.course.name} §${section.section_number}`
+                                  : `${section.course.name} Section ${section.section_number}`
                               }
                               className={`relative w-full aspect-square text-left rounded-xl border p-3 transition-colors shadow-sm overflow-hidden ${
                                 isLocked
@@ -263,7 +263,7 @@ export default function SectionCalendarGrid({
                                     </div>
                                   </div>
                                   <div className="mt-1 text-[11px] text-gray-500">
-                                    <span className="font-medium">§{section.section_number}</span>
+                                    <span className="font-medium">Section {section.section_number}</span>
                                   </div>
                                 </div>
                                 <div className="mt-auto flex items-end justify-between gap-2">

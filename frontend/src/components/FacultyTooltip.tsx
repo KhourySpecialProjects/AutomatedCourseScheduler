@@ -83,7 +83,7 @@ export default function FacultyTooltip({ instructor, allSections, scheduleId, an
           <ul className="space-y-0.5">
             {sectionsTeaching.map((s) => (
               <li key={s.section_id} className="text-xs text-gray-700">
-                {s.course.name} §{s.section_number} —{' '}
+                {s.course.name} Section {s.section_number} —{' '}
                 <span className="text-gray-500">
                   {s.time_block.days} {s.time_block.start_time}
                 </span>

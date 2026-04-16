@@ -167,6 +167,18 @@ describe('useScheduleWebSocket', () => {
     expect(result.current.sections[0].comment_count).toBe(1);
   });
 
+  it('decrements comment_count by deleted_count when parent delete removes replies', async () => {
+    const { result } = await renderConnected();
+    sendMessage('schedule', [makeSection({ section_id: 1, comment_count: 2 })]);
+    sendMessage('comment_deleted', {
+      section_id: 1,
+      comment_id: 9,
+      deleted_comment_ids: [9, 10],
+      deleted_count: 2,
+    });
+    expect(result.current.sections[0].comment_count).toBe(0);
+  });
+
   it('adds a lock on "lock_acquired" and removes it on "lock_released"', async () => {
     const { result } = await renderConnected();
 

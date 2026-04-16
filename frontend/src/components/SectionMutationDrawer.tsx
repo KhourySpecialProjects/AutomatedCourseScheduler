@@ -172,7 +172,7 @@ export default function SectionMutationDrawer(props: Props) {
       )
       .map((s) => ({
         value: s.section_id,
-        label: `${s.course.name} §${s.section_number}`,
+        label: `${s.course.name} Section ${s.section_number}`,
         sublabel: `${s.time_block.days} ${s.time_block.start_time} – ${s.time_block.end_time}`,
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
@@ -183,7 +183,7 @@ export default function SectionMutationDrawer(props: Props) {
     if (crosslistedSectionId == null) return null;
     const p = scheduleSections.find((s) => s.section_id === crosslistedSectionId);
     if (!p) return null;
-    return `${p.course.name} §${p.section_number}`;
+    return `${p.course.name} Section ${p.section_number}`;
   }, [scheduleSections, crosslistedSectionId]);
 
   const uncrosslistWarning = useMemo(() => {
@@ -191,7 +191,7 @@ export default function SectionMutationDrawer(props: Props) {
     if (originalCrosslistedId == null) return null;
     if (crosslistedSectionId != null) return null;
     const p = scheduleSections.find((s) => s.section_id === originalCrosslistedId);
-    const label = p ? `${p.course.name} §${p.section_number}` : `section #${originalCrosslistedId}`;
+    const label = p ? `${p.course.name} Section ${p.section_number}` : `section #${originalCrosslistedId}`;
     return `You are uncrosslisting from ${label}. Both sections will keep their current time block and instructors; review both rows after saving.`;
   }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections]);
 
@@ -202,8 +202,8 @@ export default function SectionMutationDrawer(props: Props) {
     if (crosslistedSectionId === originalCrosslistedId) return null;
     const prev = scheduleSections.find((s) => s.section_id === originalCrosslistedId);
     const next = scheduleSections.find((s) => s.section_id === crosslistedSectionId);
-    const prevLabel = prev ? `${prev.course.name} §${prev.section_number}` : `section #${originalCrosslistedId}`;
-    const nextLabel = next ? `${next.course.name} §${next.section_number}` : `section #${crosslistedSectionId}`;
+    const prevLabel = prev ? `${prev.course.name} Section ${prev.section_number}` : `section #${originalCrosslistedId}`;
+    const nextLabel = next ? `${next.course.name} Section ${next.section_number}` : `section #${crosslistedSectionId}`;
     return `This section will be uncrosslisted with ${prevLabel} and crosslisted with ${nextLabel} when you save.`;
   }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections]);
 
@@ -221,7 +221,7 @@ export default function SectionMutationDrawer(props: Props) {
       (s) => s.course.course_id === courseId && s.section_number === n,
     );
     if (!existing) return null;
-    return `This schedule already has ${existing.course.name} §${n}. Use a different section number or course.`;
+    return `This schedule already has ${existing.course.name} Section ${n}. Use a different section number or course.`;
   }, [isEdit, courseId, sectionNumber, scheduleSections]);
 
   /** Only when at least one selected instructor is already assigned to another section in this time block. */
@@ -251,7 +251,10 @@ export default function SectionMutationDrawer(props: Props) {
     if (conflicts.length === 0) return null;
 
     const lines = conflicts
-      .map((c) => `${c.name || `NUID ${c.nuid}`} is already assigned to ${c.course} §${c.sectionNo}`)
+      .map(
+        (c) =>
+          `${c.name || `NUID ${c.nuid}`} is already assigned to ${c.course} Section ${c.sectionNo}`,
+      )
       .slice(0, 4);
     const more = conflicts.length > 4 ? ` (+${conflicts.length - 4} more)` : '';
     return `Professor double-booked: ${lines.join('; ')}${more}`;
@@ -376,7 +379,7 @@ export default function SectionMutationDrawer(props: Props) {
   }
 
   const title = isEdit
-    ? `Edit ${section!.course.name} §${section!.section_number}`
+    ? `Edit ${section!.course.name} Section ${section!.section_number}`
     : 'Add Section';
 
   return (

@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom';
 import type { SectionRichResponse } from '../api/generated';
 
 function formatSectionLabel(s: SectionRichResponse): string {
-  return `${s.course.name} §${s.section_number}`;
+  return `${s.course.name} Section ${s.section_number}`;
 }
 
-/** "{A} §n is crosslisted with {B} §m" */
+/** "{A} Section n is crosslisted with {B} Section m" */
 function crosslistedTooltip(section: SectionRichResponse, allSections: SectionRichResponse[]): string | null {
   const sid = section.crosslisted_section_id ?? null;
   if (sid != null) {

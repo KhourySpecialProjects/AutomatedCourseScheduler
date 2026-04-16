@@ -413,7 +413,7 @@ export default function ScheduleSectionRowView({
                 {(
                   [
                     { key: 'course', label: 'Course' },
-                    { key: 'section', label: '§' },
+                    { key: 'section', label: 'Section' },
                     { key: 'time', label: 'Time' },
                     { key: 'instructor', label: 'Instructor' },
                     { key: 'capacity', label: 'Capacity' },
@@ -480,7 +480,7 @@ export default function ScheduleSectionRowView({
                       {/* Section # */}
                       <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1">
-                          §{section.section_number}
+                          Section {section.section_number}
                           <CrosslistSectionHint section={section} allSections={sections} />
                         </span>
                       </td>

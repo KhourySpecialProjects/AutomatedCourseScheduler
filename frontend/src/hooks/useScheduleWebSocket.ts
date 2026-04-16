@@ -145,11 +145,18 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
             break;
           }
           case 'comment_deleted': {
-            const payload = msg.payload as { section_id: number };
-            const { section_id: sid } = payload;
+            const payload = msg.payload as {
+              section_id: number;
+              deleted_count?: number;
+            };
+            const { section_id: sid, deleted_count } = payload;
+            const n =
+              typeof deleted_count === 'number' && Number.isFinite(deleted_count)
+                ? Math.max(1, Math.floor(deleted_count))
+                : 1;
             sectionsRef.current = sectionsRef.current.map((s) =>
               s.section_id === sid
-                ? { ...s, comment_count: Math.max(0, (s.comment_count ?? 0) - 1) }
+                ? { ...s, comment_count: Math.max(0, (s.comment_count ?? 0) - n) }
                 : s,
             );
             setSections([...sectionsRef.current]);
