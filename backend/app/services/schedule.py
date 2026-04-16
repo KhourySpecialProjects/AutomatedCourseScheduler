@@ -54,7 +54,3 @@ def add_course_list(
         active=schedule.active,
         course_list=course_list,
     )
-
-
-
-

@@ -24,7 +24,6 @@ def run_algorithm(
 ):
     if not schedule_repo.schedule_exists(db, schedule_id):
         raise HTTPException(status_code=404, detail="Schedule not found")
-
     background_tasks.add_task(run_algorithm_task, db, schedule_id, request.parameters)
     manager.broadcast(schedule_id, {"type": "schedule_generated", "payload": {}})
     return {"schedule_id": schedule_id, "status": "running"}

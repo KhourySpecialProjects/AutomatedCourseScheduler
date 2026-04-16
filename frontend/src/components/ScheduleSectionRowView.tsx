@@ -21,7 +21,7 @@ interface Props {
   viewMode?: 'table' | 'calendar';
   onSelectedCourseCountChange?: (count: number) => void;
   warnings?: Map<number, string[]>;
-  dismissWarning?: (sectionId: number) => void;
+  dismissWarning?: (sectionId: number, index: number) => void;
 }
 
 function hasConflict(section: SectionRichResponse): boolean {
@@ -619,7 +619,7 @@ export default function ScheduleSectionRowView({
                             <span className="shrink-0">⚠</span>
                             <span className="truncate">{w}</span>
                             <button
-                              onClick={(e) => { e.stopPropagation(); dismissWarning?.(section.section_id); }}
+                              onClick={(e) => { e.stopPropagation(); dismissWarning?.(section.section_id, i); }}
                               className="ml-auto shrink-0 text-amber-500 hover:text-amber-800"
                               title="Dismiss"
                             >

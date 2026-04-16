@@ -52,6 +52,17 @@ async def websocket_schedule(
                 "payload": [SectionRichResponse.model_validate(s).model_dump() for s in sections],
             }
             await manager.broadcast(schedule_id, payload)
+
+            # Send current warnings only to the connecting client (not a broadcast,
+            # so other clients' individually-dismissed warnings are not restored).
+            all_warnings = section_service.compute_all_warnings(db, schedule_id)
+            for sid, section_warnings in all_warnings.items():
+                await websocket.send_json(
+                    {
+                        "type": "schedule_warnings",
+                        "payload": {"section_id": sid, "warnings": section_warnings},
+                    }
+                )
     except WebSocketDisconnect:
         pass
     finally:

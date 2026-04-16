@@ -26,7 +26,7 @@ export interface UseScheduleWebSocketResult {
   loading: boolean;
   status: WsStatus;
   warnings: Map<number, string[]>;
-  dismissWarning: (sectionId: number) => void;
+  dismissWarning: (sectionId: number, index: number) => void;
 }
 
 export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketResult {
@@ -39,9 +39,16 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
   const [status, setStatus] = useState<WsStatus>('connecting');
   const sectionsRef = useRef<SectionRichResponse[]>([]);
   const locksRef = useRef<Map<number, LockInfo>>(new Map());
-  const dismissWarning = (sectionId: number) => {
+  const dismissWarning = (sectionId: number, index: number) => {
+    const current = warningsRef.current.get(sectionId);
+    if (!current) return;
+    const updated = current.filter((_, i) => i !== index);
     warningsRef.current = new Map(warningsRef.current);
-    warningsRef.current.delete(sectionId);
+    if (updated.length === 0) {
+      warningsRef.current.delete(sectionId);
+    } else {
+      warningsRef.current.set(sectionId, updated);
+    }
     setWarnings(new Map(warningsRef.current));
   };
 
@@ -119,12 +126,6 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
               s.section_id === section_id ? data : s,
             );
             setSections(sectionsRef.current);
-            // clear any stale warnings now that the section saved cleanly
-            if (warningsRef.current.has(section_id)) {
-              warningsRef.current = new Map(warningsRef.current);
-              warningsRef.current.delete(section_id);
-              setWarnings(new Map(warningsRef.current));
-            }
             break;
           }
           case 'section_deleted': {
@@ -154,8 +155,19 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
             break;
           }
           case 'schedule_warnings': {
-            const { section_id, warnings: newWarnings } = msg.payload as UpdateInfo
-            warningsRef.current = new Map(warningsRef.current).set(section_id, newWarnings);
+            const { section_id, warnings: newWarnings } = msg.payload as UpdateInfo;
+            warningsRef.current = new Map(warningsRef.current);
+            if (newWarnings.length === 0) {
+              warningsRef.current.delete(section_id);
+            } else {
+              const existing = warningsRef.current.get(section_id) ?? [];
+              const existingSet = new Set(existing);
+              const merged = [
+                ...existing.filter((w) => newWarnings.includes(w)),
+                ...newWarnings.filter((w) => !existingSet.has(w)),
+              ];
+              warningsRef.current.set(section_id, merged);
+            }
             setWarnings(new Map(warningsRef.current));
             break;
           }

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.models.course import Course
 from app.models.schedule import Schedule
 
+
 def schedule_exists(db: Session, schedule_id: int) -> bool:
     return (
         db.query(Schedule.schedule_id).filter(Schedule.schedule_id == schedule_id).first()
@@ -69,4 +70,3 @@ def total_section_count(schedule: Schedule, course_id: int) -> int:
         if section.course_id == course_id:
             count += 1
     return count
-

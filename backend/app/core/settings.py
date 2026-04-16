@@ -37,7 +37,10 @@ class Settings(BaseSettings):
             f"@{self.POSTGRES_HOST}:5432/{self.POSTGRES_DB}"
         )
 
-    model_config = {"env_file": Path(__file__).parent.parent.parent.parent / ".env"}
+    model_config = {
+        "env_file": Path(__file__).parent.parent.parent.parent / ".env",
+        "extra": "ignore",
+    }
 
 
 settings = Settings()

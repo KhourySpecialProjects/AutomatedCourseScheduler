@@ -1,18 +1,19 @@
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.campus import Campus
 from app.core.enums import PreferenceLevel
+from app.models.campus import Campus
 from app.models.course_preference import CoursePreference
-from app.models.meeting_preference import MeetingPreference
-from app.models.faculty_assignment import FacultyAssignment
 from app.models.faculty import Faculty
+from app.models.faculty_assignment import FacultyAssignment
+from app.models.meeting_preference import MeetingPreference
+from app.models.schedule import Schedule
+from app.models.section import Section
 
 
 def get_all(db: Session, campus: int | None = None, active_only: bool = False) -> list[Faculty]:
     query = db.query(Faculty)
     if campus is not None:
-        query = query.join(Campus, Faculty.campus ==
-                           Campus.campus_id).filter(Campus.name == campus)
+        query = query.join(Campus, Faculty.campus == Campus.campus_id).filter(Campus.name == campus)
     if active_only:
         query = query.filter(Faculty.active.is_(True))
     return query.order_by(Faculty.last_name, Faculty.first_name).all()
@@ -33,8 +34,7 @@ def get_by_nuid_with_preferences(db: Session, nuid: int) -> Faculty | None:
     return (
         db.query(Faculty)
         .options(
-            selectinload(Faculty.course_preferences).joinedload(
-                CoursePreference.course),
+            selectinload(Faculty.course_preferences).joinedload(CoursePreference.course),
             selectinload(Faculty.meeting_preferences),
         )
         .filter(Faculty.nuid == nuid)
@@ -65,9 +65,14 @@ def delete_with_dependencies(db: Session, faculty: Faculty) -> None:
     db.commit()
 
 
-def get_assginments(db: Session, faculty_nuid: int) -> list[FacultyAssignment]:
-    assignments = db.query(FacultyAssignment).filter(
-        FacultyAssignment.faculty_nuid == faculty_nuid).all()
+def get_assginments(db: Session, faculty_nuid: int, schedule_id: int) -> list[FacultyAssignment]:
+    assignments = (
+        db.query(FacultyAssignment)
+        .join(Section, Section.section_id == FacultyAssignment.section_id)
+        .join(Schedule, Section.schedule_id == Schedule.schedule_id)
+        .filter(FacultyAssignment.faculty_nuid == faculty_nuid, Schedule.schedule_id == schedule_id)
+        .all()
+    )
 
     return assignments
 

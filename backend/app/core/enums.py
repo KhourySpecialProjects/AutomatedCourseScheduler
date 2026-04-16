@@ -30,6 +30,7 @@ class WarningType(enum.StrEnum):
     UNPREFERENCED_TIME = "Faculty assigned unpreferenced time"
     CONFLICT_GROUP_VIOLATION = "Conflict group courses overlap"
     FACULTY_OVERLOAD = "Faculty overloaded with assignments"
+    FACULTY_DOUBLE_BOOKED = "Faculty already scheduled to teach at this time"
     INSUFFICIENT_FACULTY_SUPPLY = "Insufficient faculty supply for section"
 
 

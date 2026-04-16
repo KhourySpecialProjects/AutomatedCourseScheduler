@@ -13,11 +13,12 @@ from app.schemas.algorithm_input import AlgorithmInput
 from app.schemas.algorithm_params import AlgorithmParameters
 from app.services import course as course_service
 from app.services import faculty as faculty_service
+from app.services.connection_manager import manager
 
 logger = logging.getLogger(__name__)
 
 
-def run_algorithm_task(db: Session, schedule_id: int, parameters: AlgorithmParameters):
+async def run_algorithm_task(db: Session, schedule_id: int, parameters: AlgorithmParameters):
     # Step 1 — Load courses for this schedule
     courses = course_service.get_courses(db, schedule_id)
     if not courses:
@@ -55,9 +56,6 @@ def run_algorithm_task(db: Session, schedule_id: int, parameters: AlgorithmParam
     # Filter to matched only for Phase 2
     matched_assignments = [a for a in phase1_assignments if a.is_matched]
     unmatched = [a for a in phase1_assignments if not a.is_matched]
-
-    for a in unmatched:
-        logger.warning(f"Section for course {a.course_id} unmatched: {a.unmatched_reason}")
 
     # Step 6 — Run Phase 2 (time block assignment)
     # TODO: replace with assign_time_blocks() call after Saisri's PR merges.
@@ -105,6 +103,14 @@ def run_algorithm_task(db: Session, schedule_id: int, parameters: AlgorithmParam
 
     db.commit()
     logger.info(f"Algorithm completed for schedule {schedule_id}.")
+
+    warnings = []
+
+    for a in unmatched:
+        warnings.append(f"Section for course {a.course_id} unmatched: {a.unmatched_reason}")
+
+    if warnings:
+        await manager.broadcast(schedule_id, {"type": "schedule_warnings", "payload": warnings})
 
 
 def run_regenerate_task(db: Session, schedule_id: int, parameters: AlgorithmParameters):

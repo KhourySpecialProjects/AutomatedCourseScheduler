@@ -1,12 +1,13 @@
 """Section service — business logic."""
 
+import logging
 from datetime import time
 
 from sqlalchemy.orm import Session
 
-from app.models.section import Section
-from app.models.schedule import Schedule
 from app.core.enums import WarningType
+from app.models.schedule import Schedule
+from app.models.section import Section
 from app.repositories import course as course_repo
 from app.repositories import faculty as faculty_repo
 from app.repositories import schedule as schedule_repo
@@ -22,6 +23,9 @@ from app.schemas.section import (
     SectionUpdate,
     TimeBlockInfo,
 )
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class ScheduleNotFoundError(Exception):
@@ -179,6 +183,7 @@ def update_section(db: Session, section_id: int, section: SectionUpdate) -> Sect
     warnings = error_check(db, section_obj, section)
     return {"updated": section_repo.save(db, section_obj), "warnings": warnings}
 
+
 def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[WarningType]:
     warnings = []
     assignments = section_repo.get_faculty_assignmnets(db, section.section_id)
@@ -188,13 +193,21 @@ def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[W
         course = course_repo.get_by_id(db, section.course_id)
         split_name = course.name.split(" ", 1)
         course_subject = split_name[0]
-        error = exceeds_meeting_time_capcacity(db, schedule, meeting_time, course_subject)
-        if error:
+        if exceeds_meeting_time_capcacity(db, schedule, meeting_time, course_subject):
             warnings.append(WarningType.TIME_BLOCK_OVERLOAD)
         for nuid in assignments:
-            time_pref_exists = faculty_repo.find_meeting_time_preference(db, nuid, section.time_block_id)
+            time_pref_exists = faculty_repo.find_meeting_time_preference(
+                db, nuid, section.time_block_id
+            )
+            double_booked = section_repo.double_booked(
+                db,
+                faculty_repo.get_assginments(db, nuid, section.schedule_id),
+                section.time_block_id,
+            )
             if not time_pref_exists:
                 warnings.append(WarningType.UNPREFERENCED_TIME)
+            if double_booked:
+                warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
     if "course_id" in updates.model_fields_set:
         for nuid in assignments:
             course_pref_exists = faculty_repo.find_course_preference(db, nuid, section.course_id)
@@ -203,10 +216,55 @@ def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[W
     if "faculty_nuids" in updates.model_fields_set:
         for faculty_id in updates.faculty_nuids or []:
             f = faculty_repo.get_by_nuid(db, faculty_id)
-            assigned = len(faculty_repo.get_assginments(db, faculty_id))
-            if assigned + 1 > f.max_load:
+            assigned = faculty_repo.get_assginments(db, faculty_id, section.schedule_id)
+            assignment_count = len(assigned)
+            if section_repo.double_booked(db, assigned, section.time_block_id):
+                warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
+            if assignment_count + 1 > f.max_load:
                 warnings.append(WarningType.FACULTY_OVERLOAD)
+            if not faculty_repo.find_course_preference(db, faculty_id, section.course_id):
+                warnings.append(WarningType.UNPREFERENCED_COURSE)
     return warnings
+
+
+def compute_all_warnings(db: Session, schedule_id: int) -> dict[int, list[WarningType]]:
+    """Return current warnings for every section in a schedule, computed from scratch.
+
+    Used on WebSocket connect so clients see persisted warnings immediately.
+    Only sections that actually have warnings appear in the result.
+    """
+    schedule = schedule_repo.get_by_id(db, schedule_id)
+    if not schedule:
+        return {}
+
+    result: dict[int, list[WarningType]] = {}
+
+    for section in schedule.sections:
+        warnings: list[WarningType] = []
+        course = course_repo.get_by_id(db, section.course_id)
+        dept = course.name.split(" ", 1)[0]
+
+        if exceeds_meeting_time_capcacity(db, schedule, section.time_block_id, dept):
+            warnings.append(WarningType.TIME_BLOCK_OVERLOAD)
+
+        nuids = section_repo.get_faculty_assignmnets(db, section.section_id)
+        for nuid in nuids:
+            if not faculty_repo.find_meeting_time_preference(db, nuid, section.time_block_id):
+                warnings.append(WarningType.UNPREFERENCED_TIME)
+            if not faculty_repo.find_course_preference(db, nuid, section.course_id):
+                warnings.append(WarningType.UNPREFERENCED_COURSE)
+            all_assigned = faculty_repo.get_assginments(db, nuid, schedule_id)
+            other_assigned = [a for a in all_assigned if a.section_id != section.section_id]
+            if section_repo.double_booked(db, other_assigned, section.time_block_id):
+                warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
+            f = faculty_repo.get_by_nuid(db, nuid)
+            if f and len(all_assigned) > f.max_load:
+                warnings.append(WarningType.FACULTY_OVERLOAD)
+
+        if warnings:
+            result[section.section_id] = warnings
+
+    return result
 
 
 def delete_section(db: Session, section_id: int) -> bool:
@@ -216,7 +274,10 @@ def delete_section(db: Session, section_id: int) -> bool:
     section_repo.delete(db, section_obj)
     return True
 
-def exceeds_meeting_time_capcacity(db: Session, schedule: Schedule, time_block: int, dept: str) -> bool:
+
+def exceeds_meeting_time_capcacity(
+    db: Session, schedule: Schedule, time_block: int, dept: str
+) -> bool:
     sections = schedule.sections
     dept_count_total = 0
     dept_time_block_count = 0
@@ -229,7 +290,7 @@ def exceeds_meeting_time_capcacity(db: Session, schedule: Schedule, time_block: 
             if section.time_block_id == time_block:
                 dept_time_block_count += 1
 
-    if dept_count_total == 0:
+    if dept_count_total == 0 or dept_time_block_count <= 1:
         return False
     time_block_capacity = dept_time_block_count / dept_count_total
     return time_block_capacity >= 0.15
