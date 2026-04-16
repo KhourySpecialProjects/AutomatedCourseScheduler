@@ -12,6 +12,8 @@ class ScheduleResponse(BaseModel):
     draft: bool
     campus: int
     active: bool
+    status: str | None = "idle"
+    error_message: str | None = None
     course_list: list[CourseResponse] = []
 
     model_config = {"from_attributes": True}

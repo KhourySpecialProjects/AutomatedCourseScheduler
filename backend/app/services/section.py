@@ -293,3 +293,7 @@ def exceeds_meeting_time_capcacity(
         return False
     time_block_capacity = dept_time_block_count / dept_count_total
     return time_block_capacity >= 0.15
+
+
+def get_dept_time_block_counts(db: Session, schedule_id: int) -> dict:
+    return section_repo.get_dept_time_blocks_counts(db, schedule_id)
