@@ -120,15 +120,11 @@ export default function SectionMutationDrawer(props: Props) {
     label: `${tb.days}  ${tb.start_time} – ${tb.end_time}`,
   }));
 
-  const facultyOptions: SelectOption<number>[] = faculty.map((f) => {
-    // The generated types are stale (PascalCase); the API returns snake_case at runtime.
-    const raw = f as unknown as { nuid: number; first_name?: string; last_name?: string; title?: string };
-    return {
-      value: raw.nuid,
-      label: `${raw.first_name ?? ''} ${raw.last_name ?? ''}`.trim(),
-      sublabel: raw.title ?? undefined,
-    };
-  });
+  const facultyOptions: SelectOption<number>[] = faculty.map((f) => ({
+    value: f.nuid,
+    label: `${f.first_name ?? ''} ${f.last_name ?? ''}`.trim(),
+    // sublabel: f.nuid ?? undefined,
+  }));
 
   async function handleDelete() {
     if (!section) return;

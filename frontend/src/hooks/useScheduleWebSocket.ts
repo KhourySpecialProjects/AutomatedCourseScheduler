@@ -15,42 +15,21 @@ export interface LockInfo {
   expires_at: string;
 }
 
-export interface UpdateInfo {
-  section_id: number;
-  warnings: string[];
-}
-
 export interface UseScheduleWebSocketResult {
   sections: SectionRichResponse[];
   locks: Map<number, LockInfo>;
   loading: boolean;
   status: WsStatus;
-  warnings: Map<number, string[]>;
-  dismissWarning: (sectionId: number, index: number) => void;
 }
 
 export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketResult {
   const { getAccessTokenSilently } = useAuth0();
-  const [warnings, setWarnings] = useState<Map<number, string[]>>(new Map());
-  const warningsRef = useRef<Map<number, string[]>>(new Map());
   const [sections, setSections] = useState<SectionRichResponse[]>([]);
   const [locks, setLocks] = useState<Map<number, LockInfo>>(new Map());
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<WsStatus>('connecting');
   const sectionsRef = useRef<SectionRichResponse[]>([]);
   const locksRef = useRef<Map<number, LockInfo>>(new Map());
-  const dismissWarning = (sectionId: number, index: number) => {
-    const current = warningsRef.current.get(sectionId);
-    if (!current) return;
-    const updated = current.filter((_, i) => i !== index);
-    warningsRef.current = new Map(warningsRef.current);
-    if (updated.length === 0) {
-      warningsRef.current.delete(sectionId);
-    } else {
-      warningsRef.current.set(sectionId, updated);
-    }
-    setWarnings(new Map(warningsRef.current));
-  };
 
   // Fetch initial lock state (locks are not broadcast on connect, only on change)
   useEffect(() => {
@@ -154,23 +133,6 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
             setLocks(new Map(locksRef.current));
             break;
           }
-          case 'schedule_warnings': {
-            const { section_id, warnings: newWarnings } = msg.payload as UpdateInfo;
-            warningsRef.current = new Map(warningsRef.current);
-            if (newWarnings.length === 0) {
-              warningsRef.current.delete(section_id);
-            } else {
-              const existing = warningsRef.current.get(section_id) ?? [];
-              const existingSet = new Set(existing);
-              const merged = [
-                ...existing.filter((w) => newWarnings.includes(w)),
-                ...newWarnings.filter((w) => !existingSet.has(w)),
-              ];
-              warningsRef.current.set(section_id, merged);
-            }
-            setWarnings(new Map(warningsRef.current));
-            break;
-          }
         }
       };
 
@@ -196,5 +158,5 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
     };
   }, [scheduleId]); // getAccessTokenSilently is stable
 
-  return { sections, locks, loading, status, warnings, dismissWarning };
+  return { sections, locks, loading, status };
 }

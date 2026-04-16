@@ -41,8 +41,6 @@ const defaultWsReturn: wsModule.UseScheduleWebSocketResult = {
   locks: new Map(),
   loading: false,
   status: 'connected',
-  warnings: new Map(),
-  dismissWarning: vi.fn(),
 };
 
 function renderAtRoute(path: string) {
@@ -68,7 +66,7 @@ describe('Schedules page', () => {
         { NUID: 100005 },
       ]),
       getMeApiUsersMeGet: vi.fn().mockResolvedValue([
-        {user_id: 1, nuid: 100005, first_name: "John", last_name: "Doe", email: "j.doe@northeastern.edu",role: "VIEWER", active: true}
+        { user_id: 1, nuid: 100005, first_name: "John", last_name: "Doe", email: "j.doe@northeastern.edu", role: "VIEWER", active: true }
       ])
     } as unknown as ReturnType<typeof generated.getAutomatedCourseSchedulerAPI>);
   });

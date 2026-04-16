@@ -21,8 +21,6 @@ interface Props {
   readOnly?: boolean;
   viewMode?: 'table' | 'calendar';
   onSelectedCourseCountChange?: (count: number) => void;
-  warnings?: Map<number, string[]>;
-  dismissWarning?: (sectionId: number, index: number) => void;
 }
 
 function hasConflict(section: SectionRichResponse): boolean {
@@ -70,8 +68,6 @@ export default function ScheduleSectionRowView({
   readOnly,
   viewMode = 'table',
   onSelectedCourseCountChange,
-  warnings,
-  dismissWarning,
 }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('course');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -296,8 +292,8 @@ export default function ScheduleSectionRowView({
               key={f}
               onClick={() => setDayFilter(f)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${dayFilter === f
-                ? 'bg-indigo-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
             >
               {f === 'all' ? 'All days' : f}
@@ -402,20 +398,6 @@ export default function ScheduleSectionRowView({
                           {lock && <LockBadge lock={lock} />}
                         </div>
                         <div className="text-xs text-gray-400 mt-0.5">{section.course.credits} cr</div>
-                        {/* Warning strip — persistent until dismissed or fixed */}
-                        {warnings?.get(section.section_id)?.map((w, i) => (
-                          <div key={i} className="mt-1 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
-                            <span className="shrink-0">⚠</span>
-                            <span className="truncate">{w}</span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); dismissWarning?.(section.section_id, i); }}
-                              className="ml-auto shrink-0 text-amber-500 hover:text-amber-800"
-                              title="Dismiss"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
                       </td>
 
                       {/* Section # */}
