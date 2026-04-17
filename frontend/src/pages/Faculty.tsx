@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   getAutomatedCourseSchedulerAPI,
   type CampusResponse,
+  type InviteResponse,
   type ScheduleResponse,
   type SectionRichResponse,
   type UserResponse,
@@ -95,6 +96,18 @@ export default function Faculty() {
 
   // Export state
   const [exporting, setExporting] = useState(false);
+
+  const [inviteAdminOpen, setInviteAdminOpen] = useState(false);
+  const [adminFormNuid, setAdminFormNuid] = useState('');
+  const [adminFormFirstName, setAdminFormFirstName] = useState('');
+  const [adminFormLastName, setAdminFormLastName] = useState('');
+  const [adminFormEmail, setAdminFormEmail] = useState('');
+  const [adminInviting, setAdminInviting] = useState(false);
+  const [adminInviteResult, setAdminInviteResult] = useState<InviteResponse | null>(null);
+  const [adminInviteError, setAdminInviteError] = useState<string | null>(null);
+  const [adminInviteCopied, setAdminInviteCopied] = useState(false);
+
+  const api = getAutomatedCourseSchedulerAPI();
 
   // Fetch current user
   useEffect(() => {
@@ -286,6 +299,71 @@ export default function Faculty() {
     setDrawer(null);
   }
 
+  function openInviteAdminModal() {
+    setAdminInviteResult(null);
+    setAdminInviteError(null);
+    setAdminInviteCopied(false);
+    setAdminFormNuid('');
+    setAdminFormFirstName('');
+    setAdminFormLastName('');
+    setAdminFormEmail('');
+    setInviteAdminOpen(true);
+  }
+
+  function closeInviteAdminModal() {
+    setInviteAdminOpen(false);
+    setAdminInviteResult(null);
+    setAdminInviteError(null);
+    setAdminInviteCopied(false);
+    setAdminFormNuid('');
+    setAdminFormFirstName('');
+    setAdminFormLastName('');
+    setAdminFormEmail('');
+  }
+
+  async function handleGenerateAdminInvite() {
+    const nuid = Number.parseInt(adminFormNuid.trim(), 10);
+    if (!Number.isFinite(nuid) || nuid < 1) {
+      setAdminInviteError('Enter a valid NUID (positive number).');
+      return;
+    }
+    const first = adminFormFirstName.trim();
+    const last = adminFormLastName.trim();
+    const email = adminFormEmail.trim();
+    if (!first || !last || !email) {
+      setAdminInviteError('First name, last name, and email are required.');
+      return;
+    }
+    setAdminInviting(true);
+    setAdminInviteError(null);
+    try {
+      const result = await api.createAdminInviteApiInvitesAdminPost({
+        nuid,
+        first_name: first,
+        last_name: last,
+        email,
+      });
+      setAdminInviteResult(result);
+      setUserNuidSet((prev) => new Set([...prev, result.user.nuid]));
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+      let msg = 'Failed to create invite. Please try again.';
+      if (typeof detail === 'string') msg = detail;
+      else if (Array.isArray(detail))
+        msg = detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join(' ') || msg;
+      setAdminInviteError(msg);
+    } finally {
+      setAdminInviting(false);
+    }
+  }
+
+  function copyAdminInviteUrl(url: string) {
+    navigator.clipboard.writeText(url).then(() => {
+      setAdminInviteCopied(true);
+      setTimeout(() => setAdminInviteCopied(false), 2000);
+    });
+  }
+
   // ── Guard: still resolving identity ──
   if (meLoading) {
     return (
@@ -404,6 +482,18 @@ export default function Faculty() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             {exporting ? 'Exporting…' : 'Export Invite CSV'}
+          </button>
+
+          <button
+            type="button"
+            onClick={openInviteAdminModal}
+            title="Create a pending admin account and copy an Auth0 signup link (no faculty record required)"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            Invite admin
           </button>
 
           {/* Add faculty */}
@@ -576,6 +666,135 @@ export default function Faculty() {
           </div>
         )}
       </div>
+
+      {inviteAdminOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/20 z-40" onClick={closeInviteAdminModal} aria-hidden />
+          <div
+            role="dialog"
+            aria-labelledby="invite-admin-title"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100 p-6"
+          >
+            <h2 id="invite-admin-title" className="text-base font-semibold text-gray-900 mb-1">
+              Invite an administrator
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Creates a pending admin user in the database (no faculty row). The person must sign up in Auth0 using{' '}
+              <span className="font-medium">this exact email</span> so their account links and they get admin access.
+            </p>
+            {!adminInviteResult?.signup_url && (
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    NUID
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={adminFormNuid}
+                    onChange={(e) => setAdminFormNuid(e.target.value.replace(/\D/g, ''))}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g. 12345678"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                      First name
+                    </label>
+                    <input
+                      type="text"
+                      value={adminFormFirstName}
+                      onChange={(e) => setAdminFormFirstName(e.target.value)}
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Jane"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Last name
+                    </label>
+                    <input
+                      type="text"
+                      value={adminFormLastName}
+                      onChange={(e) => setAdminFormLastName(e.target.value)}
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Doe"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={adminFormEmail}
+                    onChange={(e) => setAdminFormEmail(e.target.value)}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="j.doe@northeastern.edu"
+                  />
+                </div>
+              </div>
+            )}
+            {adminInviteError && (
+              <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {adminInviteError}
+              </div>
+            )}
+            {adminInviteResult?.signup_url ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500">Share this signup link:</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={adminInviteResult.signup_url}
+                      className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-700 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => copyAdminInviteUrl(adminInviteResult.signup_url)}
+                      className="shrink-0 px-3 py-2 text-xs font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      {adminInviteCopied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={closeInviteAdminModal}
+                    className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={closeInviteAdminModal}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleGenerateAdminInvite()}
+                  disabled={adminInviting}
+                  className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                >
+                  {adminInviting ? 'Generating…' : 'Generate invite link'}
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Drawer */}
       {drawer && (

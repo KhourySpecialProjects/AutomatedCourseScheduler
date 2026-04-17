@@ -249,6 +249,13 @@ export interface InviteResponse {
   signup_url: string;
 }
 
+export interface AdminInviteRequest {
+  nuid: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 export interface MeetingPreferenceInfo {
   time_block_id: number;
   preference: string;
@@ -1361,6 +1368,21 @@ const createInviteApiInvitesPost = (
     }
   
 /**
+ * Create a pending admin user (no faculty row) and return an Auth0 signup URL.
+ * @summary Create Admin Invite
+ */
+const createAdminInviteApiInvitesAdminPost = (
+    adminInviteRequest: AdminInviteRequest,
+ ) => {
+      return axiosInstance<InviteResponse>(
+      {url: `/api/invites/admin`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: adminInviteRequest
+    },
+      );
+    }
+  
+/**
  * Return invite links for all active faculty without a linked account.
 
 Creates pending User records for any who were not yet invited.
@@ -1480,6 +1502,7 @@ export type DeleteWarningSchedulesScheduleIdWarningsWarningIdDeleteResult = NonN
 export type RunAlgorithmSchedulesScheduleIdGeneratePostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['runAlgorithmSchedulesScheduleIdGeneratePost']>>>
 export type RegenerateAlgorithmSchedulesScheduleIdRegeneratePostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['regenerateAlgorithmSchedulesScheduleIdRegeneratePost']>>>
 export type CreateInviteApiInvitesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createInviteApiInvitesPost']>>>
+export type CreateAdminInviteApiInvitesAdminPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createAdminInviteApiInvitesAdminPost']>>>
 export type ExportInvitesApiInvitesExportGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['exportInvitesApiInvitesExportGet']>>>
 export type ListUsersApiUsersGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['listUsersApiUsersGet']>>>
 export type GetMeApiUsersMeGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getMeApiUsersMeGet']>>>
