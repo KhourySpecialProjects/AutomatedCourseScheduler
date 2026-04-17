@@ -4,13 +4,17 @@ from pydantic import BaseModel
 
 
 class CourseOfferingsSchema(BaseModel):
-    courseName: str
+    subject: str
+    code: int
+    name: str
     credits: int
     description: str
 
     def translate(self):
         json_payload = {
-            "name": self.courseName,
+            "subject": self.subject,
+            "code": self.code,
+            "name": self.name,
             "credits": self.credits,
             "description": self.description,
         }

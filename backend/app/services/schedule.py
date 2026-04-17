@@ -4,9 +4,12 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.schedule import Schedule
+from app.models.section import Section
 from app.repositories import schedule as schedule_repo
 from app.schemas.course import CourseResponse
 from app.schemas.schedule import ScheduleCreate, ScheduleResponse, ScheduleUpdate
+
+STUB_SECTION_CAPACITY = 30
 
 
 def get_all(db, campus_id=None, semester_id=None):
@@ -45,6 +48,22 @@ def delete(db: Session, schedule_id: int) -> None:
 def add_course_list(
     db: Session, schedule: Schedule, course_list: list[CourseResponse]
 ) -> ScheduleResponse:
+    # Persist stub sections so the algorithm can discover which courses belong
+    # to this schedule (via section.schedule_id) and how many sections each
+    # needs. The algorithm fills in time_block_id / faculty_assignments later.
+    for course in course_list:
+        for n in range(1, (course.section_count or 0) + 1):
+            db.add(
+                Section(
+                    schedule_id=schedule.schedule_id,
+                    course_id=course.course_id,
+                    section_number=n,
+                    capacity=STUB_SECTION_CAPACITY,
+                    time_block_id=None,
+                )
+            )
+    db.commit()
+
     return ScheduleResponse(
         schedule_id=schedule.schedule_id,
         name=schedule.name,
