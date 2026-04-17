@@ -41,7 +41,7 @@ class Section(Base):
 
     # Relationships
     schedule: Mapped[Schedule] = relationship("Schedule", back_populates="sections")
-    time_block: Mapped[TimeBlock] = relationship("TimeBlock", back_populates="sections")
+    time_block: Mapped[TimeBlock | None] = relationship("TimeBlock", back_populates="sections")
     course: Mapped[Course] = relationship("Course", back_populates="sections")
     crosslisted_section: Mapped[Section | None] = relationship(
         foreign_keys=[crosslisted_section_id],
