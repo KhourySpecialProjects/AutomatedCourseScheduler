@@ -39,18 +39,13 @@ class WarningType(enum.StrEnum):
         return obj
 
     TIME_BLOCK_OVERLOAD = ("Time block surpasses threshold", Severity.MEDIUM)
-    NO_VALID_TIME_BLOCK = (
-        "No valid time block for section-faculty pair", Severity.HIGH)
-    UNPREFERENCED_COURSE = (
-        "Faculty assigned unpreferenced course", Severity.LOW)
+    NO_VALID_TIME_BLOCK = ("No valid time block for section-faculty pair", Severity.HIGH)
+    UNPREFERENCED_COURSE = ("Faculty assigned unpreferenced course", Severity.LOW)
     UNPREFERENCED_TIME = ("Faculty assigned unpreferenced time", Severity.LOW)
-    CONFLICT_GROUP_VIOLATION = (
-        "Conflict group courses overlap", Severity.HIGH)
+    CONFLICT_GROUP_VIOLATION = ("Conflict group courses overlap", Severity.HIGH)
     FACULTY_OVERLOAD = ("Faculty overloaded with assignments", Severity.HIGH)
-    INSUFFICIENT_FACULTY_SUPPLY = (
-        "Insufficient faculty supply for section", Severity.HIGH)
-    FACULTY_DOUBLE_BOOKED = (
-        "Faculty double booked in time block", Severity.HIGH)
+    INSUFFICIENT_FACULTY_SUPPLY = ("Insufficient faculty supply for section", Severity.HIGH)
+    FACULTY_DOUBLE_BOOKED = ("Faculty double booked in time block", Severity.HIGH)
 
 
 class Campus(enum.StrEnum):
