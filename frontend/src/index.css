@@ -4,3 +4,17 @@
   0% { transform: translateX(-100%); }
   100% { transform: translateX(300%); }
 }
+
+@theme {
+  --color-burgundy-50: #fdf2f4;
+  --color-burgundy-100: #fce7ec;
+  --color-burgundy-200: #f8cfd9;
+  --color-burgundy-300: #ef9fb3;
+  --color-burgundy-400: #e56b88;
+  --color-burgundy-500: #d12d52;
+  --color-burgundy-600: #b01f3f;
+  --color-burgundy-700: #921a35;
+  --color-burgundy-800: #7a162d;
+  --color-burgundy-900: #651226;
+  --color-burgundy-950: #3d0a17;
+}
