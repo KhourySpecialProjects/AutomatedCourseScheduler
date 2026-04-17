@@ -1,9 +1,14 @@
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.enums import PreferenceLevel
 from app.models.campus import Campus
 from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
+from app.models.faculty_assignment import FacultyAssignment
+from app.models.meeting_preference import MeetingPreference
+from app.models.schedule import Schedule
+from app.models.section import Section
 
 
 def get_all(db: Session, campus: int | None = None, active_only: bool = False) -> list[Faculty]:
@@ -76,3 +81,43 @@ def get_uninvited_or_pending_active(db: Session) -> list[Faculty]:
         .order_by(Faculty.last_name, Faculty.first_name)
         .all()
     )
+
+
+def get_assginments(db: Session, faculty_nuid: int, schedule_id: int) -> list[FacultyAssignment]:
+    assignments = (
+        db.query(FacultyAssignment)
+        .join(Section, Section.section_id == FacultyAssignment.section_id)
+        .join(Schedule, Section.schedule_id == Schedule.schedule_id)
+        .filter(FacultyAssignment.faculty_nuid == faculty_nuid, Schedule.schedule_id == schedule_id)
+        .all()
+    )
+
+    return assignments
+
+
+def find_meeting_time_preference(db: Session, nuid: int, time_block_id: int) -> bool:
+    pref = (
+        db.query(MeetingPreference)
+        .filter(
+            MeetingPreference.faculty_nuid == nuid,
+            MeetingPreference.meeting_time == time_block_id,
+        )
+        .first()
+    )
+    if not pref or pref.preference == PreferenceLevel.NOT_INTERESTED:
+        return False
+    return True
+
+
+def find_course_preference(db: Session, nuid: int, course_id: int) -> bool:
+    pref = (
+        db.query(CoursePreference)
+        .filter(
+            CoursePreference.faculty_nuid == nuid,
+            CoursePreference.course_id == course_id,
+        )
+        .first()
+    )
+    if not pref or pref.preference == PreferenceLevel.NOT_INTERESTED:
+        return False
+    return True

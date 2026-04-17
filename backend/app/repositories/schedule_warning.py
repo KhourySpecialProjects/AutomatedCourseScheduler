@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.core.enums import WarningType
 from app.models.schedule_warning import ScheduleWarning
 
 
@@ -29,5 +30,38 @@ def delete_by_schedule(db: Session, schedule_id: int) -> None:
     db.query(ScheduleWarning).filter(ScheduleWarning.schedule_id == schedule_id).delete()
 
 
+def get_by_section(db: Session, section_id: int) -> list[ScheduleWarning]:
+    return db.query(ScheduleWarning).filter(ScheduleWarning.section_id == section_id).all()
+
+
 def create_many(db: Session, warnings: list[ScheduleWarning]) -> None:
     db.add_all(warnings)
+
+
+def sync_section_warnings(
+    db: Session,
+    section_id: int,
+    schedule_id: int,
+    detected: list[WarningType],
+) -> None:
+
+    existing = get_by_section(db, section_id)
+    existing_by_type = {w.type: w for w in existing}
+    detected_values = {wt.value for wt in detected}
+
+    for type_str, warning in existing_by_type.items():
+        if type_str not in detected_values:
+            db.delete(warning)
+
+    for wt in detected:
+        if wt.value not in existing_by_type:
+            db.add(
+                ScheduleWarning(
+                    schedule_id=schedule_id,
+                    section_id=section_id,
+                    type=wt.value,
+                    severity=str(wt.severity.value),
+                    message=wt.value,
+                    dismissed=False,
+                )
+            )

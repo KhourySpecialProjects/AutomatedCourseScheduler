@@ -8,7 +8,7 @@ from app.algorithms.matching import _expand_sections, match_courses_to_faculty
 from app.algorithms.models import MatchedAssignment
 from app.algorithms.time_assignment import assign_time_blocks
 from app.core.database import SessionLocal
-from app.core.enums import ScheduleStatus
+from app.core.enums import ScheduleStatus, WarningType
 from app.models.faculty_assignment import FacultyAssignment
 from app.models.schedule import Schedule
 from app.models.schedule_warning import ScheduleWarning as ScheduleWarningModel
@@ -88,15 +88,15 @@ def _persist_warnings(db, schedule_id, phase2_warnings, unmatched_assignments):
 
     # Persist unmatched section warnings
     for a in unmatched_assignments:
-        key = ("unmatched", a.course_id, None, None)
+        key = (WarningType.INSUFFICIENT_FACULTY_SUPPLY.value, a.course_id, None, None)
         if key in dismissed_keys:
             continue
         db.add(
             ScheduleWarningModel(
                 schedule_id=schedule_id,
-                type="unmatched",
-                severity="medium",
-                message=f"Course {a.course_id}: {a.unmatched_reason}",
+                type=WarningType.INSUFFICIENT_FACULTY_SUPPLY.value,
+                severity=str(WarningType.INSUFFICIENT_FACULTY_SUPPLY.severity.value),
+                message=f"Section {a.section_id} unmatched: {a.unmatched_reason}",
                 course_id=a.course_id,
             )
         )
@@ -163,6 +163,7 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         logger.warning(
             f"Section {a.section_id} (course {a.course_id}) unmatched: {a.unmatched_reason}"
         )
+
     logger.info(f"Phase 1 complete: {len(matched)} matched, {len(unmatched)} unmatched")
 
     # Step 6: Bridge — CourseAssignment → MatchedAssignment
