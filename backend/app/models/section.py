@@ -30,21 +30,18 @@ class Section(Base):
     room: Mapped[str | None] = mapped_column(String(50))
 
     # Foreign Keys
-    schedule_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("schedule.schedule_id"))
+    schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("schedule.schedule_id"))
     time_block_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("time_block.time_block_id"))
-    course_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("course.course_id"))
+        Integer, ForeignKey("time_block.time_block_id")
+    )
+    course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
     crosslisted_section_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("section.section_id"), unique=True
     )
 
     # Relationships
-    schedule: Mapped[Schedule] = relationship(
-        "Schedule", back_populates="sections")
-    time_block: Mapped[TimeBlock] = relationship(
-        "TimeBlock", back_populates="sections")
+    schedule: Mapped[Schedule] = relationship("Schedule", back_populates="sections")
+    time_block: Mapped[TimeBlock] = relationship("TimeBlock", back_populates="sections")
     course: Mapped[Course] = relationship("Course", back_populates="sections")
     crosslisted_section: Mapped[Section | None] = relationship(
         foreign_keys=[crosslisted_section_id],
@@ -62,8 +59,7 @@ class Section(Base):
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
