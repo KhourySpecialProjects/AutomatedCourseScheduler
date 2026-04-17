@@ -172,13 +172,13 @@ export default function SectionComments({ sectionId }: { sectionId: number }) {
           onChange={(e) => setContent(e.target.value)}
           rows={3}
           placeholder="Write a comment…"
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
         />
         <div className="mt-2 flex justify-end">
           <button
             onClick={postComment}
             disabled={posting || content.trim().length === 0}
-            className="px-3 py-2 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            className="px-3 py-2 text-xs font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
           >
             {posting ? 'Posting…' : 'Post comment'}
           </button>

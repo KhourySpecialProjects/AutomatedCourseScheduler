@@ -106,7 +106,7 @@ export default function SearchableSelect<T>({
         type="button"
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openDropdown())}
-        className={`w-full flex items-center justify-between gap-2 text-sm border rounded-lg px-3 py-2 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+        className={`w-full flex items-center justify-between gap-2 text-sm border rounded-lg px-3 py-2 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-burgundy-500 ${
           disabled
             ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
             : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 cursor-pointer'
@@ -141,7 +141,7 @@ export default function SearchableSelect<T>({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search…"
-                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
               />
             </div>
           </div>
@@ -158,12 +158,12 @@ export default function SearchableSelect<T>({
                     key={i}
                     type="button"
                     onClick={() => select(opt)}
-                    className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-indigo-50 transition-colors ${
-                      isSelected ? 'bg-indigo-50' : ''
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-burgundy-50 transition-colors ${
+                      isSelected ? 'bg-burgundy-50' : ''
                     }`}
                   >
                     <span className="min-w-0">
-                      <span className={`block text-sm truncate ${isSelected ? 'font-medium text-indigo-700' : 'text-gray-900'}`}>
+                      <span className={`block text-sm truncate ${isSelected ? 'font-medium text-burgundy-700' : 'text-gray-900'}`}>
                         {opt.label}
                       </span>
                       {opt.sublabel && (
@@ -171,7 +171,7 @@ export default function SearchableSelect<T>({
                       )}
                     </span>
                     {isSelected && (
-                      <svg className="w-4 h-4 text-indigo-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4 text-burgundy-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     )}
