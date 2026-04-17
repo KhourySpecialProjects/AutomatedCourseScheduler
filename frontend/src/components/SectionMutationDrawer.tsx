@@ -111,7 +111,6 @@ export default function SectionMutationDrawer(props: Props) {
   const [courseId, setCourseId] = useState<number | null>(section?.course.course_id ?? null);
   const [timeBlockId, setTimeBlockId] = useState<number | null>(section?.time_block.time_block_id ?? null);
   const [capacity, setCapacity] = useState<number | ''>(section?.capacity ?? '');
-  const [sectionNumber, setSectionNumber] = useState<number | ''>(section?.section_number ?? '');
   const [room, setRoom] = useState(section?.room ?? '');
   const [selectedNuids, setSelectedNuids] = useState<number[]>(
     section?.instructors.map((i) => i.nuid) ?? [],
@@ -169,12 +168,10 @@ export default function SectionMutationDrawer(props: Props) {
 
   useEffect(() => {
     if (section) {
-      queueMicrotask(() => {
-        setCrosslistedSectionId(section.crosslisted_section_id ?? null);
-        setOriginalCrosslistedId(section.crosslisted_section_id ?? null);
-      });
+      setCrosslistedSectionId(section.crosslisted_section_id ?? null);
+      setOriginalCrosslistedId(section.crosslisted_section_id ?? null);
     }
-  }, [section]);
+  }, [section?.section_id]);
 
   const crosslistOptions = useMemo((): SelectOption<number | null>[] => {
     const none: SelectOption<number | null> = { value: null, label: 'Not crosslisted' };
@@ -232,18 +229,6 @@ export default function SectionMutationDrawer(props: Props) {
     if (!isEdit) return false;
     return originalCrosslistedId == null && crosslistedSectionId != null;
   }, [isEdit, originalCrosslistedId, crosslistedSectionId]);
-
-  /** Create mode: same course + section # already on this schedule. */
-  const duplicateCourseSectionMessage = useMemo(() => {
-    if (isEdit || courseId === null || sectionNumber === '') return null;
-    const n = Number(sectionNumber);
-    if (Number.isNaN(n) || n < 1) return null;
-    const existing = scheduleSections.find(
-      (s) => s.course.course_id === courseId && s.section_number === n,
-    );
-    if (!existing) return null;
-    return `This schedule already has ${sectionLabelForUi(existing)}. Use a different section number or course.`;
-  }, [isEdit, courseId, sectionNumber, scheduleSections, catalogById]);
 
   /** Only when at least one selected instructor is already assigned to another section in this time block. */
   const doubleBookWarning = useMemo<string | null>(() => {
@@ -349,12 +334,8 @@ export default function SectionMutationDrawer(props: Props) {
         return;
       }
     } else if (!isEdit) {
-      if (timeBlockId === null || sectionNumber === '') {
-        setError('Course, time block, and section number are required.');
-        return;
-      }
-      if (duplicateCourseSectionMessage) {
-        setError(duplicateCourseSectionMessage);
+      if (timeBlockId === null) {
+        setError('Time block is required.');
         return;
       }
     }
@@ -378,7 +359,6 @@ export default function SectionMutationDrawer(props: Props) {
           schedule_id: scheduleId,
           course_id: courseId,
           time_block_id: timeBlockId!,
-          section_number: sectionNumber as number,
         };
         if (capacity !== '') body.capacity = capacity as number;
         if (selectedNuids.length > 0) body.faculty_nuids = selectedNuids;
@@ -458,7 +438,7 @@ export default function SectionMutationDrawer(props: Props) {
                 />
               </div>
 
-              {/* Capacity + Section # */}
+              {/* Capacity + section number (edit: fixed; create: auto-assigned server-side) */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>{isEdit ? 'Capacity' : 'Capacity (optional)'}</Label>
@@ -473,22 +453,22 @@ export default function SectionMutationDrawer(props: Props) {
                 </div>
                 <div>
                   <Label>Section #</Label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={sectionNumber}
-                    onChange={(e) => setSectionNumber(e.target.value ? Number(e.target.value) : '')}
-                    disabled={isEdit}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500 disabled:bg-gray-50 disabled:text-gray-400"
-                    placeholder="e.g. 1"
-                  />
+                  {isEdit && section ? (
+                    <input
+                      type="number"
+                      min={1}
+                      value={section.section_number}
+                      disabled
+                      readOnly
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-500"
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-600 leading-relaxed pt-1">
+                      Assigned automatically (next number for this course on this schedule).
+                    </p>
+                  )}
                 </div>
               </div>
-              {!isEdit && duplicateCourseSectionMessage && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
-                  {duplicateCourseSectionMessage}
-                </div>
-              )}
 
               {/* Room (edit only) */}
               {isEdit && (
@@ -624,11 +604,7 @@ export default function SectionMutationDrawer(props: Props) {
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={
-                    saving ||
-                    loadingData ||
-                    (!isEdit && duplicateCourseSectionMessage != null)
-                  }
+                  disabled={saving || loadingData}
                   className="px-4 py-2 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
                 >
                   {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add section'}

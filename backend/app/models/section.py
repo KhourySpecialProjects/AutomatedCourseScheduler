@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -23,6 +23,14 @@ class Section(Base):
     assigned to a time block."""
 
     __tablename__ = "section"
+    __table_args__ = (
+        UniqueConstraint(
+            "schedule_id",
+            "course_id",
+            "section_number",
+            name="uq_section_schedule_course_number",
+        ),
+    )
 
     section_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     section_number: Mapped[int] = mapped_column(Integer)

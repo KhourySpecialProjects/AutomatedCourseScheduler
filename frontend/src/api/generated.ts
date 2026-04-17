@@ -284,7 +284,6 @@ export interface SectionCreate {
   schedule_id: number;
   course_id: number;
   time_block_id: number;
-  section_number: number;
   capacity?: number | null;
   faculty_nuids?: SectionCreateFacultyNuids;
 }

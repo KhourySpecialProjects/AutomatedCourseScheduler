@@ -20,7 +20,6 @@ class SectionCreate(BaseModel):
     schedule_id: int
     course_id: int
     time_block_id: int
-    section_number: int
     capacity: int | None = None
     faculty_nuids: list[int] | None = None
 

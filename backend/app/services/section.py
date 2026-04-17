@@ -2,6 +2,8 @@
 
 from datetime import time
 
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.faculty_assignment import FacultyAssignment
@@ -111,8 +113,6 @@ def _validate_create_refs(db: Session, section: SectionCreate) -> None:
         raise ValueError("CourseID is invalid")
     if not time_block_repo.time_block_exists(db, section.time_block_id):
         raise ValueError("TimeBlockID is invalid")
-    if section.section_number < 1:
-        raise ValueError("SectionNumber is invalid")
     if section.faculty_nuids:
         for nuid in section.faculty_nuids:
             if not faculty_repo.faculty_exists(db, nuid):
@@ -139,36 +139,40 @@ def _validate_update_refs(db: Session, section: SectionUpdate) -> None:
                 raise ValueError("FacultyNUIDs is invalid")
 
 
+def _next_section_number(db: Session, schedule_id: int, course_id: int) -> int:
+    max_num = (
+        db.query(func.max(Section.section_number))
+        .filter(Section.schedule_id == schedule_id, Section.course_id == course_id)
+        .scalar()
+    )
+    return (max_num or 0) + 1
+
+
 def create_section(db: Session, section: SectionCreate) -> Section:
     _validate_create_refs(db, section)
-
-    duplicate = (
-        db.query(Section)
-        .filter(
-            Section.schedule_id == section.schedule_id,
-            Section.course_id == section.course_id,
-            Section.section_number == section.section_number,
-        )
-        .first()
-    )
-    if duplicate is not None:
-        raise ValueError(
-            "A section for this course with that section number already exists on this schedule."
-        )
 
     capacity = 30 if section.capacity is None else section.capacity
     if capacity < 1:
         raise ValueError("Capacity is invalid")
+
+    section_number = _next_section_number(db, section.schedule_id, section.course_id)
 
     section_obj = Section(
         schedule_id=section.schedule_id,
         time_block_id=section.time_block_id,
         course_id=section.course_id,
         capacity=capacity,
-        section_number=section.section_number,
+        section_number=section_number,
     )
 
-    section_made = section_repo.create(db, section_obj)
+    try:
+        section_made = section_repo.create(db, section_obj)
+    except IntegrityError:
+        db.rollback()
+        raise ValueError(
+            "Could not create this section because it conflicts with an existing section. "
+            "Please try again."
+        ) from None
     if section.faculty_nuids:
         section_repo.replace_faculty_assignments(db, section_made.section_id, section.faculty_nuids)
     return section_repo.save(db, section_made)

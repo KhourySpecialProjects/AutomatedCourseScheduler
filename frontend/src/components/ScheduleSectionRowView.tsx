@@ -494,19 +494,20 @@ export default function ScheduleSectionRowView({
                   const instructor = primaryInstructor(section);
                   const lock = locks.get(section.section_id);
                   const isLocked = Boolean(lock);
-                  const rowInteractive = userRoleLoaded && !isLocked;
+                  const rowClass =
+                    !userRoleLoaded
+                      ? 'cursor-wait opacity-70'
+                      : isLocked && isAdmin
+                        ? 'bg-amber-50/40 cursor-default'
+                        : isLocked && !isAdmin
+                          ? 'bg-amber-50/40 cursor-pointer hover:bg-burgundy-50/40'
+                          : 'hover:bg-burgundy-50/40 cursor-pointer';
 
                   return (
                     <tr
                       key={section.section_id}
-                      onClick={() => rowInteractive && handleRowActivate(section)}
-                      className={`transition-colors ${
-                        !userRoleLoaded
-                          ? 'cursor-wait opacity-70'
-                          : isLocked
-                            ? 'bg-amber-50/40 cursor-default'
-                            : 'hover:bg-burgundy-50/40 cursor-pointer'
-                      }`}
+                      onClick={() => userRoleLoaded && handleRowActivate(section)}
+                      className={`transition-colors ${rowClass}`}
                     >
                       {/* Course */}
                       <td className="px-4 py-3">

@@ -299,7 +299,6 @@ def test_create_section_success(client, db_session):
             "time_block_id": time_block.time_block_id,
             "course_id": course.course_id,
             "capacity": 30,
-            "section_number": 1,
         },
     )
     assert response.status_code == 201
@@ -319,14 +318,13 @@ def test_create_section_omitted_capacity_defaults_to_30(client, db_session):
             "schedule_id": schedule.schedule_id,
             "time_block_id": time_block.time_block_id,
             "course_id": course.course_id,
-            "section_number": 1,
         },
     )
     assert response.status_code == 201
     assert response.json()["capacity"] == 30
 
 
-def test_create_section_duplicate_course_section_number_returns_400(client, db_session):
+def test_create_section_auto_assigns_next_section_number(client, db_session):
     schedule, course, time_block = _seed_schedule_course_timeblock(db_session)
     db_session.add(
         Section(
@@ -334,7 +332,7 @@ def test_create_section_duplicate_course_section_number_returns_400(client, db_s
             time_block_id=time_block.time_block_id,
             course_id=course.course_id,
             capacity=25,
-            section_number=1,
+            section_number=3,
         )
     )
     db_session.commit()
@@ -344,11 +342,10 @@ def test_create_section_duplicate_course_section_number_returns_400(client, db_s
             "schedule_id": schedule.schedule_id,
             "time_block_id": time_block.time_block_id,
             "course_id": course.course_id,
-            "section_number": 1,
         },
     )
-    assert response.status_code == 400
-    assert "already exists" in response.json()["detail"]
+    assert response.status_code == 201
+    assert response.json()["section_number"] == 4
 
 
 def test_create_section_invalid_schedule_returns_400(client, db_session):
@@ -360,7 +357,6 @@ def test_create_section_invalid_schedule_returns_400(client, db_session):
             "time_block_id": time_block.time_block_id,
             "course_id": course.course_id,
             "capacity": 30,
-            "section_number": 1,
         },
     )
     assert response.status_code == 400
@@ -376,7 +372,6 @@ def test_create_section_invalid_course_returns_400(client, db_session):
             "time_block_id": time_block.time_block_id,
             "course_id": 99999,
             "capacity": 30,
-            "section_number": 1,
         },
     )
     assert response.status_code == 400

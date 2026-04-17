@@ -110,7 +110,6 @@ def test_create_section_broadcasts_section_created(client, db_session):
                 "time_block_id": section.time_block_id,
                 "course_id": section.course_id,
                 "capacity": 20,
-                "section_number": 2,
             },
         )
         msg = ws.receive_json()
