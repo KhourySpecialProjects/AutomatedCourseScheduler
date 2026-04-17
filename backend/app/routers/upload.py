@@ -235,7 +235,10 @@ def parse_course_offerings(db, reader):
                 .first()
             )
             if existing:
-                logger.info(f"Row {i}: course '{validated.courseName}' already exists, skipping")
+                logger.info(
+                    f"Row {i}: course '{validated.courseName}' with the same description "
+                    f"already exists, skipping"
+                )
                 continue
             db_entry = validated.translate()
             table_entries.append(db_entry)

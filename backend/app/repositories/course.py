@@ -49,7 +49,6 @@ def get_by_ids(db: Session, course_ids: list[int]) -> list[Course]:
 
 
 def create(db: Session, course: Course) -> Course:
-    _validate_course_name(course.name)
     db.add(course)
     db.commit()
     db.refresh(course)
@@ -57,7 +56,6 @@ def create(db: Session, course: Course) -> Course:
 
 
 def save(db: Session, course: Course) -> Course:
-    _validate_course_name(course.name)
     db.add(course)
     db.commit()
     db.refresh(course)
