@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.settings import settings
 from app.models.user import User
 from app.repositories import user as user_repo
-from app.schemas.user import UserResponse
+from app.schemas.user import AdminInviteRequest, UserResponse
 from app.services import auth0_service
 
 
@@ -17,6 +17,33 @@ from app.services import auth0_service
 class InviteResult:
     user: UserResponse
     signup_url: str
+
+
+def invite_admin(db: Session, body: AdminInviteRequest) -> InviteResult:
+    """Create a pending admin without a faculty record; signup URL uses email for Auth0 login_hint."""
+    if user_repo.get_by_nuid(db, body.nuid) is not None:
+        raise ValueError(f"A user with NUID {body.nuid} already exists")
+
+    if user_repo.get_by_email(db, body.email) is not None:
+        raise ValueError(f"A user with email {body.email} already exists")
+
+    user = User(
+        nuid=body.nuid,
+        first_name=body.first_name,
+        last_name=body.last_name,
+        email=body.email,
+        role="ADMIN",
+        auth0_sub=None,
+        active=True,
+    )
+    user_repo.create(db, user)
+
+    signup_url = auth0_service.build_signup_url(user.email)
+
+    return InviteResult(
+        user=UserResponse.model_validate(user),
+        signup_url=signup_url,
+    )
 
 
 def invite_user(db: Session, nuid: int, role: str) -> InviteResult:
