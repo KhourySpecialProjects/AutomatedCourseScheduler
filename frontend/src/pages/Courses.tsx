@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAutomatedCourseSchedulerAPI, type ScheduleResponse, type SectionRichResponse } from '../api/generated';
+import {
+  getAutomatedCourseSchedulerAPI,
+  type CourseResponse,
+  type ScheduleResponse,
+  type SectionRichResponse,
+} from '../api/generated';
+import { formatCourseLabel } from '../utils/courseFormat';
 
 export default function Courses() {
   const [schedules, setSchedules] = useState<ScheduleResponse[]>([]);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
   const [sections, setSections] = useState<SectionRichResponse[]>([]);
+  const [catalogCourses, setCatalogCourses] = useState<CourseResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,6 +29,14 @@ export default function Courses() {
   }, []);
 
   useEffect(() => {
+    const api = getAutomatedCourseSchedulerAPI();
+    api
+      .getCoursesCoursesGet()
+      .then((cs) => setCatalogCourses(cs))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!scheduleId) return;
     const api = getAutomatedCourseSchedulerAPI();
     api
@@ -31,18 +46,31 @@ export default function Courses() {
   }, [scheduleId]);
 
   const courses = useMemo(() => {
-    const byId = new Map<number, { course_id: number; name: string; credits: number }>();
+    const byId = new Map<
+      number,
+      { course_id: number; name: string; credits: number; subject?: string; code?: number }
+    >();
+    const catalogById = new Map<number, CourseResponse>();
+    for (const c of catalogCourses) catalogById.set(c.course_id, c);
+
     for (const s of sections) {
       if (!byId.has(s.course.course_id)) {
+        const cat = catalogById.get(s.course.course_id);
         byId.set(s.course.course_id, {
           course_id: s.course.course_id,
-          name: s.course.name,
+          name: cat?.name ?? s.course.name,
           credits: s.course.credits,
+          subject: cat?.subject,
+          code: cat?.code,
         });
       }
     }
-    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }, [sections]);
+    return [...byId.values()].sort((a, b) => {
+      const la = formatCourseLabel(a);
+      const lb = formatCourseLabel(b);
+      return la.localeCompare(lb) || a.name.localeCompare(b.name);
+    });
+  }, [sections, catalogCourses]);
 
   return (
     <div className="max-w-2xl">
@@ -60,7 +88,7 @@ export default function Courses() {
         <select
           value={scheduleId ?? ''}
           onChange={(e) => setScheduleId(e.target.value ? Number(e.target.value) : null)}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-burgundy-500"
         >
           {schedules.map((s) => (
             <option key={s.schedule_id} value={s.schedule_id}>
@@ -80,8 +108,12 @@ export default function Courses() {
           <ul className="divide-y divide-gray-100">
             {courses.map((c) => (
               <li key={c.course_id} className="px-5 py-3 flex items-center justify-between gap-4">
-                <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                <span className="text-xs text-gray-400 shrink-0">{c.credits} cr</span>
+                <span className="text-sm font-medium text-gray-900 truncate">
+                  {formatCourseLabel(c)}
+                </span>
+                <span className="text-xs text-gray-500 shrink-0 truncate max-w-[16rem]">
+                  {c.name}
+                </span>
               </li>
             ))}
           </ul>

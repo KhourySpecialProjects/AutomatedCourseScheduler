@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { InstructorInfo, SectionRichResponse, TimeBlockInfo } from '../api/generated';
+import type { CourseResponse, InstructorInfo, SectionRichResponse, TimeBlockInfo } from '../api/generated';
 import { getAutomatedCourseSchedulerAPI } from '../api/generated';
 import type { LockInfo } from '../hooks/useScheduleWebSocket';
 import CrosslistSectionHint from './CrosslistSectionHint';
@@ -9,6 +9,7 @@ import SectionCalendarGrid, { LockBadge, parseTimeToMinutes } from './SectionCal
 import SectionDetailPanel from './SectionDetailPanel';
 import SectionMutationDrawer from './SectionMutationDrawer';
 import type { SelectOption } from './SearchableSelect';
+import { formatCourseLabel } from '../utils/courseFormat';
 
 type SortKey = 'course' | 'section' | 'time' | 'instructor' | 'capacity';
 type SortDir = 'asc' | 'desc';
@@ -96,6 +97,7 @@ export default function ScheduleSectionRowView({
     instructor: InstructorInfo;
     rect: DOMRect;
   } | null>(null);
+  const [catalogCourses, setCatalogCourses] = useState<CourseResponse[]>([]);
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleInstructorMouseEnter = useCallback((e: React.MouseEvent<HTMLElement>, instructor: InstructorInfo) => {
@@ -114,6 +116,44 @@ export default function ScheduleSectionRowView({
       if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
     },
     [],
+  );
+
+  useEffect(() => {
+    const api = getAutomatedCourseSchedulerAPI();
+    api
+      .getCoursesCoursesGet()
+      .then((cs) => setCatalogCourses(cs))
+      .catch(() => {});
+  }, []);
+
+  const catalogById = useMemo(() => {
+    const m = new Map<number, CourseResponse>();
+    for (const c of catalogCourses) m.set(c.course_id, c);
+    return m;
+  }, [catalogCourses]);
+
+  const courseMetaForUi = useCallback(
+    (section: SectionRichResponse): { code: string | null; name: string } => {
+      const cat = catalogById.get(section.course.course_id);
+      const name = cat?.name ?? section.course.name;
+      const subject = cat?.subject?.trim();
+      const codeNo = cat?.code;
+      const code = subject && codeNo != null ? `${subject}${codeNo}` : null;
+      return { code, name };
+    },
+    [catalogById],
+  );
+
+  const courseLabelForUi = useCallback(
+    (section: SectionRichResponse) => {
+      const cat = catalogById.get(section.course.course_id);
+      return formatCourseLabel({
+        name: cat?.name ?? section.course.name,
+        subject: cat?.subject,
+        code: cat?.code,
+      });
+    },
+    [catalogById],
   );
 
   const handleSort = (key: SortKey) => {
@@ -170,12 +210,12 @@ export default function ScheduleSectionRowView({
       if (!byId.has(s.course.course_id)) {
         byId.set(s.course.course_id, {
           value: s.course.course_id,
-          label: s.course.name,
+          label: courseLabelForUi(s),
         });
       }
     }
     return [...byId.values()].sort((a, b) => a.label.localeCompare(b.label));
-  }, [sections]);
+  }, [sections, courseLabelForUi]);
 
   const instructorOptions = useMemo<SelectOption<number>[]>(() => {
     const byNuid = new Map<number, SelectOption<number>>();
@@ -321,7 +361,7 @@ export default function ScheduleSectionRowView({
                     setCourseFilterIds((prev) => [...prev, opt.value]);
                     setCourseQuery('');
                   }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-burgundy-50 transition-colors"
                 >
                   {opt.label}
                 </button>
@@ -350,7 +390,7 @@ export default function ScheduleSectionRowView({
                     setInstructorFilterNuids((prev) => [...prev, opt.value]);
                     setInstructorQuery('');
                   }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-burgundy-50 transition-colors"
                 >
                   {opt.label}
                 </button>
@@ -377,7 +417,7 @@ export default function ScheduleSectionRowView({
         {isAdmin && (
           <button
             onClick={() => setCreating(true)}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -403,6 +443,7 @@ export default function ScheduleSectionRowView({
           onEditClick={handleEditClick}
           onInstructorMouseEnter={handleInstructorMouseEnter}
           onInstructorMouseLeave={handleInstructorMouseLeave}
+          getCourseMetaForUi={courseMetaForUi}
         />
       ) : (
         /* Table */
@@ -427,7 +468,7 @@ export default function ScheduleSectionRowView({
                     <span className="flex items-center gap-1">
                       {label}
                       {sortKey === key ? (
-                        <svg className="w-3 h-3 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-3 h-3 text-burgundy-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
                         </svg>
                       ) : (
@@ -464,17 +505,28 @@ export default function ScheduleSectionRowView({
                           ? 'cursor-wait opacity-70'
                           : isLocked
                             ? 'bg-amber-50/40 cursor-default'
-                            : 'hover:bg-indigo-50/40 cursor-pointer'
+                            : 'hover:bg-burgundy-50/40 cursor-pointer'
                       }`}
                     >
                       {/* Course */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-gray-900">{section.course.name}</span>
-                          <SectionCommentIndicator count={section.comment_count ?? 0} />
-                          {lock && <LockBadge lock={lock} />}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-0.5">{section.course.credits} cr</div>
+                        {(() => {
+                          const m = courseMetaForUi(section);
+                          return (
+                            <>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-semibold text-gray-900">
+                                  {m.code ?? m.name}
+                                </span>
+                                <SectionCommentIndicator count={section.comment_count ?? 0} />
+                                {lock && <LockBadge lock={lock} />}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5 truncate max-w-[22rem]">
+                                {m.code ? m.name : `${section.course.credits} cr`}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </td>
 
                       {/* Section # */}
@@ -498,7 +550,7 @@ export default function ScheduleSectionRowView({
                         {instructor ? (
                           <button
                             type="button"
-                            className="cursor-default text-left text-sm text-indigo-700 underline decoration-dotted decoration-indigo-400 underline-offset-2 hover:text-indigo-900"
+                            className="cursor-default text-left text-sm text-burgundy-700 underline decoration-dotted decoration-burgundy-400 underline-offset-2 hover:text-burgundy-900"
                             onClick={(e) => e.stopPropagation()}
                             onMouseEnter={(e) => handleInstructorMouseEnter(e, instructor)}
                             onMouseLeave={handleInstructorMouseLeave}

@@ -94,7 +94,7 @@ export default function CrosslistSectionHint({
     <>
       <span
         ref={triggerRef}
-        className="relative inline-flex shrink-0 cursor-default items-center justify-center align-middle p-1.5 -m-1.5 text-indigo-600 hover:text-indigo-800 pointer-events-auto z-10"
+        className="relative inline-flex shrink-0 cursor-default items-center justify-center align-middle p-1.5 -m-1.5 text-burgundy-600 hover:text-burgundy-800 pointer-events-auto z-10"
         aria-label={tip}
         onMouseEnter={show}
         onMouseLeave={scheduleHide}

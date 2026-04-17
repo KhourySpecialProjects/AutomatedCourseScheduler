@@ -11,6 +11,7 @@ import {
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
 import MultiSearchableSelect from './MultiSearchableSelect';
 import SectionComments from './SectionComments';
+import { formatCourseLabel } from '../utils/courseFormat';
 
 function courseOptionFromApi(c: CourseResponse): SelectOption<number> {
   const r = c as unknown as Record<string, unknown>;
@@ -18,8 +19,12 @@ function courseOptionFromApi(c: CourseResponse): SelectOption<number> {
   const name = String(r.CourseName ?? r.name ?? `Course ${id}`);
   const subj = r.CourseSubject ?? r.subject;
   const no = r.CourseNo ?? r.code;
-  const sub = [subj, no].filter((x) => x != null && x !== '').join(' ');
-  return { value: id, label: name, sublabel: sub || undefined };
+  const subject = typeof subj === 'string' ? subj : undefined;
+  const code = typeof no === 'number' ? no : Number(no);
+  const label = formatCourseLabel({ name, subject, code });
+  const credits = Number(r.Credits ?? r.credits);
+  const sublabel = Number.isFinite(credits) ? `${credits} cr` : undefined;
+  return { value: id, label, sublabel };
 }
 
 function facultyOptionFromApi(f: FacultyResponse): SelectOption<number> {
@@ -121,6 +126,22 @@ export default function SectionMutationDrawer(props: Props) {
   const [scheduleSections, setScheduleSections] = useState<SectionRichResponse[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
+  const catalogById = useMemo(() => {
+    const m = new Map<number, CourseResponse>();
+    for (const c of courses) m.set(c.course_id, c);
+    return m;
+  }, [courses]);
+
+  function sectionLabelForUi(s: SectionRichResponse): string {
+    const cat = catalogById.get(s.course.course_id);
+    const courseLabel = formatCourseLabel({
+      name: cat?.name ?? s.course.name,
+      subject: cat?.subject,
+      code: cat?.code,
+    });
+    return `${courseLabel} Section ${s.section_number}`;
+  }
+
   // Submission state
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -172,28 +193,28 @@ export default function SectionMutationDrawer(props: Props) {
       )
       .map((s) => ({
         value: s.section_id,
-        label: `${s.course.name} Section ${s.section_number}`,
+        label: sectionLabelForUi(s),
         sublabel: `${s.time_block.days} ${s.time_block.start_time} – ${s.time_block.end_time}`,
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
     return [none, ...partners];
-  }, [scheduleSections, section, crosslistedSectionId]);
+  }, [scheduleSections, section, crosslistedSectionId, catalogById]);
 
   const crosslistPartnerLabel = useMemo(() => {
     if (crosslistedSectionId == null) return null;
     const p = scheduleSections.find((s) => s.section_id === crosslistedSectionId);
     if (!p) return null;
-    return `${p.course.name} Section ${p.section_number}`;
-  }, [scheduleSections, crosslistedSectionId]);
+    return sectionLabelForUi(p);
+  }, [scheduleSections, crosslistedSectionId, catalogById]);
 
   const uncrosslistWarning = useMemo(() => {
     if (!isEdit) return null;
     if (originalCrosslistedId == null) return null;
     if (crosslistedSectionId != null) return null;
     const p = scheduleSections.find((s) => s.section_id === originalCrosslistedId);
-    const label = p ? `${p.course.name} Section ${p.section_number}` : `section #${originalCrosslistedId}`;
+    const label = p ? sectionLabelForUi(p) : `section #${originalCrosslistedId}`;
     return `You are uncrosslisting from ${label}. Both sections will keep their current time block and instructors; review both rows after saving.`;
-  }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections]);
+  }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections, catalogById]);
 
   const changeCrosslistPartnerWarning = useMemo(() => {
     if (!isEdit) return null;
@@ -202,10 +223,10 @@ export default function SectionMutationDrawer(props: Props) {
     if (crosslistedSectionId === originalCrosslistedId) return null;
     const prev = scheduleSections.find((s) => s.section_id === originalCrosslistedId);
     const next = scheduleSections.find((s) => s.section_id === crosslistedSectionId);
-    const prevLabel = prev ? `${prev.course.name} Section ${prev.section_number}` : `section #${originalCrosslistedId}`;
-    const nextLabel = next ? `${next.course.name} Section ${next.section_number}` : `section #${crosslistedSectionId}`;
+    const prevLabel = prev ? sectionLabelForUi(prev) : `section #${originalCrosslistedId}`;
+    const nextLabel = next ? sectionLabelForUi(next) : `section #${crosslistedSectionId}`;
     return `This section will be uncrosslisted with ${prevLabel} and crosslisted with ${nextLabel} when you save.`;
-  }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections]);
+  }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections, catalogById]);
 
   const showNewCrosslistSyncNotice = useMemo(() => {
     if (!isEdit) return false;
@@ -221,8 +242,8 @@ export default function SectionMutationDrawer(props: Props) {
       (s) => s.course.course_id === courseId && s.section_number === n,
     );
     if (!existing) return null;
-    return `This schedule already has ${existing.course.name} Section ${n}. Use a different section number or course.`;
-  }, [isEdit, courseId, sectionNumber, scheduleSections]);
+    return `This schedule already has ${sectionLabelForUi(existing)}. Use a different section number or course.`;
+  }, [isEdit, courseId, sectionNumber, scheduleSections, catalogById]);
 
   /** Only when at least one selected instructor is already assigned to another section in this time block. */
   const doubleBookWarning = useMemo<string | null>(() => {
@@ -446,7 +467,7 @@ export default function SectionMutationDrawer(props: Props) {
                     min={1}
                     value={capacity}
                     onChange={(e) => setCapacity(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
                     placeholder={isEdit ? 'e.g. 25' : 'Default 30 if empty'}
                   />
                 </div>
@@ -458,7 +479,7 @@ export default function SectionMutationDrawer(props: Props) {
                     value={sectionNumber}
                     onChange={(e) => setSectionNumber(e.target.value ? Number(e.target.value) : '')}
                     disabled={isEdit}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-400"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500 disabled:bg-gray-50 disabled:text-gray-400"
                     placeholder="e.g. 1"
                   />
                 </div>
@@ -477,7 +498,7 @@ export default function SectionMutationDrawer(props: Props) {
                     type="text"
                     value={room}
                     onChange={(e) => setRoom(e.target.value)}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
                     placeholder="e.g. Ryder 101"
                   />
                 </div>
@@ -608,7 +629,7 @@ export default function SectionMutationDrawer(props: Props) {
                     loadingData ||
                     (!isEdit && duplicateCourseSectionMessage != null)
                   }
-                  className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
                 >
                   {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add section'}
                 </button>

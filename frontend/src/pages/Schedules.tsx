@@ -25,7 +25,7 @@ function LiveIndicator({ status }: { status: WsStatus }) {
 function TableIcon({ active }: { active: boolean }) {
   return (
     <svg
-      className={`w-4 h-4 ${active ? 'text-indigo-600' : 'text-gray-400'}`}
+      className={`w-4 h-4 ${active ? 'text-burgundy-600' : 'text-gray-400'}`}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -38,7 +38,7 @@ function TableIcon({ active }: { active: boolean }) {
 function CalendarIcon({ active }: { active: boolean }) {
   return (
     <svg
-      className={`w-4 h-4 ${active ? 'text-indigo-600' : 'text-gray-400'}`}
+      className={`w-4 h-4 ${active ? 'text-burgundy-600' : 'text-gray-400'}`}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -119,7 +119,7 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
               className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
                 facultyUiMode
                   ? 'bg-slate-100 text-slate-700 border-slate-200'
-                  : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                  : 'bg-burgundy-50 text-burgundy-700 border-burgundy-200'
               }`}
               title={modeLabel}
             >

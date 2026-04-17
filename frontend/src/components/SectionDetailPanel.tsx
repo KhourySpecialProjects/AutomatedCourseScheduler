@@ -148,7 +148,7 @@ export default function SectionDetailPanel({ section, allSections, onClose }: Pr
                         </div>
                         <a
                           href={`mailto:${instructor.email}`}
-                          className="text-xs text-indigo-600 hover:underline"
+                          className="text-xs text-burgundy-600 hover:underline"
                         >
                           {instructor.email}
                         </a>
