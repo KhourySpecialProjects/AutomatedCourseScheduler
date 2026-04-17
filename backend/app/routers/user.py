@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_db_user, require_admin
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.user import InviteLinkResponse, InviteRequest, InviteResponse, UserResponse
+from app.schemas.user import (
+    AdminInviteRequest,
+    InviteLinkResponse,
+    InviteRequest,
+    InviteResponse,
+    UserResponse,
+)
 from app.services import user as user_service
 
 router = APIRouter(prefix="/api", tags=["users"])
@@ -25,6 +31,21 @@ def create_invite(
     """
     try:
         result = user_service.invite_user(db, body.nuid, body.role)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return InviteResponse(user=result.user, signup_url=result.signup_url)
+
+
+@router.post("/invites/admin", response_model=InviteResponse, status_code=201)
+def create_admin_invite(
+    body: AdminInviteRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Create a pending admin from NUID and name/email (no faculty record). Requires admin."""
+    try:
+        result = user_service.invite_admin(db, body)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
