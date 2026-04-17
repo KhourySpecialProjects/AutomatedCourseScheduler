@@ -12,6 +12,7 @@ import os
 import sys
 from datetime import time
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import Base, SessionLocal, engine
@@ -11620,6 +11621,21 @@ def seed(db: Session) -> None:
         ),
     ]
     db.add_all(meeting_prefs)
+
+    # Sync Postgres sequences with the max explicit IDs inserted above, so that
+    # subsequent inserts without explicit IDs (e.g. CSV uploads) don't collide.
+    for table, pk in (
+        ("course", "course_id"),
+        ("schedule", "schedule_id"),
+        ("semester", "semester_id"),
+        ("time_block", "time_block_id"),
+    ):
+        db.execute(
+            text(
+                f"SELECT setval(pg_get_serial_sequence('\"{table}\"', '{pk}'), "
+                f"(SELECT MAX({pk}) FROM \"{table}\"))"
+            )
+        )
 
     db.commit()
     print("Seed complete.")

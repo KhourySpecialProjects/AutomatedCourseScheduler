@@ -126,11 +126,17 @@ def run_algorithm_task(schedule_id: int, parameters: AlgorithmParameters):
 
 
 def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
-    # Step 1: Load courses
+    # Step 1: Load courses (reads stub sections to discover course list + counts)
     courses = course_service.get_courses(db, schedule_id)
     if not courses:
         raise ValueError(f"No courses found for schedule {schedule_id}")
     logger.info(f"Loaded {len(courses)} courses for schedule {schedule_id}")
+
+    # Clear stub (or prior-run) sections before inserting fresh ones below.
+    # ORM delete so Section.faculty_assignments cascade fires.
+    for s in db.query(Section).filter(Section.schedule_id == schedule_id).all():
+        db.delete(s)
+    db.flush()
 
     # Step 2: Expand sections
     sections = _expand_sections(courses)

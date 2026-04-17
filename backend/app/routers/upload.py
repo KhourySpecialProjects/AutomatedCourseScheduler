@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.enums import Campus
+from app.models.campus import Campus as CampusModel
 from app.models.course import Course
 from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
@@ -173,24 +174,19 @@ def parse_time_preferences(db, reader):
                     .first()
                 )
 
-                faculty = db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
+                faculty = get_or_create_faculty(
+                    db, validated.facultyId, validated.facultyName
+                )
 
                 if not time_block:
                     time_block = TimeBlock(
                         meeting_days=days,
                         start_time=start_time,
                         end_time=end_time,
-                        campus=Campus.BOSTON,
+                        campus=faculty.campus,
                     )
                     db.add(time_block)
                     db.flush()
-
-                elif not faculty:
-                    errors.append(
-                        f"Row {i}: faculty '{validated.facultyName}' "
-                        f"with id '{validated.facultyId}' not found"
-                    )
-                    continue
 
                 existing_pref = (
                     db.query(MeetingPreference)
@@ -227,9 +223,19 @@ def parse_course_offerings(db, reader):
         try:
             normalized = normalize_headers(row, COURSE_OFFERINGS)
             validated = CourseOfferingsSchema(**normalized)
-            existing = db.query(Course).filter(Course.name == validated.courseName).first()
+            existing = (
+                db.query(Course)
+                .filter(
+                    Course.subject == validated.subject,
+                    Course.code == validated.code,
+                )
+                .first()
+            )
             if existing:
-                logger.info(f"Row {i}: course '{validated.courseName}' already exists, skipping")
+                logger.info(
+                    f"Row {i}: course '{validated.subject} {validated.code}' "
+                    "already exists, skipping"
+                )
                 continue
             db_entry = validated.translate()
             table_entries.append(db_entry)
@@ -252,15 +258,18 @@ def parse_course_preferences(db, reader):
             normalized = normalize_headers(row, COURSE_PREFERENCES)
             validated = CoursePreferencesSchema(**normalized)
             faculty_ids.add(validated.facultyId)
-            course = db.query(Course).filter(Course.name == validated.course).first()
-            faculty = db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
+            course = None
+            parts = validated.course.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                subject, code = parts[0], int(parts[1])
+                course = (
+                    db.query(Course)
+                    .filter(Course.subject == subject, Course.code == code)
+                    .first()
+                )
+            get_or_create_faculty(db, validated.facultyId, validated.facultyName)
             if not course:
                 errors.append(f"Row {i}: course '{validated.course}' not found")
-            elif not faculty:
-                errors.append(
-                    f"Row {i}: faculty '{validated.facultyName}' "
-                    f"with id '{validated.facultyId}' not found"
-                )
             else:
                 existing_pref = (
                     db.query(CoursePreference)
@@ -294,7 +303,7 @@ def parse_course_preferences(db, reader):
 
 def validate_headers(headers, schema):
     if schema == COURSE_OFFERINGS:
-        expected_headers = ["Course", "Credit Hours", "Description"]
+        expected_headers = ["Subject", "Code", "Name", "Credit Hours", "Description"]
     elif schema == COURSE_PREFERENCES:
         expected_headers = [
             "Faculty Name",
@@ -325,9 +334,11 @@ def validate_headers(headers, schema):
 def normalize_headers(row, schema):
     if schema == COURSE_OFFERINGS:
         normalized = {
-            "courseName": row["Course"],
-            "credits": row["Credit Hours"],
-            "description": row["Description"],
+            "subject": row["Subject"].strip(),
+            "code": row["Code"].strip(),
+            "name": row["Name"].strip(),
+            "credits": row["Credit Hours"].strip(),
+            "description": row["Description"].strip(),
         }
     elif schema == COURSE_PREFERENCES:
         normalized = {
@@ -346,3 +357,41 @@ def normalize_headers(row, schema):
             "preference": row["Preference"].strip(),
         }
     return normalized
+
+
+def get_default_campus_id(db):
+    """Return the campus_id for Boston, falling back to the first campus."""
+    campus = (
+        db.query(CampusModel).filter(CampusModel.name == Campus.BOSTON.value).first()
+        or db.query(CampusModel).first()
+    )
+    if campus is None:
+        raise HTTPException(
+            status_code=500,
+            detail="No campus rows exist in the database",
+        )
+    return campus.campus_id
+
+
+def get_or_create_faculty(db, faculty_id, faculty_name):
+    """Return the Faculty row for `faculty_id`, creating a placeholder if missing."""
+    faculty = db.query(Faculty).filter(Faculty.nuid == faculty_id).first()
+    if faculty:
+        return faculty
+
+    parts = (faculty_name or "").strip().split(None, 1)
+    first_name = parts[0] if parts else ""
+    last_name = parts[1] if len(parts) > 1 else ""
+
+    faculty = Faculty(
+        nuid=faculty_id,
+        first_name=first_name,
+        last_name=last_name,
+        email=f"faculty{faculty_id}@placeholder.local",
+        campus=get_default_campus_id(db),
+        active=True,
+    )
+    db.add(faculty)
+    db.flush()
+    logger.info(f"Created placeholder faculty nuid={faculty_id} name='{faculty_name}'")
+    return faculty
