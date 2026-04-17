@@ -237,6 +237,13 @@ export interface InviteResponse {
   signup_url: string;
 }
 
+export interface AdminInviteRequest {
+  nuid: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 export interface MeetingPreferenceInfo {
   time_block_id: number;
   preference: string;
@@ -1129,6 +1136,21 @@ const createInviteApiInvitesPost = (
     }
   
 /**
+ * Create a pending admin user (no faculty row) and return an Auth0 signup URL.
+ * @summary Create Admin Invite
+ */
+const createAdminInviteApiInvitesAdminPost = (
+    adminInviteRequest: AdminInviteRequest,
+ ) => {
+      return axiosInstance<InviteResponse>(
+      {url: `/api/invites/admin`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: adminInviteRequest
+    },
+      );
+    }
+  
+/**
  * Return invite links for all active faculty without a linked account.
 
 Creates pending User records for any who were not yet invited.
@@ -1195,7 +1217,7 @@ const rootGet = (
       );
     }
   
-return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getScheduleLocksSchedulesScheduleIdLocksGet,getAllSemestersSemestersGet,createSemesterSemestersPost,getSemesterSemestersSemesterIdGet,updateSemesterSemestersSemesterIdPut,deleteSemesterSemestersSemesterIdDelete,getCoursesCoursesGet,createCourseCoursesPost,getCourseCoursesCourseIdGet,updateCourseCoursesCourseIdPatch,deleteCourseCoursesCourseIdDelete,getFacultyFacultyGet,createFacultyFacultyPost,getFacultyProfileFacultyNuidGet,updateFacultyFacultyNuidPatch,deleteFacultyFacultyNuidDelete,buildProfilesFacultyBuildProfilesPost,getTimeBlocksTimeBlocksGet,getAllCampusesCampusesGet,createCampusCampusesPost,getCampusCampusesCampusIdGet,updateCampusCampusesCampusIdPut,deleteCampusCampusesCampusIdDelete,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,postCommentCommentsPost,postReplyCommentsParentIdPost,getCommentsCommentsSectionIdGet,deleteCommentCommentsCommentIdDelete,resolveCommentCommentsCommentIdPut,acquireLockSectionsSectionIdLockPost,releaseLockSectionsSectionIdUnlockPost,createInviteApiInvitesPost,exportInvitesApiInvitesExportGet,listUsersApiUsersGet,getMeApiUsersMeGet,getUserApiUsersUserIdGet,rootGet}};
+return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getScheduleLocksSchedulesScheduleIdLocksGet,getAllSemestersSemestersGet,createSemesterSemestersPost,getSemesterSemestersSemesterIdGet,updateSemesterSemestersSemesterIdPut,deleteSemesterSemestersSemesterIdDelete,getCoursesCoursesGet,createCourseCoursesPost,getCourseCoursesCourseIdGet,updateCourseCoursesCourseIdPatch,deleteCourseCoursesCourseIdDelete,getFacultyFacultyGet,createFacultyFacultyPost,getFacultyProfileFacultyNuidGet,updateFacultyFacultyNuidPatch,deleteFacultyFacultyNuidDelete,buildProfilesFacultyBuildProfilesPost,getTimeBlocksTimeBlocksGet,getAllCampusesCampusesGet,createCampusCampusesPost,getCampusCampusesCampusIdGet,updateCampusCampusesCampusIdPut,deleteCampusCampusesCampusIdDelete,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,postCommentCommentsPost,postReplyCommentsParentIdPost,getCommentsCommentsSectionIdGet,deleteCommentCommentsCommentIdDelete,resolveCommentCommentsCommentIdPut,acquireLockSectionsSectionIdLockPost,releaseLockSectionsSectionIdUnlockPost,createInviteApiInvitesPost,createAdminInviteApiInvitesAdminPost,exportInvitesApiInvitesExportGet,listUsersApiUsersGet,getMeApiUsersMeGet,getUserApiUsersUserIdGet,rootGet}};
 export type CreateSectionSectionsPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createSectionSectionsPost']>>>
 export type UpdateSectionSectionsSectionIdPatchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateSectionSectionsSectionIdPatch']>>>
 export type DeleteSectionSectionsSectionIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteSectionSectionsSectionIdDelete']>>>
@@ -1241,6 +1263,7 @@ export type ResolveCommentCommentsCommentIdPutResult = NonNullable<Awaited<Retur
 export type AcquireLockSectionsSectionIdLockPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['acquireLockSectionsSectionIdLockPost']>>>
 export type ReleaseLockSectionsSectionIdUnlockPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['releaseLockSectionsSectionIdUnlockPost']>>>
 export type CreateInviteApiInvitesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createInviteApiInvitesPost']>>>
+export type CreateAdminInviteApiInvitesAdminPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createAdminInviteApiInvitesAdminPost']>>>
 export type ExportInvitesApiInvitesExportGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['exportInvitesApiInvitesExportGet']>>>
 export type ListUsersApiUsersGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['listUsersApiUsersGet']>>>
 export type GetMeApiUsersMeGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getMeApiUsersMeGet']>>>
