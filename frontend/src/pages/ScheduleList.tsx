@@ -215,21 +215,53 @@ function uploadUrl(kind: UploadKind): string {
 /*  Create-schedule modal                                              */
 /* ------------------------------------------------------------------ */
 
-type Step = 'info' | 'upload';
+type Step = 'upload' | 'info' | 'generate';
+
+const STEP_LABELS: Record<Step, string> = {
+  upload: 'Upload CSV Files',
+  info: 'Schedule Details',
+  generate: 'Generate Schedule',
+};
+
+function StepIndicator({ current }: { current: Step }) {
+  const steps: Step[] = ['upload', 'info', 'generate'];
+  const idx = steps.indexOf(current);
+  return (
+    <div className="flex items-center gap-2 mb-5">
+      {steps.map((s, i) => (
+        <div key={s} className="flex items-center gap-2">
+          <div
+            className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold ${
+              i < idx
+                ? 'bg-indigo-600 text-white'
+                : i === idx
+                  ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-600'
+                  : 'bg-gray-100 text-gray-400'
+            }`}
+          >
+            {i < idx ? (
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              i + 1
+            )}
+          </div>
+          <span className={`text-xs font-medium ${i === idx ? 'text-gray-900' : 'text-gray-400'}`}>
+            {STEP_LABELS[s]}
+          </span>
+          {i < steps.length - 1 && <div className="w-6 h-px bg-gray-200" />}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCreated: (s: ScheduleResponse) => void }) {
-  const [step, setStep] = useState<Step>('info');
+  const [step, setStep] = useState<Step>('upload');
+  const [createdSchedule, setCreatedSchedule] = useState<ScheduleResponse | null>(null);
 
-  /* ---------- step 1: schedule info ---------- */
-  const [name, setName] = useState('');
-  const [semesterId, setSemesterId] = useState<number | ''>('');
-  const [campusId, setCampusId] = useState<number | ''>('');
-  const [semesters, setSemesters] = useState<SemesterResponse[]>([]);
-  const [campuses, setCampuses] = useState<CampusResponse[]>([]);
-  const [creating, setCreating] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  /* ---------- step 2: csv uploads ---------- */
+  /* ---------- step 1: csv uploads ---------- */
   const [uploadResults, setUploadResults] = useState<Record<UploadKind, UploadResponse | null>>({
     courses: null,
     'faculty-preferences': null,
@@ -245,38 +277,26 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
 
   const allUploaded = UPLOAD_KINDS.every((u) => uploadResults[u.kind]?.status === 'success');
 
+  /* ---------- step 2: schedule info ---------- */
+  const [name, setName] = useState('');
+  const [semesterId, setSemesterId] = useState<number | ''>('');
+  const [campusId, setCampusId] = useState<number | ''>('');
+  const [semesters, setSemesters] = useState<SemesterResponse[]>([]);
+  const [campuses, setCampuses] = useState<CampusResponse[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  /* ---------- step 3: generate ---------- */
+  const [generating, setGenerating] = useState(false);
+  const [generateDone, setGenerateDone] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
   // fetch semesters + campuses on mount
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
     api.getAllSemestersSemestersGet().then(setSemesters).catch(() => {});
     api.getAllCampusesCampusesGet().then(setCampuses).catch(() => {});
   }, []);
-
-  async function handleCreate() {
-    if (!name.trim() || semesterId === '' || campusId === '') {
-      setFormError('All fields are required.');
-      return;
-    }
-    setFormError(null);
-    setCreating(true);
-    try {
-      const api = getAutomatedCourseSchedulerAPI();
-      const created = await api.createScheduleSchedulesPost({
-        name: name.trim(),
-        semester_id: semesterId as number,
-        campus: campusId as number,
-      });
-      onCreated(created);
-      setStep('upload');
-    } catch (e: unknown) {
-      const detail =
-        (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail ??
-        (e as { message?: unknown })?.message;
-      setFormError(typeof detail === 'string' ? detail : 'Failed to create schedule.');
-    } finally {
-      setCreating(false);
-    }
-  }
 
   async function doUpload(kind: UploadKind, file: File) {
     setUploadError(null);
@@ -301,19 +321,66 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
     }
   }
 
+  async function handleCreate() {
+    if (!name.trim() || semesterId === '' || campusId === '') {
+      setFormError('All fields are required.');
+      return;
+    }
+    setFormError(null);
+    setCreating(true);
+    try {
+      const api = getAutomatedCourseSchedulerAPI();
+      const created = await api.createScheduleSchedulesPost({
+        name: name.trim(),
+        semester_id: semesterId as number,
+        campus: campusId as number,
+      });
+      setCreatedSchedule(created);
+      onCreated(created);
+      setStep('generate');
+    } catch (e: unknown) {
+      const detail =
+        (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail ??
+        (e as { message?: unknown })?.message;
+      setFormError(typeof detail === 'string' ? detail : 'Failed to create schedule.');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleGenerate() {
+    if (!createdSchedule) return;
+    setGenerateError(null);
+    setGenerating(true);
+    try {
+      await axiosInstance({
+        url: `/schedules/${createdSchedule.schedule_id}/generate`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: { parameters: {} },
+      });
+      setGenerateDone(true);
+    } catch (e: unknown) {
+      const detail =
+        (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail ??
+        (e as { message?: unknown })?.message;
+      setGenerateError(typeof detail === 'string' ? detail : 'Failed to start schedule generation.');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   return (
     // backdrop
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
       {/* modal */}
       <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {step === 'info' ? 'New Schedule' : 'Upload CSV Files'}
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900">New Schedule</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -323,60 +390,12 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
 
         {/* body */}
         <div className="px-6 py-5">
-          {step === 'info' && (
-            <div className="space-y-4">
-              {formError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{formError}</div>
-              )}
+          <StepIndicator current={step} />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Schedule name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Fall 2026 CS Draft"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
-                <select
-                  value={semesterId}
-                  onChange={(e) => setSemesterId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">Select a semester</option>
-                  {semesters.map((s) => (
-                    <option key={s.semester_id} value={s.semester_id}>
-                      {s.season} {s.year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Campus</label>
-                <select
-                  value={campusId}
-                  onChange={(e) => setCampusId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">Select a campus</option>
-                  {campuses.map((c) => (
-                    <option key={c.campus_id} value={c.campus_id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-
+          {/* Step 1: CSV uploads */}
           {step === 'upload' && (
             <div className="space-y-4">
-              <p className="text-sm text-gray-500">Upload all three CSV files for this schedule.</p>
+              <p className="text-sm text-gray-500">Upload all three CSV files before creating the schedule.</p>
 
               {uploadError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{uploadError}</div>
@@ -437,17 +456,132 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
               })}
             </div>
           )}
+
+          {/* Step 2: Schedule info */}
+          {step === 'info' && (
+            <div className="space-y-4">
+              {formError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{formError}</div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Schedule name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Fall 2026 CS Draft"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+                <select
+                  value={semesterId}
+                  onChange={(e) => setSemesterId(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">Select a semester</option>
+                  {semesters.map((s) => (
+                    <option key={s.semester_id} value={s.semester_id}>
+                      {s.season} {s.year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Campus</label>
+                <select
+                  value={campusId}
+                  onChange={(e) => setCampusId(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">Select a campus</option>
+                  {campuses.map((c) => (
+                    <option key={c.campus_id} value={c.campus_id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Generate */}
+          {step === 'generate' && (
+            <div className="space-y-4 text-center py-4">
+              {generateError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 text-left">{generateError}</div>
+              )}
+
+              {!generateDone ? (
+                <>
+                  <div className="text-sm text-gray-600">
+                    Schedule <span className="font-semibold text-gray-900">{createdSchedule?.name}</span> has been created. Run the algorithm to populate it with sections.
+                  </div>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={generating}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                  >
+                    {generating ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Run Algorithm
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <svg className="w-10 h-10 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="text-sm text-gray-600">Algorithm started. Sections are being generated in the background.</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
-          {step === 'info' && (
+          {step === 'upload' && (
             <>
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancel
+              </button>
+              <button
+                onClick={() => setStep('info')}
+                disabled={!allUploaded}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              >
+                Next
+              </button>
+            </>
+          )}
+          {step === 'info' && (
+            <>
+              <button
+                onClick={() => setStep('upload')}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Back
               </button>
               <button
                 onClick={handleCreate}
@@ -458,11 +592,10 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
               </button>
             </>
           )}
-          {step === 'upload' && (
+          {step === 'generate' && (
             <button
               onClick={onClose}
-              disabled={!allUploaded}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
             >
               Done
             </button>
