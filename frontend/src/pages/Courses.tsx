@@ -128,7 +128,7 @@ function CourseForm({
             disabled={saving}
             className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
           >
-            {saving ? `${submitLabel.replace(/.$/, '…')}` : submitLabel}
+            {saving ? `${submitLabel}…` : submitLabel}
           </button>
         </div>
       </div>
@@ -443,9 +443,11 @@ export default function Courses() {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-6 text-sm text-gray-400">Loading…</div>
-        ) : courses.length === 0 ? (
-          <div className="p-6 text-sm text-gray-400">No courses found.</div>
-        ) : (
+        ) : filtered.length === 0 ? (
+        <div className="p-6 text-sm text-gray-400">
+          {courses.length === 0 ? 'No courses found.' : 'No courses match your search.'}
+          </div>
+          ) : (
           <>
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50">
@@ -466,7 +468,9 @@ export default function Courses() {
                         <span className="text-sm font-medium text-gray-900">{c.name}</span>
                         {c.priority && <StarIcon />}
                       </div>
-                      <div className="text-xs text-gray-400">{c.subject} {c.code}</div>
+                      <div className="text-xs text-gray-400">
+                        {c.subject} {c.code}{c.description ? ` · ${c.description}` : ''}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">{c.credits} cr</td>
                   </tr>
@@ -474,7 +478,7 @@ export default function Courses() {
               </tbody>
             </table>
             <div className="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
-              {filtered.length}{filtered.length !== courses.length && ` of ${courses.length}`} course{courses.length !== 1 ? 's' : ''}
+              {filtered.length}{filtered.length !== courses.length && ` of ${courses.length}`} course{filtered.length !== 1 ? 's' : ''}
             </div>
           </>
         )}

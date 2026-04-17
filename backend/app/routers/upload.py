@@ -227,9 +227,19 @@ def parse_course_offerings(db, reader):
         try:
             normalized = normalize_headers(row, COURSE_OFFERINGS)
             validated = CourseOfferingsSchema(**normalized)
-            existing = db.query(Course).filter(Course.name == validated.courseName).first()
+            existing = (
+                db.query(Course)
+                .filter(
+                    Course.name == validated.courseName,
+                    Course.description == validated.description,
+                )
+                .first()
+            )
             if existing:
-                logger.info(f"Row {i}: course '{validated.courseName}' already exists, skipping")
+                logger.info(
+                    f"Row {i}: course '{validated.courseName}' with the same description "
+                    f"already exists, skipping"
+                )
                 continue
             db_entry = validated.translate()
             table_entries.append(db_entry)
