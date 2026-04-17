@@ -7,11 +7,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.faculty_assignment import FacultyAssignment
+from app.core.enums import WarningType
+from app.models.schedule import Schedule
 from app.models.section import Section
 from app.repositories import comment as comment_repo
 from app.repositories import course as course_repo
 from app.repositories import faculty as faculty_repo
 from app.repositories import schedule as schedule_repo
+from app.repositories import schedule_warning as warnings_repo
 from app.repositories import section as section_repo
 from app.repositories import time_block as time_block_repo
 from app.schemas.section import (
@@ -298,3 +301,67 @@ def delete_section(db: Session, section_id: int) -> tuple[bool, list[int]]:
 
 def get_dept_time_block_counts(db: Session, schedule_id: int) -> dict:
     return section_repo.get_dept_time_blocks_counts(db, schedule_id)
+
+
+def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[WarningType]:
+    warnings = []
+    assignments = section_repo.get_faculty_assignmnets(db, section.section_id)
+    if "time_block_id" in updates.model_fields_set:
+        meeting_time = section.time_block_id
+        schedule = schedule_repo.get_by_id(db, section.schedule_id)
+        course = course_repo.get_by_id(db, section.course_id)
+        split_name = course.name.split(" ", 1)
+        course_subject = split_name[0]
+        if exceeds_meeting_time_capcacity(db, schedule, meeting_time, course_subject):
+            warnings.append(WarningType.TIME_BLOCK_OVERLOAD)
+        for nuid in assignments:
+            time_pref_exists = faculty_repo.find_meeting_time_preference(
+                db, nuid, section.time_block_id
+            )
+            double_booked = section_repo.double_booked(
+                db,
+                faculty_repo.get_assginments(db, nuid, section.schedule_id),
+                section.time_block_id,
+            )
+            if not time_pref_exists:
+                warnings.append(WarningType.UNPREFERENCED_TIME)
+            if double_booked:
+                warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
+    if "course_id" in updates.model_fields_set:
+        for nuid in assignments:
+            course_pref_exists = faculty_repo.find_course_preference(db, nuid, section.course_id)
+            if not course_pref_exists:
+                warnings.append(WarningType.UNPREFERENCED_COURSE)
+    if "faculty_nuids" in updates.model_fields_set:
+        for faculty_id in updates.faculty_nuids or []:
+            f = faculty_repo.get_by_nuid(db, faculty_id)
+            assigned = faculty_repo.get_assginments(db, faculty_id, section.schedule_id)
+            assignment_count = len(assigned)
+            if section_repo.double_booked(db, assigned, section.time_block_id):
+                warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
+            if assignment_count + 1 > f.max_load:
+                warnings.append(WarningType.FACULTY_OVERLOAD)
+            if not faculty_repo.find_course_preference(db, faculty_id, section.course_id):
+                warnings.append(WarningType.UNPREFERENCED_COURSE)
+    return warnings
+
+
+def exceeds_meeting_time_capcacity(
+    db: Session, schedule: Schedule, time_block: int, dept: str
+) -> bool:
+    sections = schedule.sections
+    dept_count_total = 0
+    dept_time_block_count = 0
+    for section in sections:
+        course = course_repo.get_by_id(db, section.course_id)
+        split_name = course.name.split(" ", 1)
+        course_subject = split_name[0]
+        if course_subject == dept:
+            dept_count_total += 1
+            if section.time_block_id == time_block:
+                dept_time_block_count += 1
+
+    if dept_count_total == 0 or dept_time_block_count <= 1:
+        return False
+    time_block_capacity = dept_time_block_count / dept_count_total
+    return time_block_capacity >= 0.15
