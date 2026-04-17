@@ -63,11 +63,14 @@ async def update_section(
             detail={"locked_by": e.lock.locked_by, "expires_at": str(e.lock.expires_at)},
         ) from e
     try:
-        updated = section_service.update_section(db, section_id, section)
+        result = section_service.update_section(db, section_id, section)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    if updated is None:
+    if result is None:
         raise HTTPException(status_code=404, detail="Section not found")
+
+    updated = result["updated"]
+    warnings = result["warnings"]
 
     rich_sections = section_service.get_rich_sections(db, updated.schedule_id)
     rich_section = next((s for s in rich_sections if s.section_id == section_id), None)
@@ -79,6 +82,17 @@ async def update_section(
                 "payload": {
                     "section_id": section_id,
                     "data": rich_section.model_dump(mode="json"),
+                },
+            },
+        )
+    if warnings:
+        await manager.broadcast(
+            updated.schedule_id,
+            {
+                "type": "section_warnings",
+                "payload": {
+                    "section_id": section_id,
+                    "warnings": [w.value for w in warnings],
                 },
             },
         )
