@@ -226,6 +226,7 @@ export default function ScheduleSectionRowView({
         const byKey = new Map<string, TimeBlockInfo>();
         for (const s of sections) {
           const tb = s.time_block;
+          if (!tb) continue;
           const key = `${tb.days}|${tb.start_time}|${tb.end_time}`;
           if (!byKey.has(key)) byKey.set(key, tb);
         }
