@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   getAutomatedCourseSchedulerAPI,
   type CourseResponse,
@@ -131,15 +131,18 @@ export default function SectionMutationDrawer(props: Props) {
     return m;
   }, [courses]);
 
-  function sectionLabelForUi(s: SectionRichResponse): string {
-    const cat = catalogById.get(s.course.course_id);
-    const courseLabel = formatCourseLabel({
-      name: cat?.name ?? s.course.name,
-      subject: cat?.subject,
-      code: cat?.code,
-    });
-    return `${courseLabel} Section ${s.section_number}`;
-  }
+  const sectionLabelForUi = useCallback(
+    (s: SectionRichResponse): string => {
+      const cat = catalogById.get(s.course.course_id);
+      const courseLabel = formatCourseLabel({
+        name: cat?.name ?? s.course.name,
+        subject: cat?.subject,
+        code: cat?.code,
+      });
+      return `${courseLabel} Section ${s.section_number}`;
+    },
+    [catalogById],
+  );
 
   // Submission state
   const [saving, setSaving] = useState(false);
@@ -166,13 +169,6 @@ export default function SectionMutationDrawer(props: Props) {
     });
   }, [campusName, scheduleId]);
 
-  useEffect(() => {
-    if (section) {
-      setCrosslistedSectionId(section.crosslisted_section_id ?? null);
-      setOriginalCrosslistedId(section.crosslisted_section_id ?? null);
-    }
-  }, [section?.section_id]);
-
   const crosslistOptions = useMemo((): SelectOption<number | null>[] => {
     const none: SelectOption<number | null> = { value: null, label: 'Not crosslisted' };
     if (!section) return [none];
@@ -195,14 +191,14 @@ export default function SectionMutationDrawer(props: Props) {
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
     return [none, ...partners];
-  }, [scheduleSections, section, crosslistedSectionId, catalogById]);
+  }, [scheduleSections, section, crosslistedSectionId, sectionLabelForUi]);
 
   const crosslistPartnerLabel = useMemo(() => {
     if (crosslistedSectionId == null) return null;
     const p = scheduleSections.find((s) => s.section_id === crosslistedSectionId);
     if (!p) return null;
     return sectionLabelForUi(p);
-  }, [scheduleSections, crosslistedSectionId, catalogById]);
+  }, [scheduleSections, crosslistedSectionId, sectionLabelForUi]);
 
   const uncrosslistWarning = useMemo(() => {
     if (!isEdit) return null;
@@ -211,7 +207,7 @@ export default function SectionMutationDrawer(props: Props) {
     const p = scheduleSections.find((s) => s.section_id === originalCrosslistedId);
     const label = p ? sectionLabelForUi(p) : `section #${originalCrosslistedId}`;
     return `You are uncrosslisting from ${label}. Both sections will keep their current time block and instructors; review both rows after saving.`;
-  }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections, catalogById]);
+  }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections, sectionLabelForUi]);
 
   const changeCrosslistPartnerWarning = useMemo(() => {
     if (!isEdit) return null;
@@ -223,7 +219,7 @@ export default function SectionMutationDrawer(props: Props) {
     const prevLabel = prev ? sectionLabelForUi(prev) : `section #${originalCrosslistedId}`;
     const nextLabel = next ? sectionLabelForUi(next) : `section #${crosslistedSectionId}`;
     return `This section will be uncrosslisted with ${prevLabel} and crosslisted with ${nextLabel} when you save.`;
-  }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections, catalogById]);
+  }, [isEdit, originalCrosslistedId, crosslistedSectionId, scheduleSections, sectionLabelForUi]);
 
   const showNewCrosslistSyncNotice = useMemo(() => {
     if (!isEdit) return false;

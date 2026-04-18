@@ -24,6 +24,9 @@ export interface UseScheduleWebSocketResult {
 
 export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketResult {
   const { getAccessTokenSilently } = useAuth0();
+  const getAccessTokenSilentlyRef = useRef(getAccessTokenSilently);
+  getAccessTokenSilentlyRef.current = getAccessTokenSilently;
+
   const [sections, setSections] = useState<SectionRichResponse[]>([]);
   const [locks, setLocks] = useState<Map<number, LockInfo>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -55,7 +58,7 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
 
       let token: string;
       try {
-        token = await getAccessTokenSilently();
+        token = await getAccessTokenSilentlyRef.current();
       } catch {
         if (!cancelled) setStatus('disconnected');
         return;
@@ -185,7 +188,7 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
       if (reconnectTimer) clearTimeout(reconnectTimer);
       ws?.close();
     };
-  }, [scheduleId]); // getAccessTokenSilently is stable
+  }, [scheduleId]);
 
   return { sections, locks, loading, status };
 }

@@ -5,7 +5,8 @@ import type { LockInfo } from '../hooks/useScheduleWebSocket';
 import CrosslistSectionHint from './CrosslistSectionHint';
 import FacultyTooltip from './FacultyTooltip';
 import MultiSearchableSelect from './MultiSearchableSelect';
-import SectionCalendarGrid, { LockBadge, parseTimeToMinutes } from './SectionCalendarGrid';
+import SectionCalendarGrid, { LockBadge } from './SectionCalendarGrid';
+import { parseTimeToMinutes } from '../utils/scheduleCalendar';
 import SectionDetailPanel from './SectionDetailPanel';
 import SectionMutationDrawer from './SectionMutationDrawer';
 import type { SelectOption } from './SearchableSelect';
@@ -609,6 +610,7 @@ export default function ScheduleSectionRowView({
       {/* Edit drawer */}
       {isAdmin && editingSection && (
         <SectionMutationDrawer
+          key={editingSection.section_id}
           mode="edit"
           scheduleId={scheduleId}
           section={editingSection}

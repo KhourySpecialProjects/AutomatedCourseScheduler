@@ -96,11 +96,9 @@ export default function Faculty() {
   // Export state
   const [exporting, setExporting] = useState(false);
 
-  const api = getAutomatedCourseSchedulerAPI();
-
   // Fetch current user
   useEffect(() => {
-    api
+    getAutomatedCourseSchedulerAPI()
       .getMeApiUsersMeGet()
       .then(setMe)
       .catch(() => {})
@@ -109,6 +107,7 @@ export default function Faculty() {
 
   // Fetch campuses + schedules + users on mount
   useEffect(() => {
+    const api = getAutomatedCourseSchedulerAPI();
     api.getAllCampusesCampusesGet().then(setCampuses).catch(() => {});
     api
       .getSchedulesSchedulesGet()
@@ -126,7 +125,7 @@ export default function Faculty() {
   // Fetch faculty list once on mount
   useEffect(() => {
     setFacultyLoading(true);
-    (api.getFacultyFacultyGet({}) as unknown as Promise<FacultyRecord[]>)
+    (getAutomatedCourseSchedulerAPI().getFacultyFacultyGet({}) as unknown as Promise<FacultyRecord[]>)
       .then(setFacultyList)
       .catch(() => {})
       .finally(() => setFacultyLoading(false));
@@ -140,7 +139,7 @@ export default function Faculty() {
     }
     let cancelled = false;
     setSectionsLoading(true);
-    api
+    getAutomatedCourseSchedulerAPI()
       .getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet(selectedScheduleId)
       .then((secs) => {
         if (!cancelled) setSections(secs);
@@ -247,7 +246,7 @@ export default function Faculty() {
   async function handleExportInviteCsv() {
     setExporting(true);
     try {
-      const rows = await api.exportInvitesApiInvitesExportGet();
+      const rows = await getAutomatedCourseSchedulerAPI().exportInvitesApiInvitesExportGet();
       const header = ['first_name', 'last_name', 'email', 'invite_link'];
       const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
       const csv = [
@@ -262,7 +261,7 @@ export default function Faculty() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      const users = await api.listUsersApiUsersGet();
+      const users = await getAutomatedCourseSchedulerAPI().listUsersApiUsersGet();
       setUserNuidSet(new Set(users.map((u) => u.nuid)));
     } finally {
       setExporting(false);
