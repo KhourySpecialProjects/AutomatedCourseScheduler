@@ -1,6 +1,38 @@
 from dataclasses import dataclass, field
 
 from app.schemas.section import CoursePreferenceInfo, MeetingPreferenceInfo
+from app.schemas.warning import Warning
+
+
+@dataclass(frozen=True)
+class MatchedAssignment:
+    """Represents a course section assigned to a faculty member
+    during the scheduling algorithm."""
+
+    section_id: int
+    course_id: int
+    faculty_nuid: int
+    department_code: str
+
+
+@dataclass
+class SectionAssignment:
+    """Represents a section and instructor with a chosen time block and time preference level
+    during the scheduling algorithm."""
+
+    section_id: int
+    faculty_nuid: int
+    time_block_id: int | None
+    time_preference_level: int | None
+
+
+@dataclass
+class TimeBlockAssignmentResult:
+    """Represents time block placements and warnings produced
+    during the scheduling algorithm."""
+
+    assignments: list[SectionAssignment]
+    warnings: list[Warning]
 
 
 @dataclass

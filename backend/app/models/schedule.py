@@ -12,6 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
+from app.core.enums import ScheduleStatus
 from app.models.semester import Semester
 
 if TYPE_CHECKING:
@@ -31,6 +32,11 @@ class Schedule(Base):
     semester_id: Mapped[int] = mapped_column(
         Integer, ForeignKey(Semester.semester_id), nullable=False
     )
+    status: Mapped[str] = mapped_column(String(20), default=ScheduleStatus.IDLE)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     draft: Mapped[bool] = mapped_column(Boolean, default=True)
     campus: Mapped[int] = mapped_column(ForeignKey("campus.campus_id"), nullable=False)
 

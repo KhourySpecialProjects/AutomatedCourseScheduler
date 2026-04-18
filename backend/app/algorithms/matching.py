@@ -281,5 +281,5 @@ def match_courses_to_faculty(
             unmatched.append(section)
 
     # 3. Build output
-    course_name_lookup = {c.course_id: c.name or "" for c in input.OfferedCourses}
+    course_name_lookup = {c.course_id: c.subject or "" for c in input.OfferedCourses}
     return _build_output(sections, assignments, unmatched, pref_lookup, course_name_lookup)

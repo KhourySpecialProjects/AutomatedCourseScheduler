@@ -319,4 +319,9 @@ def delete_section(db: Session, section_id: int) -> tuple[bool, list[int]]:
             section_repo.save(db, reverse)
             partner_ids_to_broadcast.add(reverse.section_id)
     section_repo.delete(db, section_obj)
+
     return True, sorted(partner_ids_to_broadcast)
+
+def get_dept_time_block_counts(db: Session, schedule_id: int) -> dict:
+    return section_repo.get_dept_time_blocks_counts(db, schedule_id)
+

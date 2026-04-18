@@ -1,16 +1,20 @@
 """Algorithm router."""
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.enums import ScheduleStatus
 from app.repositories import schedule as schedule_repo
 from app.schemas.generate_schedule import (
     GenerateScheduleRequest,
     RegenerateScheduleRequest,
 )
 from app.services.algorithm import run_algorithm_task, run_regenerate_task
-from app.services.connection_manager import manager
+
+router = APIRouter(prefix="/schedules", tags=["schedules"])
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
@@ -22,18 +26,20 @@ def run_algorithm(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    if not schedule_repo.schedule_exists(db, schedule_id):
+    schedule = schedule_repo.get_by_id(db, schedule_id)
+    if schedule is None:
         raise HTTPException(status_code=404, detail="Schedule not found")
+    if schedule.status == ScheduleStatus.RUNNING:
+        raise HTTPException(status_code=409, detail="Algorithm already running")
 
-    background_tasks.add_task(run_algorithm_task, db, schedule_id, request.parameters)
-    manager.broadcast(schedule_id, {"type": "schedule_generated", "payload": {}})
+    schedule.status = ScheduleStatus.RUNNING
+    schedule.started_at = datetime.now(UTC)
+    schedule.completed_at = None
+    schedule.error_message = None
+    db.commit()
+
+    background_tasks.add_task(run_algorithm_task, schedule_id, request.parameters)
     return {"schedule_id": schedule_id, "status": "running"}
-    # TODO (websocket): when run_algorithm_task completes, broadcast to connected clients:
-    #   type: "schedule_regenerated", payload: all rich sections for the generated schedule_id
-    #   This requires passing db + schedule_id into the background task and calling
-    #   manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": [...]})
-    background_tasks.add_task(run_algorithm_task, request.parameters)
-    return {"status": "running"}
 
 
 @router.post("/{schedule_id}/regenerate", status_code=202)
@@ -43,15 +49,17 @@ def regenerate_algorithm(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    if not schedule_repo.schedule_exists(db, schedule_id):
+    schedule = schedule_repo.get_by_id(db, schedule_id)
+    if schedule is None:
         raise HTTPException(status_code=404, detail="Schedule not found")
+    if schedule.status == ScheduleStatus.RUNNING:
+        raise HTTPException(status_code=409, detail="Algorithm already running")
 
-    background_tasks.add_task(run_regenerate_task, db, schedule_id, request.parameters)
-    # TODO (websocket): when run_regenerate_task completes, broadcast to connected clients:
-    #   type: "schedule_regenerated", payload: all rich sections for schedule_id
-    #   This requires passing db + schedule_id into the background task and calling
-    #   manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": [...]})
+    schedule.status = ScheduleStatus.RUNNING
+    schedule.started_at = datetime.now(UTC)
+    schedule.completed_at = None
+    schedule.error_message = None
+    db.commit()
+
     background_tasks.add_task(run_regenerate_task, schedule_id, request.parameters)
-    manager.broadcast(schedule_id, {"type": "schedule_regenerated", "payload": {}})
-
     return {"schedule_id": schedule_id, "status": "running"}
