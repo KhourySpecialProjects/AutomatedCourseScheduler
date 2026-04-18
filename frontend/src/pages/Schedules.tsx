@@ -165,7 +165,7 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
               </button>
             </div>
           )}
-          {/* Table / Calendar */}
+          {/* Table / Calendar toggle */}
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             <button
               type="button"
@@ -219,6 +219,7 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
           scheduleId={scheduleId}
           locks={locks}
           campusName={campusName}
+          campusId={schedule?.campus ?? null}
           viewMode={effectiveViewMode}
           onSelectedCourseCountChange={setSelectedCourseCount}
           onSelectedInstructorCountChange={setSelectedInstructorCount}
