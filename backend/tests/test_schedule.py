@@ -745,13 +745,25 @@ def test_get_schedule_locks_returns_active(client: TestClient, db_session: Sessi
     course = _make_course(db_session)
     time_block = _make_time_block(db_session, campus.campus_id)
     section1 = _make_section(
-        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id, section_number=1
+        db_session,
+        schedule.schedule_id,
+        course.course_id,
+        time_block.time_block_id,
+        section_number=1,
     )
     section2 = _make_section(
-        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id, section_number=2
+        db_session,
+        schedule.schedule_id,
+        course.course_id,
+        time_block.time_block_id,
+        section_number=2,
     )
     section3 = _make_section(
-        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id, section_number=3
+        db_session,
+        schedule.schedule_id,
+        course.course_id,
+        time_block.time_block_id,
+        section_number=3,
     )
 
     # two active locks
