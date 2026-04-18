@@ -3580,6 +3580,14 @@ def seed(db: Session) -> None:
             block_group=None,
         ),
         TimeBlock(
+            time_block_id=87,
+            meeting_days="MWR",
+            start_time=time(15, 25),
+            end_time=time(16, 30),
+            campus=boston.campus_id,
+            block_group=None,
+        ),
+        TimeBlock(
             time_block_id=81,
             meeting_days="TF",
             start_time=time(8, 00),
@@ -3626,6 +3634,23 @@ def seed(db: Session) -> None:
             end_time=time(10, 25),
             campus=boston.campus_id,
             block_group=None,
+        ),
+        # Seq H — split block: Tuesday 11:45 AM–1:25 PM + Thursday 2:50–4:30 PM
+        TimeBlock(
+            time_block_id=88,
+            meeting_days="T",
+            start_time=time(11, 45),
+            end_time=time(13, 25),
+            campus=boston.campus_id,
+            block_group="H",
+        ),
+        TimeBlock(
+            time_block_id=89,
+            meeting_days="R",
+            start_time=time(14, 50),
+            end_time=time(16, 30),
+            campus=boston.campus_id,
+            block_group="H",
         ),
     ]
 
@@ -11333,6 +11358,58 @@ def seed(db: Session) -> None:
             crosslisted_section_id=None,
         ),
     ]
+
+    # ------------------------------------------------------------------
+    # Fall 2026 Draft (schedule_id=35) — mock sections with standard time blocks
+    # Time block IDs: 76=Seq1(MWR 8:00), 77=Seq2(MWR 9:15), 78=Seq3(MWR 10:30),
+    #                 75=SeqA(MR 11:45), 79=Seq4(MWR 13:35), 87=SeqB(MWR 15:25),
+    #                 80=Seq5(MWR 16:35), 81=SeqC(TF 8:00),  82=SeqD(TF 9:50),
+    #                 85=SeqE(WF 11:45), 83=SeqF(TF 13:35),  84=SeqG(TF 15:25)
+    # ------------------------------------------------------------------
+    draft_sections = [
+        # CS 1800 Discrete Structures — 3 sections
+        Section(schedule_id=35, course_id=7,  section_number=1, capacity=60, room=None, time_block_id=76, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=7,  section_number=2, capacity=60, room=None, time_block_id=77, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=7,  section_number=3, capacity=60, room=None, time_block_id=82, crosslisted_section_id=None),
+        # CS 2000 Computing and Society — 2 sections
+        Section(schedule_id=35, course_id=9,  section_number=1, capacity=50, room=None, time_block_id=81, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=9,  section_number=2, capacity=50, room=None, time_block_id=85, crosslisted_section_id=None),
+        # CS 2100 Object-Oriented Design — 3 sections
+        Section(schedule_id=35, course_id=11, section_number=1, capacity=40, room=None, time_block_id=78, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=11, section_number=2, capacity=40, room=None, time_block_id=83, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=11, section_number=3, capacity=40, room=None, time_block_id=87, crosslisted_section_id=None),
+        # CS 2500 Fundamentals of CS 1 — 3 sections
+        Section(schedule_id=35, course_id=15, section_number=1, capacity=55, room=None, time_block_id=77, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=15, section_number=2, capacity=55, room=None, time_block_id=79, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=15, section_number=3, capacity=55, room=None, time_block_id=84, crosslisted_section_id=None),
+        # CS 2800 Logic and Computation — 2 sections
+        Section(schedule_id=35, course_id=18, section_number=1, capacity=45, room=None, time_block_id=75, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=18, section_number=2, capacity=45, room=None, time_block_id=82, crosslisted_section_id=None),
+        # CS 3000 Algorithms and Data — 2 sections
+        Section(schedule_id=35, course_id=21, section_number=1, capacity=40, room=None, time_block_id=78, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=21, section_number=2, capacity=40, room=None, time_block_id=83, crosslisted_section_id=None),
+        # CS 3100 Foundations of Software Engineering — 2 sections
+        Section(schedule_id=35, course_id=23, section_number=1, capacity=35, room=None, time_block_id=80, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=23, section_number=2, capacity=35, room=None, time_block_id=84, crosslisted_section_id=None),
+        # CS 3200 Database Design — 2 sections
+        Section(schedule_id=35, course_id=25, section_number=1, capacity=35, room=None, time_block_id=76, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=25, section_number=2, capacity=35, room=None, time_block_id=85, crosslisted_section_id=None),
+        # CS 3500 Object-Oriented Design — 2 sections
+        Section(schedule_id=35, course_id=27, section_number=1, capacity=40, room=None, time_block_id=79, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=27, section_number=2, capacity=40, room=None, time_block_id=81, crosslisted_section_id=None),
+        # CS 3650 Computer Systems — 2 sections
+        Section(schedule_id=35, course_id=32, section_number=1, capacity=35, room=None, time_block_id=77, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=32, section_number=2, capacity=35, room=None, time_block_id=87, crosslisted_section_id=None),
+        # CS 3800 Theory of Computation — 2 sections
+        Section(schedule_id=35, course_id=34, section_number=1, capacity=35, room=None, time_block_id=75, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=34, section_number=2, capacity=35, room=None, time_block_id=80, crosslisted_section_id=None),
+        # CS 4100 Artificial Intelligence — 2 sections
+        Section(schedule_id=35, course_id=38, section_number=1, capacity=30, room=None, time_block_id=83, crosslisted_section_id=None),
+        Section(schedule_id=35, course_id=38, section_number=2, capacity=30, room=None, time_block_id=78, crosslisted_section_id=None),
+    ]
+    sections.extend(draft_sections)
+    # Index helpers for faculty assignment below
+    _ds = {i: draft_sections[i] for i in range(len(draft_sections))}
     # section_specs = [
     #     # CS1 — 4 sections
     #     (0, 0, 1, 60),
@@ -11423,6 +11500,56 @@ def seed(db: Session) -> None:
         FacultyAssignment(faculty_nuid=391, section_id=sections[2].section_id),
         # Wand → CS 5010 Programming Design Paradigm
         FacultyAssignment(faculty_nuid=824, section_id=sections[27].section_id),
+        # ------------------------------------------------------------------
+        # Fall 2026 Draft faculty assignments
+        # _ds indices: 0-2=CS1800, 3-4=CS2000, 5-7=CS2100, 8-10=CS2500,
+        #              11-12=CS2800, 13-14=CS3000, 15-16=CS3100, 17-18=CS3200,
+        #              19-20=CS3500, 21-22=CS3650, 23-24=CS3800, 25-26=CS4100
+        # ------------------------------------------------------------------
+        # Barzilay → CS 1800 Discrete Structures sec 1
+        FacultyAssignment(faculty_nuid=58,  section_id=_ds[0].section_id),
+        # Eliassi-Rad → CS 1800 Discrete Structures sec 2
+        FacultyAssignment(faculty_nuid=210, section_id=_ds[1].section_id),
+        # Radivojac → CS 1800 sec 3
+        FacultyAssignment(faculty_nuid=603, section_id=_ds[2].section_id),
+        # Hescott → CS 2000 Computing and Society
+        FacultyAssignment(faculty_nuid=319, section_id=_ds[3].section_id),
+        FacultyAssignment(faculty_nuid=319, section_id=_ds[4].section_id),
+        # Tip → CS 2100 OOD sec 1
+        FacultyAssignment(faculty_nuid=769, section_id=_ds[5].section_id),
+        # Muzny → CS 2100 OOD sec 2-3
+        FacultyAssignment(faculty_nuid=533, section_id=_ds[6].section_id),
+        FacultyAssignment(faculty_nuid=533, section_id=_ds[7].section_id),
+        # Felleisen → CS 2500 Fundamentals sec 1-2
+        FacultyAssignment(faculty_nuid=227, section_id=_ds[8].section_id),
+        FacultyAssignment(faculty_nuid=227, section_id=_ds[9].section_id),
+        # Shivers → CS 2500 sec 3
+        FacultyAssignment(faculty_nuid=698, section_id=_ds[10].section_id),
+        # Wand → CS 2800 Logic sec 1-2
+        FacultyAssignment(faculty_nuid=824, section_id=_ds[11].section_id),
+        FacultyAssignment(faculty_nuid=824, section_id=_ds[12].section_id),
+        # Rajaraman → CS 3000 Algorithms sec 1
+        FacultyAssignment(faculty_nuid=607, section_id=_ds[13].section_id),
+        # Cohen → CS 3000 Algorithms sec 2
+        FacultyAssignment(faculty_nuid=141, section_id=_ds[14].section_id),
+        # Nita-Rotaru → CS 3100 Foundations of SE
+        FacultyAssignment(faculty_nuid=547, section_id=_ds[15].section_id),
+        FacultyAssignment(faculty_nuid=547, section_id=_ds[16].section_id),
+        # Riedewald → CS 3200 Database Design sec 1
+        FacultyAssignment(faculty_nuid=628, section_id=_ds[17].section_id),
+        FacultyAssignment(faculty_nuid=628, section_id=_ds[18].section_id),
+        # Vitek → CS 3500 OOD sec 1-2
+        FacultyAssignment(faculty_nuid=813, section_id=_ds[19].section_id),
+        FacultyAssignment(faculty_nuid=813, section_id=_ds[20].section_id),
+        # Choffnes → CS 3650 Computer Systems
+        FacultyAssignment(faculty_nuid=131, section_id=_ds[21].section_id),
+        FacultyAssignment(faculty_nuid=131, section_id=_ds[22].section_id),
+        # Cohen → CS 3800 Theory of Computation
+        FacultyAssignment(faculty_nuid=141, section_id=_ds[23].section_id),
+        FacultyAssignment(faculty_nuid=141, section_id=_ds[24].section_id),
+        # Radivojac → CS 4100 AI sec 1-2
+        FacultyAssignment(faculty_nuid=603, section_id=_ds[25].section_id),
+        FacultyAssignment(faculty_nuid=603, section_id=_ds[26].section_id),
     ]
     db.add_all(assignments)
 
