@@ -85,16 +85,17 @@ export default function Sidebar() {
       }`}
     >
       {/* Logo row */}
-      <div className="flex items-center h-16 px-4 border-b border-gray-100 overflow-hidden">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="flex items-center justify-center w-8 h-8 bg-indigo-600 rounded-lg shrink-0">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-          {!collapsed && (
-            <span className="text-sm font-semibold text-gray-900 truncate">Course Scheduler</span>
-          )}
+      <div className={`h-24 border-b border-gray-100 ${collapsed ? 'px-3' : 'px-0'}`}>
+        <div className="w-full h-full pt-3">
+          <img
+            src="/acs-logo.png"
+            alt="ACS Automated Course Scheduler"
+            className={
+              collapsed
+                ? 'h-full w-10 object-contain object-center shrink-0 block'
+                : 'h-full w-full object-contain object-center shrink-0 block'
+            }
+          />
         </div>
       </div>
 
@@ -107,7 +108,7 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 text-indigo-700'
+                  ? 'bg-burgundy-50 text-burgundy-700'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`
             }

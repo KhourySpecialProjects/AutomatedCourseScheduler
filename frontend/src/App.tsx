@@ -17,7 +17,7 @@ function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-gray-500">
-          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-burgundy-200 border-t-burgundy-600 rounded-full animate-spin" />
           <span className="text-sm font-medium">Loading...</span>
         </div>
       </div>
@@ -39,14 +39,14 @@ function App() {
   return (
     <BrowserRouter>
       {!isAuthenticated ? (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-slate-50 flex items-center justify-center px-4">
+        <div className="min-h-screen bg-gradient-to-br from-burgundy-50 via-white to-slate-50 flex items-center justify-center px-4">
           <div className="w-full max-w-md">
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4 shadow-lg">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
+              <img
+                src="/acs-logo.png"
+                alt="ACS Automated Course Scheduler"
+                className="h-16 w-auto max-w-full mx-auto mb-4 object-contain drop-shadow-sm"
+              />
               <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Course Scheduler</h1>
               <p className="mt-2 text-gray-500 text-sm">Automated scheduling for academic programs</p>
             </div>

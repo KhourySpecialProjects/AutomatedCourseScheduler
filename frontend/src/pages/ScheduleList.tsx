@@ -6,7 +6,7 @@ function ScheduleCard({ schedule, onClick }: { schedule: ScheduleResponse; onCli
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-sm transition-all group"
+      className="w-full text-left bg-white border border-gray-200 rounded-xl p-5 hover:border-burgundy-300 hover:shadow-sm transition-all group"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
@@ -27,14 +27,14 @@ function ScheduleCard({ schedule, onClick }: { schedule: ScheduleResponse; onCli
               </span>
             )}
             {schedule.active && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-burgundy-50 text-burgundy-700 border border-burgundy-200">
                 Active
               </span>
             )}
           </div>
         </div>
         <svg
-          className="w-5 h-5 text-gray-300 group-hover:text-indigo-400 shrink-0 mt-0.5 transition-colors"
+          className="w-5 h-5 text-gray-300 group-hover:text-burgundy-400 shrink-0 mt-0.5 transition-colors"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

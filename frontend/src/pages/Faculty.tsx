@@ -391,7 +391,7 @@ export default function Faculty() {
               value={nameSearch}
               onChange={(e) => setNameSearch(e.target.value)}
               placeholder="Search name…"
-              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-44"
+              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500 w-44"
             />
           </div>
 
@@ -410,7 +410,7 @@ export default function Faculty() {
           {/* Add faculty */}
           <button
             onClick={() => setDrawer({ mode: 'create' })}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -436,7 +436,7 @@ export default function Faculty() {
                     <span className="flex items-center gap-1">
                       Name
                       {sortKey === 'name' ? (
-                        <svg className="w-3 h-3 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-3 h-3 text-burgundy-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
                         </svg>
                       ) : (
@@ -455,7 +455,7 @@ export default function Faculty() {
                     <span className="flex items-center gap-1">
                       Current Load
                       {sortKey === 'load' ? (
-                        <svg className="w-3 h-3 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-3 h-3 text-burgundy-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
                         </svg>
                       ) : (
@@ -482,7 +482,7 @@ export default function Faculty() {
                     <tr
                       key={f.nuid}
                       onClick={() => setDrawer({ mode: 'edit', faculty: f })}
-                      className={`cursor-pointer transition-colors hover:bg-indigo-50/40 ${inactive ? 'opacity-50' : ''}`}
+                      className={`cursor-pointer transition-colors hover:bg-burgundy-50/40 ${inactive ? 'opacity-50' : ''}`}
                     >
                       {/* Name */}
                       <td className="px-5 py-3">
@@ -552,7 +552,7 @@ export default function Faculty() {
                       {/* Account */}
                       <td className="px-4 py-3">
                         {userNuidSet.has(f.nuid) ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-burgundy-50 text-burgundy-700">
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>

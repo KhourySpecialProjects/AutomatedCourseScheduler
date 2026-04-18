@@ -50,7 +50,7 @@ function CourseForm({
               value={form.subject}
               onChange={(e) => onChange('subject', e.target.value)}
               placeholder="CS"
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
             />
           </div>
           <div>
@@ -61,7 +61,7 @@ function CourseForm({
               value={form.code || ''}
               onChange={(e) => onChange('code', Number(e.target.value))}
               placeholder="4500"
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
             />
           </div>
         </div>
@@ -73,7 +73,7 @@ function CourseForm({
             value={form.name}
             onChange={(e) => onChange('name', e.target.value)}
             placeholder="Algorithms"
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
           />
         </div>
 
@@ -85,7 +85,7 @@ function CourseForm({
             value={form.description}
             onChange={(e) => onChange('description', e.target.value)}
             placeholder="Course description…"
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500 resize-none"
           />
         </div>
 
@@ -99,7 +99,7 @@ function CourseForm({
               value={form.credits || ''}
               onChange={(e) => onChange('credits', Number(e.target.value))}
               placeholder="4"
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
             />
           </div>
           <div className="flex items-end pb-2">
@@ -108,7 +108,7 @@ function CourseForm({
                 type="checkbox"
                 checked={form.priority}
                 onChange={(e) => onChange('priority', e.target.checked)}
-                className="w-4 h-4 accent-indigo-600"
+                className="w-4 h-4 accent-burgundy-600"
               />
               <span className="text-sm text-gray-700">Priority</span>
             </label>
@@ -126,7 +126,7 @@ function CourseForm({
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
           >
             {saving ? `${submitLabel}…` : submitLabel}
           </button>
@@ -419,13 +419,13 @@ export default function Courses() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search name or code…"
-              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48"
+              className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500 w-48"
             />
           </div>
           {isAdmin && (
             <button
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -439,6 +439,22 @@ export default function Courses() {
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
       )}
+
+      <div className="mb-4 flex items-center gap-3">
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Schedule</label>
+        <select
+          value={scheduleId ?? ''}
+          onChange={(e) => setScheduleId(e.target.value ? Number(e.target.value) : null)}
+          className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+        >
+          {schedules.map((s) => (
+            <option key={s.schedule_id} value={s.schedule_id}>
+              {s.name ?? `Schedule ${s.schedule_id}`}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-gray-400 ml-auto">{courses.length} course{courses.length === 1 ? '' : 's'}</span>
+      </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
@@ -461,7 +477,7 @@ export default function Courses() {
                   <tr
                     key={c.course_id}
                     onClick={() => isAdmin && setEditing(c)}
-                    className={`transition-colors ${isAdmin ? 'cursor-pointer hover:bg-indigo-50/40' : 'hover:bg-gray-50'}`}
+                    className={`transition-colors ${isAdmin ? 'cursor-pointer hover:bg-burgundy-50/40' : 'hover:bg-gray-50'}`}
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-1.5">

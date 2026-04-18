@@ -109,7 +109,7 @@ export default function Upload() {
               type="button"
               disabled={busy !== null}
               onClick={() => coursesRef.current?.click()}
-              className="px-3 py-2 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-3 py-2 text-xs font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
             >
               {busy === 'courses' ? 'Uploading…' : 'Upload CSV'}
             </button>
@@ -141,7 +141,7 @@ export default function Upload() {
               type="button"
               disabled={busy !== null}
               onClick={() => prefRef.current?.click()}
-              className="px-3 py-2 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-3 py-2 text-xs font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
             >
               {busy === 'faculty-preferences' ? 'Uploading…' : 'Upload CSV'}
             </button>
@@ -173,7 +173,7 @@ export default function Upload() {
               type="button"
               disabled={busy !== null}
               onClick={() => timeRef.current?.click()}
-              className="px-3 py-2 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-3 py-2 text-xs font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
             >
               {busy === 'time-preferences' ? 'Uploading…' : 'Upload CSV'}
             </button>

@@ -248,7 +248,7 @@ export default function ScheduleSectionRowView({
                     setCourseFilterIds((prev) => [...prev, opt.value]);
                     setCourseQuery('');
                   }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-burgundy-50 transition-colors"
                 >
                   {opt.label}
                 </button>
@@ -277,7 +277,7 @@ export default function ScheduleSectionRowView({
                     setInstructorFilterNuids((prev) => [...prev, opt.value]);
                     setInstructorQuery('');
                   }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-burgundy-50 transition-colors"
                 >
                   {opt.label}
                 </button>
@@ -293,7 +293,7 @@ export default function ScheduleSectionRowView({
               onClick={() => setDayFilter(f)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 dayFilter === f
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-burgundy-600 text-white'
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
@@ -309,7 +309,7 @@ export default function ScheduleSectionRowView({
         {!readOnly && (
           <button
             onClick={() => setCreating(true)}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -353,7 +353,7 @@ export default function ScheduleSectionRowView({
                     <span className="flex items-center gap-1">
                       {label}
                       {sortKey === key ? (
-                        <svg className="w-3 h-3 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-3 h-3 text-burgundy-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
                         </svg>
                       ) : (
@@ -387,7 +387,7 @@ export default function ScheduleSectionRowView({
                     <tr
                       key={section.section_id}
                       onClick={() => !isLocked && setSelectedSection(section)}
-                      className={`transition-colors ${isLocked ? 'bg-amber-50/40 cursor-default' : 'hover:bg-indigo-50/40 cursor-pointer'}`}
+                      className={`transition-colors ${isLocked ? 'bg-amber-50/40 cursor-default' : 'hover:bg-burgundy-50/40 cursor-pointer'}`}
                     >
                       {/* Course */}
                       <td className="px-4 py-3">
@@ -421,7 +421,7 @@ export default function ScheduleSectionRowView({
                             onClick={(e) => e.stopPropagation()}
                             onMouseEnter={(e) => handleInstructorMouseEnter(e, instructor)}
                             onMouseLeave={handleInstructorMouseLeave}
-                            className="text-sm text-indigo-700 hover:text-indigo-900 underline decoration-dotted underline-offset-2 cursor-default"
+                            className="text-sm text-burgundy-700 hover:text-burgundy-900 underline decoration-dotted underline-offset-2 cursor-default"
                           >
                             {instructor.first_name} {instructor.last_name}
                           </button>
@@ -451,7 +451,7 @@ export default function ScheduleSectionRowView({
                               onClick={(e) => handleEditClick(e, section)}
                               disabled={isLocked}
                               title={isLocked ? `Locked by ${lock!.display_name}` : 'Edit section'}
-                              className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                              className="p-1.5 rounded-md text-gray-400 hover:text-burgundy-600 hover:bg-burgundy-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
