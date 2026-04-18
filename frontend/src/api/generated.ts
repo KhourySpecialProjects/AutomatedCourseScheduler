@@ -293,11 +293,11 @@ export interface ScheduleResponse {
 
 export type ScheduleUpdateName = string | null;
 
-export type ScheduleUpdateActive = boolean | null;
+export type ScheduleUpdateDraft = boolean | null;
 
 export interface ScheduleUpdate {
   name?: ScheduleUpdateName;
-  active?: ScheduleUpdateActive;
+  draft?: ScheduleUpdateDraft;
 }
 
 export type SectionCreateCapacity = number | null;
