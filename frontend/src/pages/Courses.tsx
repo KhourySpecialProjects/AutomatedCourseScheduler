@@ -440,22 +440,6 @@ export default function Courses() {
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
       )}
 
-      <div className="mb-4 flex items-center gap-3">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Schedule</label>
-        <select
-          value={scheduleId ?? ''}
-          onChange={(e) => setScheduleId(e.target.value ? Number(e.target.value) : null)}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-burgundy-500"
-        >
-          {schedules.map((s) => (
-            <option key={s.schedule_id} value={s.schedule_id}>
-              {s.name ?? `Schedule ${s.schedule_id}`}
-            </option>
-          ))}
-        </select>
-        <span className="text-xs text-gray-400 ml-auto">{courses.length} course{courses.length === 1 ? '' : 's'}</span>
-      </div>
-
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-6 text-sm text-gray-400">Loading…</div>
