@@ -50,12 +50,12 @@ def _make_schedule(db):
     return schedule
 
 
-def _make_section(db, schedule_id):
+def _make_section(db, schedule_id, *, section_number=1, course_id=1, time_block_id=1):
     section = Section(
         schedule_id=schedule_id,
-        time_block_id=1,
-        course_id=1,
-        section_number=1,
+        time_block_id=time_block_id,
+        course_id=course_id,
+        section_number=section_number,
         capacity=30,
     )
     db.add(section)
@@ -292,7 +292,7 @@ def test_get_comments_only_returns_comments_for_requested_section(client, db_ses
     user = _make_user(db_session)
     schedule_id = _make_schedule(db_session).schedule_id
     section_a = _make_section(db_session, schedule_id)
-    section_b = _make_section(db_session, schedule_id)
+    section_b = _make_section(db_session, schedule_id, section_number=2)
     _make_comment(db_session, user.user_id, section_a.section_id, "Comment on A")
     _make_comment(db_session, user.user_id, section_b.section_id, "Comment on B")
 
