@@ -332,14 +332,16 @@ export default function Courses() {
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<CourseResponse | null>(null);
 
-  const api = getAutomatedCourseSchedulerAPI();
-
   useEffect(() => {
-    api.getMeApiUsersMeGet().then(setMe).catch(() => {}).finally(() => setMeLoading(false));
+    getAutomatedCourseSchedulerAPI()
+      .getMeApiUsersMeGet()
+      .then(setMe)
+      .catch(() => {})
+      .finally(() => setMeLoading(false));
   }, []);
 
   useEffect(() => {
-    api
+    getAutomatedCourseSchedulerAPI()
       .getCoursesCoursesGet()
       .then((cs) => setCourses([...cs].sort((a, b) => a.name.localeCompare(b.name))))
       .catch(() => setError('Failed to load courses.'))

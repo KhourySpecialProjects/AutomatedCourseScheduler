@@ -12,6 +12,9 @@ export default function SectionComments({ sectionId }: { sectionId: number }) {
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [replyPosting, setReplyPosting] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [content, setContent] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +102,33 @@ export default function SectionComments({ sectionId }: { sectionId: number }) {
     }
   }
 
+  async function postReply(parentId: number) {
+    if (!me) {
+      setError('You must be signed in to reply.');
+      return;
+    }
+    const text = replyContent.trim();
+    if (!text) return;
+    setReplyPosting(true);
+    setError(null);
+    try {
+      const api = getAutomatedCourseSchedulerAPI();
+      await api.postReplyCommentsParentIdPost(parentId, {
+        section_id: sectionId,
+        user_id: me.user_id,
+        content: text,
+      });
+      setReplyContent('');
+      setReplyingTo(null);
+      await refresh();
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+      setError(typeof detail === 'string' ? detail : 'Failed to post reply.');
+    } finally {
+      setReplyPosting(false);
+    }
+  }
+
   return (
     <section>
       <div className="flex items-center justify-between mb-2">
@@ -125,6 +155,20 @@ export default function SectionComments({ sectionId }: { sectionId: number }) {
                   <span>{formatDate(c.created_at)}</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  {me && c.active && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError(null);
+                        setReplyingTo((cur) => (cur === c.comment_id ? null : c.comment_id));
+                        setReplyContent('');
+                      }}
+                      className="text-xs font-medium text-burgundy-600 hover:text-burgundy-700"
+                      title="Reply to this comment"
+                    >
+                      Reply
+                    </button>
+                  )}
                   {me && c.user_id === me.user_id && c.active && (
                     <button
                       type="button"
@@ -145,14 +189,59 @@ export default function SectionComments({ sectionId }: { sectionId: number }) {
               </div>
               <div className={`mt-2 text-sm ${c.resolved ? 'text-gray-400' : 'text-gray-700'}`}>{c.content}</div>
 
+              {replyingTo === c.comment_id && (
+                <div className="mt-3 pl-3 border-l border-gray-100">
+                  <textarea
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    rows={2}
+                    placeholder="Write a reply…"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                  />
+                  <div className="mt-2 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReplyingTo(null);
+                        setReplyContent('');
+                      }}
+                      className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => postReply(c.comment_id)}
+                      disabled={replyPosting || replyContent.trim().length === 0}
+                      className="px-3 py-2 text-xs font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
+                    >
+                      {replyPosting ? 'Replying…' : 'Post reply'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {repliesFor(c.comment_id).length > 0 && (
                 <div className="mt-3 space-y-2 pl-3 border-l border-gray-100">
                   {repliesFor(c.comment_id).map((r) => (
                     <div key={r.comment_id} className="text-sm text-gray-700">
-                      <div className="text-xs text-gray-500 mb-0.5">
-                        <span className="font-medium text-gray-700">{authorLabel(r)}</span>
-                        <span className="mx-2">·</span>
-                        <span>{formatDate(r.created_at)}</span>
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <div className="text-xs text-gray-500">
+                          <span className="font-medium text-gray-700">{authorLabel(r)}</span>
+                          <span className="mx-2">·</span>
+                          <span>{formatDate(r.created_at)}</span>
+                        </div>
+                        {me && r.user_id === me.user_id && r.active && (
+                          <button
+                            type="button"
+                            disabled={deleting === r.comment_id}
+                            onClick={() => deleteComment(r.comment_id)}
+                            className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50 shrink-0"
+                            title="Delete your reply"
+                          >
+                            {deleting === r.comment_id ? 'Deleting…' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                       {r.content}
                     </div>
@@ -160,7 +249,6 @@ export default function SectionComments({ sectionId }: { sectionId: number }) {
                 </div>
               )}
 
-              {/* Placeholder for replies UI; keep simple for now */}
             </div>
           ))
         )}

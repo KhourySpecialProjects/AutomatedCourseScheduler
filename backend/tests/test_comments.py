@@ -50,12 +50,12 @@ def _make_schedule(db):
     return schedule
 
 
-def _make_section(db, schedule_id):
+def _make_section(db, schedule_id, *, section_number=1, course_id=1, time_block_id=1):
     section = Section(
         schedule_id=schedule_id,
-        time_block_id=1,
-        course_id=1,
-        section_number=1,
+        time_block_id=time_block_id,
+        course_id=course_id,
+        section_number=section_number,
         capacity=30,
     )
     db.add(section)
@@ -229,6 +229,26 @@ def test_post_reply_invalid_parent_returns_422(client, db_session):
     assert any("9999" in e for e in errors)
 
 
+def test_post_reply_to_reply_is_reparented_to_top_level(client, db_session):
+    user = _make_user(db_session)
+    section = _make_section(db_session, _make_schedule(db_session).schedule_id)
+    parent = _make_comment(db_session, user.user_id, section.section_id, "Parent comment")
+
+    r1 = client.post(
+        f"/comments/{parent.comment_id}",
+        json={"user_id": user.user_id, "section_id": section.section_id, "content": "Reply 1"},
+    )
+    assert r1.status_code == 201
+    reply1_id = r1.json()["comment_id"]
+
+    r2 = client.post(
+        f"/comments/{reply1_id}",
+        json={"user_id": user.user_id, "section_id": section.section_id, "content": "Reply 2"},
+    )
+    assert r2.status_code == 201
+    assert r2.json()["parent_id"] == parent.comment_id
+
+
 # ---------------------------------------------------------------------------
 # GET /comments/{section_id}
 # ---------------------------------------------------------------------------
@@ -272,7 +292,7 @@ def test_get_comments_only_returns_comments_for_requested_section(client, db_ses
     user = _make_user(db_session)
     schedule_id = _make_schedule(db_session).schedule_id
     section_a = _make_section(db_session, schedule_id)
-    section_b = _make_section(db_session, schedule_id)
+    section_b = _make_section(db_session, schedule_id, section_number=2)
     _make_comment(db_session, user.user_id, section_a.section_id, "Comment on A")
     _make_comment(db_session, user.user_id, section_b.section_id, "Comment on B")
 
@@ -301,6 +321,49 @@ def test_delete_comment_success(client, db_session):
     db_session.expire_all()
     updated = db_session.get(Comment, comment.comment_id)
     assert updated.active is False
+
+
+def test_delete_comment_does_not_remove_other_comments(client, db_session):
+    user = _make_user(db_session)
+    section = _make_section(db_session, _make_schedule(db_session).schedule_id)
+    c1 = _make_comment(db_session, user.user_id, section.section_id, "First")
+    c2 = _make_comment(db_session, user.user_id, section.section_id, "Second")
+
+    response = client.delete(f"/comments/{c1.comment_id}")
+    assert response.status_code == 200
+
+    db_session.expire_all()
+    assert db_session.get(Comment, c1.comment_id).active is False
+    assert db_session.get(Comment, c2.comment_id).active is True
+
+
+def test_delete_parent_comment_promotes_replies(client, db_session):
+    user = _make_user(db_session)
+    section = _make_section(db_session, _make_schedule(db_session).schedule_id)
+    parent = _make_comment(db_session, user.user_id, section.section_id, "Parent")
+    r1 = _make_comment(
+        db_session,
+        user.user_id,
+        section.section_id,
+        "R1",
+        parent_id=parent.comment_id,
+    )
+    r2 = _make_comment(
+        db_session,
+        user.user_id,
+        section.section_id,
+        "R2",
+        parent_id=parent.comment_id,
+    )
+
+    response = client.delete(f"/comments/{parent.comment_id}")
+    assert response.status_code == 200
+
+    db_session.expire_all()
+    assert db_session.get(Comment, parent.comment_id).active is False
+    # Matches main behavior: deleting a parent also deletes its direct replies.
+    assert db_session.get(Comment, r1.comment_id).active is False
+    assert db_session.get(Comment, r2.comment_id).active is False
 
 
 def test_delete_comment_not_found_returns_404(client, db_session):

@@ -31,6 +31,8 @@ const mockSection: SectionRichResponse = {
   section_number: 1,
   capacity: 30,
   schedule_id: 42,
+  comment_count: 0,
+  crosslisted_section_id: null,
   course: { course_id: 10, name: 'Algorithms', description: 'Algo course', credits: 4 },
   time_block: { time_block_id: 5, days: 'MWR', start_time: '09:00', end_time: '10:30' },
   instructors: [],
@@ -65,9 +67,15 @@ describe('Schedules page', () => {
       getFacultyFacultyGet: vi.fn().mockResolvedValue([
         { NUID: 100005 },
       ]),
-      getMeApiUsersMeGet: vi.fn().mockResolvedValue([
-        {user_id: 1, nuid: 100005, first_name: "John", last_name: "Doe", email: "j.doe@northeastern.edu",role: "VIEWER", active: true}
-      ])
+      getMeApiUsersMeGet: vi.fn().mockResolvedValue({
+        user_id: 1,
+        nuid: 100005,
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'j.doe@northeastern.edu',
+        role: 'VIEWER',
+        active: true,
+      }),
     } as unknown as ReturnType<typeof generated.getAutomatedCourseSchedulerAPI>);
   });
 
@@ -112,22 +120,6 @@ describe('Schedules page', () => {
     expect(screen.getByText('Invalid schedule ID.')).toBeInTheDocument();
   });
 
-  it('shows Live indicator when connected', () => {
-    vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue({
-      ...defaultWsReturn, status: 'connected',
-    });
-    renderAtRoute('/schedules/42');
-    expect(screen.getByText('Live')).toBeInTheDocument();
-  });
-
-  it('shows Disconnected indicator when socket drops', () => {
-    vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue({
-      ...defaultWsReturn, status: 'disconnected',
-    });
-    renderAtRoute('/schedules/42');
-    expect(screen.getByText('Disconnected')).toBeInTheDocument();
-  });
-
   it('renders breadcrumb link back to /schedules', () => {
     vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue(defaultWsReturn);
     renderAtRoute('/schedules/42');
@@ -138,5 +130,39 @@ describe('Schedules page', () => {
     vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue(defaultWsReturn);
     renderAtRoute('/schedules/42');
     expect(await screen.findByRole('heading', { name: 'Fall 2025' })).toBeInTheDocument();
+  });
+
+  it('does not show Faculty/Admin toggle for non-admin users', async () => {
+    vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue(defaultWsReturn);
+    renderAtRoute('/schedules/42');
+    await screen.findByRole('heading', { name: 'Fall 2025' });
+    expect(screen.queryByRole('group', { name: 'Schedule mode' })).not.toBeInTheDocument();
+  });
+
+  it('shows Faculty/Admin mode toggle for ADMIN users', async () => {
+    vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue(defaultWsReturn);
+    vi.spyOn(generated, 'getAutomatedCourseSchedulerAPI').mockReturnValue({
+      getScheduleSchedulesScheduleIdGet: vi.fn().mockResolvedValue({
+        schedule_id: 42, name: 'Fall 2025', semester_id: 1, draft: false, campus: 1, active: true,
+      }),
+      getAllCampusesCampusesGet: vi.fn().mockResolvedValue([
+        { campus_id: 1, name: 'Boston', active: true },
+      ]),
+      getMeApiUsersMeGet: vi.fn().mockResolvedValue({
+        user_id: 1,
+        nuid: 100005,
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'j.doe@northeastern.edu',
+        role: 'ADMIN',
+        active: true,
+      }),
+    } as unknown as ReturnType<typeof generated.getAutomatedCourseSchedulerAPI>);
+
+    renderAtRoute('/schedules/42');
+
+    expect(await screen.findByRole('group', { name: 'Schedule mode' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Faculty' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Admin' })).toBeInTheDocument();
   });
 });

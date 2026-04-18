@@ -416,7 +416,7 @@ export default function FacultyDrawer({
                               {s.course.name}
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-500 whitespace-nowrap">
-                              §{s.section_number}
+                              Section {s.section_number}
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-500 whitespace-nowrap">
                               {s.time_block.days}&nbsp;{s.time_block.start_time}–{s.time_block.end_time}

@@ -64,7 +64,7 @@ def get_comments(section_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
-@router.delete("/{comment_id}", response_model=list[CommentResponse])
+@router.delete("/{comment_id}", response_model=CommentResponse)
 async def delete_comment(comment_id: int, db: Session = Depends(get_db)):
     comment = comment_service.get_by_id(db, comment_id)
     try:
@@ -73,13 +73,20 @@ async def delete_comment(comment_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=str(e)) from e
 
     if comment:
+        deleted_ids = [c.comment_id for c in deleted]
         await _broadcast_comment(
             db,
             comment.section_id,
             "comment_deleted",
-            {"comment_id": comment_id, "section_id": comment.section_id},
+            {
+                "comment_id": comment_id,
+                "section_id": comment.section_id,
+                "deleted_comment_ids": deleted_ids,
+                "deleted_count": len(deleted_ids),
+            },
         )
-    return deleted
+    # Back-compat: keep returning the parent comment object.
+    return deleted[0]
 
 
 @router.put("/{comment_id}", status_code=204)
