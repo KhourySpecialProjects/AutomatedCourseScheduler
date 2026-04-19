@@ -8,8 +8,8 @@ class TimeBlockResponse(BaseModel):
 
     time_block_id: int
     meeting_days: str
-    start_time: str   # "HH:MM"
-    end_time: str     # "HH:MM"
+    start_time: str  # "HH:MM"
+    end_time: str  # "HH:MM"
     campus_id: int
     block_group: str | None = None
 
