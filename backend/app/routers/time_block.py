@@ -35,9 +35,7 @@ def create_time_block(body: TimeBlockCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{time_block_id}", response_model=TimeBlockResponse)
-def update_time_block(
-    time_block_id: int, body: TimeBlockUpdate, db: Session = Depends(get_db)
-):
+def update_time_block(time_block_id: int, body: TimeBlockUpdate, db: Session = Depends(get_db)):
     """Partially update a time block.  Only fields present in the request body are changed."""
     try:
         updated = time_block_service.update_time_block(db, time_block_id, body)

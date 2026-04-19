@@ -194,8 +194,7 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
     all_time_blocks = time_block_repo.get_all(db)
     time_blocks = [tb for tb in all_time_blocks if _is_valid_for_assignment(tb)]
     logger.info(
-        f"Loaded {len(all_time_blocks)} time blocks, "
-        f"{len(time_blocks)} valid for auto-assignment"
+        f"Loaded {len(all_time_blocks)} time blocks, {len(time_blocks)} valid for auto-assignment"
     )
 
     # Step 5: Phase 1 — faculty-to-course matching
