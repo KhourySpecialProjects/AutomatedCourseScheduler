@@ -64,14 +64,17 @@ def make_upload_file_from_disk(path: str):
 
 def test_parse_file_offerings_valid():
     offerings_csv = (
-        "Course,Credit Hours,Description\n"
-        "CS 2500,4,This course provides an overview of CS 2500 concepts.\n"
+        "Course Code,Course Name,Credit Hours,Description\n"
+        "CS 2500,Fundamentals of Computer Science 1,4,"
+        "This course provides an overview of CS 2500 concepts.\n"
     )
 
     offerings_result = parse_file(make_upload_file(offerings_csv), COURSE_OFFERINGS, mock_db)
 
     assert len(offerings_result) == 1
-    assert offerings_result[0]["name"] == "CS 2500"
+    assert offerings_result[0]["name"] == "Fundamentals of Computer Science 1"
+    assert offerings_result[0]["subject"] == "CS"
+    assert offerings_result[0]["code"] == "2500"
     assert offerings_result[0]["credits"] == 4
     assert offerings_result[0]["description"] == (
         "This course provides an overview of CS 2500 concepts."
@@ -319,8 +322,9 @@ def test_upload_course_offerings():
     app.dependency_overrides[get_current_user] = lambda: {"sub": "test-user"}
 
     csv_content = (
-        "Course,Credit Hours,Description\n"
-        "CS 2500,4,This course provides an overview of cs 2500 concepts.\n"
+        "Course Code,Course Name,Credit Hours,Description\n"
+        "CS 2500,Fundamentals of Computer Science 1,4,"
+        "This course provides an overview of cs 2500 concepts.\n"
     )
 
     with TestClient(app) as client:
@@ -337,7 +341,9 @@ def test_upload_course_offerings():
 
     _, inserted_rows = mock_db.execute.call_args[0]
     assert len(inserted_rows) == 1
-    assert inserted_rows[0]["name"] == "CS 2500"
+    assert inserted_rows[0]["name"] == "Fundamentals of Computer Science 1"
+    assert inserted_rows[0]["subject"] == "CS"
+    assert inserted_rows[0]["code"] == "2500"
     assert inserted_rows[0]["credits"] == 4
     assert inserted_rows[0]["description"] == (
         "This course provides an overview of cs 2500 concepts."
@@ -365,7 +371,9 @@ def test_validate_headers_preferences_valid():
 
 
 def test_validate_headers_offerings_valid():
-    csv_content = "Course,Credit Hours,Description\nCS 2500,4,Intro to CS.\n"
+    csv_content = (
+        "Course Code,Course Name,Credit Hours,Description\nCS 2500,Intro to CS,4,Intro to CS.\n"
+    )
     result = parse_file(make_upload_file(csv_content), COURSE_OFFERINGS, mock_db)
     assert isinstance(result, list)
 

@@ -230,8 +230,7 @@ def parse_course_offerings(db, reader):
             existing = (
                 db.query(Course)
                 .filter(
-                    Course.name == validated.courseName,
-                    Course.description == validated.description,
+                    Course.subject == validated.courseSubject, Course.code == validated.courseCode
                 )
                 .first()
             )
@@ -243,8 +242,8 @@ def parse_course_offerings(db, reader):
                 continue
             db_entry = validated.translate()
             table_entries.append(db_entry)
-        except ValidationError as e:
-            errors.append(f"Row {i}: {e.errors()}")
+        except (ValidationError, ValueError) as e:
+            errors.append(f"Row {i}: {e}")
 
     if errors:
         raise HTTPException(status_code=422, detail=errors)
@@ -304,7 +303,7 @@ def parse_course_preferences(db, reader):
 
 def validate_headers(headers, schema):
     if schema == COURSE_OFFERINGS:
-        expected_headers = ["Course", "Credit Hours", "Description"]
+        expected_headers = ["Course Code", "Course Name", "Credit Hours", "Description"]
     elif schema == COURSE_PREFERENCES:
         expected_headers = [
             "Faculty Name",
@@ -334,8 +333,16 @@ def validate_headers(headers, schema):
 
 def normalize_headers(row, schema):
     if schema == COURSE_OFFERINGS:
+        course = row["Course Code"]
+        split_name = course.split(" ")
+        if len(split_name) != 2:
+            raise ValueError(f"Expected 'subject code', given {course}")
+        subject = split_name[0]
+        code = split_name[1]
         normalized = {
-            "courseName": row["Course"],
+            "courseName": row["Course Name"],
+            "courseSubject": subject,
+            "courseCode": code,
             "credits": row["Credit Hours"],
             "description": row["Description"],
         }
