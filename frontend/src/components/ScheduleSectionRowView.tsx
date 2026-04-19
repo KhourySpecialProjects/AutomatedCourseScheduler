@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CourseResponse, InstructorInfo, SectionRichResponse, TimeBlockInfo } from '../api/generated';
 import { getAutomatedCourseSchedulerAPI } from '../api/generated';
+import { axiosInstance } from '../api/axiosInstance';
 import type { LockInfo } from '../hooks/useScheduleWebSocket';
 import CrosslistSectionHint from './CrosslistSectionHint';
 import FacultyTooltip from './FacultyTooltip';
@@ -20,6 +21,7 @@ interface Props {
   scheduleId: number;
   locks: Map<number, LockInfo>;
   campusName: string | null;
+  campusId: number | null;
   readOnly?: boolean;
   viewMode?: 'table' | 'calendar';
   onSelectedCourseCountChange?: (count: number) => void;
@@ -76,6 +78,7 @@ export default function ScheduleSectionRowView({
   scheduleId,
   locks,
   campusName,
+  campusId,
   readOnly = false,
   viewMode = 'table',
   onSelectedCourseCountChange,
@@ -183,26 +186,52 @@ export default function ScheduleSectionRowView({
     });
   }, [isAdmin]);
 
-  // Derive unique time blocks from loaded sections for use in the mutation drawer
-  const timeBlocks = useMemo<TimeBlockInfo[]>(() => {
-    // De-dupe by displayed block (days + start/end) to avoid duplicate rows.
-    const byKey = new Map<string, TimeBlockInfo>();
-    for (const s of sections) {
-      const tb = s.time_block;
-      const key = `${tb.days}|${tb.start_time}|${tb.end_time}`;
-      if (!byKey.has(key)) byKey.set(key, tb);
-    }
-    const result = [...byKey.values()];
-    // Chronological ordering: 9:00 AM first, then onward.
-    return result.sort((a, b) => {
-      const ta = parseTimeToMinutes(a.start_time);
-      const tb = parseTimeToMinutes(b.start_time);
-      if (ta !== tb) return ta - tb;
-      const da = a.days.localeCompare(b.days);
-      if (da !== 0) return da;
-      return a.end_time.localeCompare(b.end_time);
-    });
-  }, [sections]);
+  // Load all time blocks for this campus from the API.
+  // Previously these were derived from existing sections, which meant the
+  // dropdown was empty on a fresh (un-generated) schedule.  Loading directly
+  // from the DB ensures all available blocks are always present.
+  type TimeBlockFull = TimeBlockInfo & { block_group?: string | null };
+  const [timeBlocks, setTimeBlocks] = useState<TimeBlockFull[]>([]);
+
+  useEffect(() => {
+    if (campusId == null) return;
+    axiosInstance<{ time_block_id: number; meeting_days: string; start_time: string; end_time: string; block_group: string | null }[]>({
+      method: 'GET',
+      url: '/time-blocks',
+      params: { campus_id: campusId },
+    })
+      .then((data) => {
+        // Map the API response to TimeBlockFull — includes block_group so the
+        // section drawer can collapse split-block pairs into one dropdown entry.
+        const mapped: TimeBlockFull[] = data
+          .map((tb) => ({
+            time_block_id: tb.time_block_id,
+            days: tb.meeting_days,
+            start_time: tb.start_time,
+            end_time: tb.end_time,
+            block_group: tb.block_group,
+          }))
+          .sort((a, b) => {
+            const ta = parseTimeToMinutes(a.start_time);
+            const tb = parseTimeToMinutes(b.start_time);
+            if (ta !== tb) return ta - tb;
+            const da = a.days.localeCompare(b.days);
+            if (da !== 0) return da;
+            return a.end_time.localeCompare(b.end_time);
+          });
+        setTimeBlocks(mapped);
+      })
+      .catch(() => {
+        // Fall back to deriving blocks from existing sections if the fetch fails
+        const byKey = new Map<string, TimeBlockInfo>();
+        for (const s of sections) {
+          const tb = s.time_block;
+          const key = `${tb.days}|${tb.start_time}|${tb.end_time}`;
+          if (!byKey.has(key)) byKey.set(key, tb);
+        }
+        setTimeBlocks([...byKey.values()]);
+      });
+  }, [campusId]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   const courseOptions = useMemo<SelectOption<number>[]>(() => {
@@ -615,8 +644,15 @@ export default function ScheduleSectionRowView({
           scheduleId={scheduleId}
           section={editingSection}
           timeBlocks={timeBlocks}
+          campusId={campusId}
           campusName={campusName}
           onClose={handleEditClose}
+          onTimeBlockCreated={(tb: TimeBlockFull) => setTimeBlocks((prev) => [...prev, tb].sort((a, b) => {
+            const ta = parseTimeToMinutes(a.start_time);
+            const tb2 = parseTimeToMinutes(b.start_time);
+            if (ta !== tb2) return ta - tb2;
+            return a.days.localeCompare(b.days);
+          }))}
         />
       )}
 
@@ -626,8 +662,15 @@ export default function ScheduleSectionRowView({
           mode="create"
           scheduleId={scheduleId}
           timeBlocks={timeBlocks}
+          campusId={campusId}
           campusName={campusName}
           onClose={() => setCreating(false)}
+          onTimeBlockCreated={(tb: TimeBlockFull) => setTimeBlocks((prev) => [...prev, tb].sort((a, b) => {
+            const ta = parseTimeToMinutes(a.start_time);
+            const tb2 = parseTimeToMinutes(b.start_time);
+            if (ta !== tb2) return ta - tb2;
+            return a.days.localeCompare(b.days);
+          }))}
         />
       )}
     </div>
