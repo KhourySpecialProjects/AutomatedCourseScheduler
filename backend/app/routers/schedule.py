@@ -1,9 +1,14 @@
 """Schedule router."""
 
+import csv
+from io import StringIO
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.models.campus import Campus
 from app.schemas.schedule import (
     ScheduleCreate,
     ScheduleResponse,
@@ -108,9 +113,82 @@ async def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{schedule_id}/export/csv")
 def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
-    """Export a finalized schedule in CourseLeaf-compatible CSV format."""
-    # TODO: Implement CSV export
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    """Export a finalized schedule as a downloadable CSV."""
+    schedule = schedule_service.get_by_id(db, schedule_id)
+    if schedule.draft:
+        raise HTTPException(
+            status_code=400, detail="Schedule must be finalized before exporting"
+        )
+
+    campus_obj = db.query(Campus).filter(Campus.campus_id == schedule.campus).first()
+    campus_name = campus_obj.name if campus_obj else str(schedule.campus)
+
+    sections = section_service.get_rich_sections(db, schedule_id)
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "course_name",
+        "section_number",
+        "instructor_name",
+        "instructor_nuid",
+        "time_block",
+        "room",
+        "capacity",
+        "campus",
+        "cross_listed_with",
+        "course_pref_level",
+        "time_pref_level",
+    ])
+
+    for section in sections:
+        time_block = (
+            f"{section.time_block.days} "
+            f"{section.time_block.start_time}-{section.time_block.end_time}"
+        )
+
+        if section.instructors:
+            instr = section.instructors[0]
+            instructor_name = f"{instr.first_name} {instr.last_name}"
+            instructor_nuid = instr.nuid
+            course_pref = next(
+                (cp.preference for cp in instr.course_preferences
+                 if cp.course_id == section.course.course_id),
+                "",
+            )
+            time_pref = next(
+                (mp.preference for mp in instr.meeting_preferences
+                 if mp.time_block_id == section.time_block.time_block_id),
+                "",
+            )
+        else:
+            instructor_name = ""
+            instructor_nuid = ""
+            course_pref = ""
+            time_pref = ""
+
+        writer.writerow([
+            section.course.name,
+            section.section_number,
+            instructor_name,
+            instructor_nuid,
+            time_block,
+            section.room or "",
+            section.capacity,
+            campus_name,
+            section.crosslisted_section_id or "",
+            course_pref,
+            time_pref,
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="schedule_{schedule_id}.csv"'
+        },
+    )
 
 
 @router.get("/{schedule_id}/locks", response_model=list[ScheduleActiveLockResponse])

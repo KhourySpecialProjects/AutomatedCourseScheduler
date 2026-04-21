@@ -7,7 +7,7 @@ import {
   type SemesterResponse,
   type UploadResponse,
 } from '../api/generated';
-import { axiosInstance } from '../api/axiosInstance';
+import { axiosInstance, instance } from '../api/axiosInstance';
 
 /* ------------------------------------------------------------------ */
 /*  Schedule card                                                      */
@@ -31,6 +31,20 @@ function ScheduleCard({
   const [editDraft, setEditDraft] = useState(schedule.draft);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  async function handleExportCsv(e: React.MouseEvent) {
+    e.stopPropagation();
+    const scheduleId = schedule.schedule_id;
+    const response = await instance.get(`/schedules/${scheduleId}/export/csv`, { responseType: 'blob' });
+    const url = URL.createObjectURL(new Blob([response.data as BlobPart]));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `schedule_${scheduleId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   function openEdit(e: React.MouseEvent) {
     e.stopPropagation();
@@ -59,7 +73,7 @@ function ScheduleCard({
 
   if (editing) {
     return (
-      <div className="bg-white border border-indigo-200 rounded-xl p-5 space-y-4">
+      <div className="bg-white border border-burgundy-200 rounded-xl p-5 space-y-4">
         {/* Name */}
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
@@ -67,7 +81,7 @@ function ScheduleCard({
             type="text"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
           />
         </div>
 
@@ -129,7 +143,7 @@ function ScheduleCard({
             <button
               onClick={handleSave}
               disabled={saving || !editName.trim()}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium text-white bg-burgundy-600 rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
@@ -143,7 +157,7 @@ function ScheduleCard({
     <div className="relative group/card">
       <button
         onClick={onClick}
-        className="w-full text-left bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-sm transition-all group"
+        className="w-full text-left bg-white border border-gray-200 rounded-xl p-5 hover:border-burgundy-300 hover:shadow-sm transition-all group"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -158,15 +172,27 @@ function ScheduleCard({
                   Draft
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  Published
-                </span>
+                <>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    Published
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => { void handleExportCsv(e); }}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-burgundy-50 text-burgundy-700 border border-burgundy-200 hover:bg-burgundy-100 transition-colors"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export CSV
+                  </button>
+                </>
               )}
             </div>
           </div>
           <svg
-            className="w-5 h-5 text-gray-300 group-hover:text-indigo-400 shrink-0 mt-0.5 transition-colors"
+            className="w-5 h-5 text-gray-300 group-hover:text-burgundy-400 shrink-0 mt-0.5 transition-colors"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -179,7 +205,7 @@ function ScheduleCard({
       {isAdmin && (
         <button
           onClick={openEdit}
-          className="absolute top-4 right-12 p-1.5 rounded-lg text-gray-300 opacity-0 group-hover/card:opacity-100 hover:text-indigo-500 hover:bg-indigo-50 transition-all"
+          className="absolute top-4 right-12 p-1.5 rounded-lg text-gray-300 opacity-0 group-hover/card:opacity-100 hover:text-burgundy-500 hover:bg-burgundy-50 transition-all"
           title="Edit schedule"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -233,9 +259,9 @@ function StepIndicator({ current }: { current: Step }) {
           <div
             className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold ${
               i < idx
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-burgundy-600 text-white'
                 : i === idx
-                  ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-600'
+                  ? 'bg-burgundy-100 text-burgundy-700 ring-2 ring-burgundy-600'
                   : 'bg-gray-100 text-gray-400'
             }`}
           >
@@ -445,7 +471,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
                         className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
                           isDone
                             ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            : 'bg-burgundy-600 text-white hover:bg-burgundy-700'
                         }`}
                       >
                         {uploadBusy === u.kind ? 'Uploading...' : isDone ? 'Re-upload' : 'Upload CSV'}
@@ -471,7 +497,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Fall 2026 CS Draft"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                 />
               </div>
 
@@ -480,7 +506,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
                 <select
                   value={semesterId}
                   onChange={(e) => setSemesterId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                 >
                   <option value="">Select a semester</option>
                   {semesters.map((s) => (
@@ -496,7 +522,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
                 <select
                   value={campusId}
                   onChange={(e) => setCampusId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                 >
                   <option value="">Select a campus</option>
                   {campuses.map((c) => (
@@ -524,7 +550,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
                   <button
                     onClick={handleGenerate}
                     disabled={generating}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-burgundy-600 rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
                   >
                     {generating ? (
                       <>
@@ -569,7 +595,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
               <button
                 onClick={() => setStep('info')}
                 disabled={!allUploaded}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
               >
                 Next
               </button>
@@ -586,7 +612,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
               <button
                 onClick={handleCreate}
                 disabled={creating}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
               >
                 {creating ? 'Creating...' : 'Create Schedule'}
               </button>
@@ -595,7 +621,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
           {step === 'generate' && (
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded-lg hover:bg-burgundy-700 transition-colors"
             >
               Done
             </button>
@@ -664,7 +690,7 @@ export default function ScheduleList() {
         {isAdmin && (
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded-lg hover:bg-burgundy-700 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

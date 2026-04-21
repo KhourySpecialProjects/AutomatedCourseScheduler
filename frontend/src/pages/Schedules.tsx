@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import ScheduleSectionRowView from '../components/ScheduleSectionRowView';
 import { useScheduleWebSocket, type WsStatus } from '../hooks/useScheduleWebSocket';
 import { getAutomatedCourseSchedulerAPI, type ScheduleResponse, type UserResponse } from '../api/generated';
+import { instance } from '../api/axiosInstance';
 
 type ViewMode = 'table' | 'calendar';
 type SchedulePersona = 'faculty' | 'admin';
@@ -83,6 +84,18 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
       .catch(() => {});
   }, [scheduleId]);
 
+  async function handleExportCsv() {
+    const response = await instance.get(`/schedules/${scheduleId}/export/csv`, { responseType: 'blob' });
+    const url = URL.createObjectURL(new Blob([response.data as BlobPart]));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `schedule_${scheduleId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   const scheduleName = schedule?.name ?? `Schedule ${scheduleId}`;
   const apiIsAdmin = me?.role === 'ADMIN';
   const userRoleLoaded = me != null || meError != null;
@@ -139,6 +152,18 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
         </div>
 
         <div className="flex items-center gap-3">
+          {schedule && !schedule.draft && (
+            <button
+              type="button"
+              onClick={() => { void handleExportCsv(); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-burgundy-600 text-white hover:bg-burgundy-700 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export CSV
+            </button>
+          )}
           {canTogglePersona && (
             <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1" role="group" aria-label="Schedule mode">
               <button
