@@ -38,18 +38,14 @@ PROTECTED_GET_ROUTES = ["/courses", "/faculty", "/schedules"]
 @pytest.mark.parametrize("path", PROTECTED_GET_ROUTES)
 def test_protected_route_no_token(unauthed_client, path):
     response = unauthed_client.get(path)
-    assert response.status_code == 400, (
-        f"GET {path} should require auth, got {response.status_code}"
-    )
+    assert response.status_code == 400, f"GET {path} should require auth, got {response.status_code}"
 
 
 @pytest.mark.parametrize("path", PROTECTED_GET_ROUTES)
 def test_protected_route_malformed_token(unauthed_client, path):
     headers = {"Authorization": "Bearer not-a-token-1"}
     response = unauthed_client.get(path, headers=headers)
-    assert response.status_code == 401, (
-        f"GET {path} with bad token should be rejected, got {response.status_code}"
-    )
+    assert response.status_code == 401, f"GET {path} with bad token should be rejected, got {response.status_code}"
 
 
 # ---------------------------------------------------------------------------

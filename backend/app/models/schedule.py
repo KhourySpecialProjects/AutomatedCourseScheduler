@@ -29,9 +29,7 @@ class Schedule(Base):
 
     schedule_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
-    semester_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey(Semester.semester_id), nullable=False
-    )
+    semester_id: Mapped[int] = mapped_column(Integer, ForeignKey(Semester.semester_id), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default=ScheduleStatus.IDLE)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -47,9 +45,7 @@ class Schedule(Base):
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Deletion
     active: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -61,9 +61,7 @@ def get_courses(db: Session, schedule_id: int | None = None) -> list[CourseRespo
     ]
 
 
-def get_course(
-    db: Session, course_id: int, schedule_id: int | None = None
-) -> CourseResponse | None:
+def get_course(db: Session, course_id: int, schedule_id: int | None = None) -> CourseResponse | None:
     if schedule_id is not None and not schedule_repo.schedule_exists(db, schedule_id):
         raise ValueError("ScheduleID is invalid")
     course = course_repo.get_by_id(db, course_id)
@@ -73,9 +71,7 @@ def get_course(
     return _course_to_response(course, section_count)
 
 
-def get_section_count(
-    schedule: Schedule, courses: list[Course], new_courses: list[Course]
-) -> list[CourseResponse]:
+def get_section_count(schedule: Schedule, courses: list[Course], new_courses: list[Course]) -> list[CourseResponse]:
     course_responses = []
     errors = []
 
@@ -83,9 +79,7 @@ def get_section_count(
         section_count = schedule_repo.total_section_count(schedule, course.course_id)
 
         if section_count == 0:
-            errors.append(
-                f"Course {course.name} not found in schedule with id {schedule.schedule_id}"
-            )
+            errors.append(f"Course {course.name} not found in schedule with id {schedule.schedule_id}")
 
         response = _course_to_response(course, section_count)
         course_responses.append(response)
@@ -104,18 +98,14 @@ def sort_course_list(course_list: list[CourseResponse]) -> list[CourseResponse]:
     return sorted(course_list, key=lambda c: (not c.priority, c.qualified_faculty, c.code or 0))
 
 
-def generate_course_list(
-    db: Session, semester_id: int, new_course_ids: list[int], campus_id: int
-) -> list[CourseResponse]:
+def generate_course_list(db: Session, semester_id: int, new_course_ids: list[int], campus_id: int) -> list[CourseResponse]:
     new_courses = course_repo.get_by_ids(db, new_course_ids)
 
     semester = semester_repo.get_by_id(db, semester_id)
     schedule = semester_repo.get_schedules(db, semester, campus_id)
 
     if len(schedule) > 1:
-        raise ValueError(
-            f"Semester with id {semester_id} invalid. Multiple schedules present. Expected 1."
-        )
+        raise ValueError(f"Semester with id {semester_id} invalid. Multiple schedules present. Expected 1.")
     else:
         courses = schedule_repo.get_courses(schedule[0])
         course_list = get_section_count(schedule[0], courses, new_courses)

@@ -32,9 +32,7 @@ def get_rich_by_schedule(db: Session, schedule_id: int) -> list[Section]:
             .joinedload(FacultyAssignment.faculty)
             .joinedload(Faculty.course_preferences)
             .joinedload(CoursePreference.course),
-            joinedload(Section.faculty_assignments)
-            .joinedload(FacultyAssignment.faculty)
-            .joinedload(Faculty.meeting_preferences),
+            joinedload(Section.faculty_assignments).joinedload(FacultyAssignment.faculty).joinedload(Faculty.meeting_preferences),
         )
         .filter(Section.schedule_id == schedule_id)
         .all()

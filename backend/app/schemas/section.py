@@ -79,5 +79,5 @@ class SectionRichResponse(BaseModel):
     comment_count: int = 0
     crosslisted_section_id: int | None = None
     course: CourseInfo
-    time_block: TimeBlockInfo
+    time_block: TimeBlockInfo | None = None
     instructors: list[InstructorInfo]

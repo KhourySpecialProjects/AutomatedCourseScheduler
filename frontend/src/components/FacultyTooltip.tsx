@@ -48,7 +48,7 @@ export default function FacultyTooltip({ instructor, allSections, scheduleId, an
   );
   const timeBlockLabelById = new Map<number, string>();
   for (const s of allSections) {
-    if (s.schedule_id !== scheduleId) continue;
+    if (s.schedule_id !== scheduleId || !s.time_block) continue;
     const tb = s.time_block;
     if (!timeBlockLabelById.has(tb.time_block_id)) {
       timeBlockLabelById.set(tb.time_block_id, `${tb.days} ${tb.start_time}–${tb.end_time}`);
@@ -85,7 +85,7 @@ export default function FacultyTooltip({ instructor, allSections, scheduleId, an
               <li key={s.section_id} className="text-xs text-gray-700">
                 {s.course.name} Section {s.section_number} —{' '}
                 <span className="text-gray-500">
-                  {s.time_block.days} {s.time_block.start_time}
+                  {s.time_block ? `${s.time_block.days} ${s.time_block.start_time}` : 'Unassigned'}
                 </span>
               </li>
             ))}

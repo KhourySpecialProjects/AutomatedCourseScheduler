@@ -1,5 +1,6 @@
 """Schedule repository — raw DB access."""
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.models.course import Course
@@ -7,10 +8,7 @@ from app.models.schedule import Schedule
 
 
 def schedule_exists(db: Session, schedule_id: int) -> bool:
-    return (
-        db.query(Schedule.schedule_id).filter(Schedule.schedule_id == schedule_id).first()
-        is not None
-    )
+    return db.query(Schedule.schedule_id).filter(Schedule.schedule_id == schedule_id).first() is not None
 
 
 def get_all(
@@ -32,6 +30,8 @@ def get_by_id(db: Session, schedule_id: int) -> Schedule | None:
 
 
 def create(db: Session, data: dict) -> Schedule:
+    if db.bind.dialect.name == "postgresql":
+        db.execute(text("SELECT setval(pg_get_serial_sequence('schedule', 'schedule_id'), COALESCE(MAX(schedule_id), 0) + 1, false) FROM schedule"))
     schedule = Schedule(**data)
     db.add(schedule)
     db.commit()

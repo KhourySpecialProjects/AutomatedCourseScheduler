@@ -22,10 +22,7 @@ def bootstrap(nuid: int, first_name: str, last_name: str, email: str) -> None:
     with SessionLocal() as db:
         by_nuid = db.query(User).filter(User.nuid == nuid).first()
         if by_nuid:
-            print(
-                f"A user with NUID {nuid} already exists"
-                f"(role: {by_nuid.role}, email: {by_nuid.email})"
-            )
+            print(f"A user with NUID {nuid} already exists(role: {by_nuid.role}, email: {by_nuid.email})")
             sys.exit(0)
 
         by_email = db.query(User).filter(User.email == email).first()
@@ -45,10 +42,7 @@ def bootstrap(nuid: int, first_name: str, last_name: str, email: str) -> None:
         db.add(user)
         db.commit()
         print(f"Admin created: {first_name} {last_name} <{email}> NUID={nuid}")
-        print(
-            "Next: log in via the frontend. Your auth0_sub will be linked "
-            "automatically on the first request to GET /api/users/me."
-        )
+        print("Next: log in via the frontend. Your auth0_sub will be linked automatically on the first request to GET /api/users/me.")
 
 
 if __name__ == "__main__":

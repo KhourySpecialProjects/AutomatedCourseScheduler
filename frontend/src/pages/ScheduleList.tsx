@@ -329,7 +329,6 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
       const res = await axiosInstance<UploadResponse>({
         url: uploadUrl(kind),
         method: 'POST',
-        headers: { 'Content-Type': 'multipart/form-data' },
         data: formData,
       });
       setUploadResults((prev) => ({ ...prev, [kind]: res }));
@@ -337,7 +336,12 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
       const detail =
         (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail ??
         (e as { message?: unknown })?.message;
-      setUploadError(typeof detail === 'string' ? detail : 'Upload failed. Please check your CSV and try again.');
+      const message = Array.isArray(detail)
+        ? (detail as unknown[]).map(String).join('\n')
+        : typeof detail === 'string'
+          ? detail
+          : 'Upload failed. Please check your CSV and try again.';
+      setUploadError(message);
     } finally {
       setUploadBusy(null);
     }
@@ -420,7 +424,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
               <p className="text-sm text-gray-500">Upload all three CSV files before creating the schedule.</p>
 
               {uploadError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{uploadError}</div>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 whitespace-pre-wrap">{uploadError}</div>
               )}
 
               {UPLOAD_KINDS.map((u) => {

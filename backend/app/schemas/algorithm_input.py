@@ -12,16 +12,10 @@ from app.schemas.faculty import FacultyProfileResponse
 # Algorithm Input
 # ---------------------
 class AlgorithmInput(BaseModel):
-    OfferedCourses: list[CourseResponse] = Field(
-        ..., description="Courses to schedule this semester"
-    )
+    OfferedCourses: list[CourseResponse] = Field(..., description="Courses to schedule this semester")
     TimeBlocks: list[int] = Field(..., description="Available time block IDs")
-    ConflictGroups: list[ConflictGroup] = Field(
-        default=[], description="Course groups that should not overlap"
-    )
-    AllFaculty: list[FacultyProfileResponse] = Field(
-        ..., description="Faculty members and their preferences"
-    )
+    ConflictGroups: list[ConflictGroup] = Field(default=[], description="Course groups that should not overlap")
+    AllFaculty: list[FacultyProfileResponse] = Field(..., description="Faculty members and their preferences")
     Parameters: AlgorithmParameters = Field(
         default_factory=AlgorithmParameters,
         description="Tunable algorithm parameters",

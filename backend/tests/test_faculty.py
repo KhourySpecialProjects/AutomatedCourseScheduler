@@ -514,16 +514,8 @@ class TestBuildProfile:
 
         profile = faculty_service.build_profile(db_session, faculty.nuid)
 
-        eager_ids = {
-            cp.course_id
-            for cp in profile.course_preferences
-            if cp.preference == PreferenceLevel.EAGER
-        }
-        ready_ids = {
-            cp.course_id
-            for cp in profile.course_preferences
-            if cp.preference == PreferenceLevel.READY
-        }
+        eager_ids = {cp.course_id for cp in profile.course_preferences if cp.preference == PreferenceLevel.EAGER}
+        ready_ids = {cp.course_id for cp in profile.course_preferences if cp.preference == PreferenceLevel.READY}
         assert course1.course_id in eager_ids
         assert course2.course_id in ready_ids
 
@@ -544,9 +536,7 @@ class TestBuildProfile:
         db_session.add(schedule)
         db_session.flush()
 
-        section = _make_section_with_time_block(
-            db_session, schedule.schedule_id, course.course_id, tb.time_block_id
-        )
+        section = _make_section_with_time_block(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
         db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id))
         db_session.commit()
 
@@ -596,9 +586,7 @@ class TestGetAverageMaxLoad:
     def _run(self, assignments, section_map, schedule_map):
         """Helper: patches repos and calls get_average_max_load."""
         db = MagicMock()
-        mock_faculty = Faculty(
-            nuid=1, first_name="Jane", last_name="Doe", email="j@x.com", active=True
-        )
+        mock_faculty = Faculty(nuid=1, first_name="Jane", last_name="Doe", email="j@x.com", active=True)
         db.query.return_value.filter.return_value.first.return_value = mock_faculty
 
         def mock_get_section(db, section_id):

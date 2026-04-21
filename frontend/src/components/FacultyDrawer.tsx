@@ -118,7 +118,8 @@ export default function FacultyDrawer({
   const timeBlockMap = useMemo(() => {
     const map = new Map<number, TimeBlockInfo>();
     for (const s of sections) {
-      if (!map.has(s.time_block.time_block_id)) map.set(s.time_block.time_block_id, s.time_block);
+      if (!s.time_block || map.has(s.time_block.time_block_id)) continue;
+      map.set(s.time_block.time_block_id, s.time_block);
     }
     return map;
   }, [sections]);
@@ -419,7 +420,7 @@ export default function FacultyDrawer({
                               Section {s.section_number}
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-500 whitespace-nowrap">
-                              {s.time_block.days}&nbsp;{s.time_block.start_time}–{s.time_block.end_time}
+                              {s.time_block ? `${s.time_block.days}\u00a0${s.time_block.start_time}–${s.time_block.end_time}` : '—'}
                             </td>
                           </tr>
                         ))}

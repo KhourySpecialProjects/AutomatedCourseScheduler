@@ -76,9 +76,7 @@ def test_parse_file_offerings_valid():
     assert offerings_result[0]["subject"] == "CS"
     assert offerings_result[0]["code"] == "2500"
     assert offerings_result[0]["credits"] == 4
-    assert offerings_result[0]["description"] == (
-        "This course provides an overview of CS 2500 concepts."
-    )
+    assert offerings_result[0]["description"] == ("This course provides an overview of CS 2500 concepts.")
 
 
 def test_parse_file_preferences_valid():
@@ -101,9 +99,7 @@ def test_parse_file_preferences_valid():
         "John Doe,1002,CS 3200,Fall 2026,Eager to teach\n"
     )
 
-    preferences_result = parse_file(
-        make_upload_file(preferences_csv), COURSE_PREFERENCES, mock_db_local
-    )
+    preferences_result = parse_file(make_upload_file(preferences_csv), COURSE_PREFERENCES, mock_db_local)
     inserts = preferences_result.get("inserts")
     available_faculty = preferences_result.get("available_faculty")
     assert inserts[0]["faculty_nuid"] == 1001
@@ -130,24 +126,16 @@ def test_parse_file_preferences_dups_found():
     mock_db_local = MagicMock()
     mock_db_local.query.side_effect = query_side_effect
 
-    preferences_csv = (
-        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
-        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
-    )
+    preferences_csv = "Faculty Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
 
-    preferences_result = parse_file(
-        make_upload_file(preferences_csv), COURSE_PREFERENCES, mock_db_local
-    )
+    preferences_result = parse_file(make_upload_file(preferences_csv), COURSE_PREFERENCES, mock_db_local)
     updates = preferences_result.get("updates")
     assert updates[0]["preference_id"] == 10
     assert updates[0]["preference"] == PreferenceLevel.EAGER
 
 
 def test_parse_file_preferences_course_not_found():
-    csv_content = (
-        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
-        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
-    )
+    csv_content = "Faculty Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
 
     def query_null_course_side_effefct(model):
         mock_query = MagicMock()
@@ -167,10 +155,7 @@ def test_parse_file_preferences_course_not_found():
 
 
 def test_parse_file_preferences_faculty_not_found():
-    csv_content = (
-        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
-        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
-    )
+    csv_content = "Faculty Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
 
     def query_null_faculty_side_effect(model):
         mock_query = MagicMock()
@@ -190,10 +175,7 @@ def test_parse_file_preferences_faculty_not_found():
 
 
 def test_parse_file_preferences_invalid_enum():
-    csv_content = (
-        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
-        "John Smith,1001,CS 3200,Fall 2026,Invalid value\n"
-    )
+    csv_content = "Faculty Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Invalid value\n"
 
     mock_db = MagicMock()
 
@@ -222,14 +204,9 @@ def test_parse_file_from_real_csv_offerings():
     mock_db = MagicMock()
     mock_db.query.side_effect = query_side_effect
 
-    offerings_result = parse_file(
-        make_upload_file_from_disk(COURSE_OFFERINGS_CSV), COURSE_OFFERINGS, mock_db
-    )
+    offerings_result = parse_file(make_upload_file_from_disk(COURSE_OFFERINGS_CSV), COURSE_OFFERINGS, mock_db)
 
-    assert all(
-        "name" in entry and "credits" in entry and "description" in entry
-        for entry in offerings_result
-    )
+    assert all("name" in entry and "credits" in entry and "description" in entry for entry in offerings_result)
 
 
 def test_parse_file_from_real_csv_preferences():
@@ -251,17 +228,12 @@ def test_parse_file_from_real_csv_preferences():
     mock_db = MagicMock()
     mock_db.query.side_effect = query_side_effect
 
-    preferences_result = parse_file(
-        make_upload_file_from_disk(COURSE_PREFERENCES_CSV), COURSE_PREFERENCES, mock_db
-    )
+    preferences_result = parse_file(make_upload_file_from_disk(COURSE_PREFERENCES_CSV), COURSE_PREFERENCES, mock_db)
 
     assert isinstance(preferences_result.get("inserts"), list)
     assert isinstance(preferences_result.get("updates"), list)
     assert len(preferences_result) > 0
-    assert all(
-        "faculty_nuid" in entry and "course_id" in entry and "preference" in entry
-        for entry in preferences_result.get("inserts")
-    )
+    assert all("faculty_nuid" in entry and "course_id" in entry and "preference" in entry for entry in preferences_result.get("inserts"))
 
 
 def test_upload_faculty_preferences():
@@ -288,10 +260,7 @@ def test_upload_faculty_preferences():
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_user] = lambda: {"sub": "test-user"}
 
-    csv_content = (
-        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
-        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
-    )
+    csv_content = "Faculty Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
 
     with TestClient(app) as client:
         response = client.post(
@@ -345,9 +314,7 @@ def test_upload_course_offerings():
     assert inserted_rows[0]["subject"] == "CS"
     assert inserted_rows[0]["code"] == "2500"
     assert inserted_rows[0]["credits"] == 4
-    assert inserted_rows[0]["description"] == (
-        "This course provides an overview of cs 2500 concepts."
-    )
+    assert inserted_rows[0]["description"] == ("This course provides an overview of cs 2500 concepts.")
 
 
 def test_validate_headers_preferences_valid():
@@ -362,18 +329,13 @@ def test_validate_headers_preferences_valid():
     mock_db_local = MagicMock()
     mock_db_local.query.side_effect = query_side_effect
 
-    csv_content = (
-        "Faculty Name,Faculty ID,Course,Semester,Preference\n"
-        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
-    )
+    csv_content = "Faculty Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
     result = parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db_local)
     assert isinstance(result, dict)
 
 
 def test_validate_headers_offerings_valid():
-    csv_content = (
-        "Course Code,Course Name,Credit Hours,Description\nCS 2500,Intro to CS,4,Intro to CS.\n"
-    )
+    csv_content = "Course Code,Course Name,Credit Hours,Description\nCS 2500,Intro to CS,4,Intro to CS.\n"
     result = parse_file(make_upload_file(csv_content), COURSE_OFFERINGS, mock_db)
     assert isinstance(result, list)
 
@@ -389,10 +351,7 @@ def test_validate_headers_preferences_invalid():
 
     mock_db_local = MagicMock()
     mock_db_local.query.side_effect = query_side_effect
-    csv_content = (
-        "Wrong Name,Faculty ID,Course,Semester,Preference\n"
-        "John Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
-    )
+    csv_content = "Wrong Name,Faculty ID,Course,Semester,Preference\nJohn Smith,1001,CS 3200,Fall 2026,Eager to teach\n"
     with pytest.raises(HTTPException) as exc:
         parse_file(make_upload_file(csv_content), COURSE_PREFERENCES, mock_db_local)
     assert exc.value.status_code == 422
@@ -453,10 +412,7 @@ def test_parse_time_preferences_dup_found():
     mock_db_local = MagicMock()
     mock_db_local.query.side_effect = query_side_effect
 
-    csv_content = (
-        "Semester,Faculty Name,Faculty ID,Meetingtime,Preference\n"
-        "Fall 2026,John Smith,1001,MWR 8:00a-9:05a,Eager to teach\n"
-    )
+    csv_content = "Semester,Faculty Name,Faculty ID,Meetingtime,Preference\nFall 2026,John Smith,1001,MWR 8:00a-9:05a,Eager to teach\n"
 
     result = parse_file(make_upload_file(csv_content), TIME_PREFERENCES, mock_db_local)
     updates = result.get("updates")
@@ -466,10 +422,7 @@ def test_parse_time_preferences_dup_found():
 
 
 def test_parse_time_preferences_invalid_enum():
-    csv_content = (
-        "Semester,Faculty Name,Faculty ID,Meetingtime,Preference\n"
-        "Fall 2026,John Smith,1001,MWR 8:00a-9:05a,Invalid value\n"
-    )
+    csv_content = "Semester,Faculty Name,Faculty ID,Meetingtime,Preference\nFall 2026,John Smith,1001,MWR 8:00a-9:05a,Invalid value\n"
 
     mock_db_local = MagicMock()
 
@@ -480,10 +433,7 @@ def test_parse_time_preferences_invalid_enum():
 
 
 def test_parse_time_preferences_invalid_headers():
-    csv_content = (
-        "Wrong,Faculty Name,Faculty ID,Meetingtime,Preference\n"
-        "Fall 2026,John Smith,1001,MWR 8:00a-9:05a,Eager to teach\n"
-    )
+    csv_content = "Wrong,Faculty Name,Faculty ID,Meetingtime,Preference\nFall 2026,John Smith,1001,MWR 8:00a-9:05a,Eager to teach\n"
 
     mock_db_local = MagicMock()
 
@@ -511,10 +461,7 @@ def test_upload_time_preferences():
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_user] = lambda: {"sub": "test-user"}
 
-    csv_content = (
-        "Semester,Faculty Name,Faculty ID,Meetingtime,Preference\n"
-        "Fall 2026,John Smith,1001,MWR 8:00a-9:05a,Eager to teach\n"
-    )
+    csv_content = "Semester,Faculty Name,Faculty ID,Meetingtime,Preference\nFall 2026,John Smith,1001,MWR 8:00a-9:05a,Eager to teach\n"
 
     with TestClient(app) as client:
         response = client.post(

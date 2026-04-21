@@ -552,7 +552,7 @@ export default function SectionMutationDrawer(props: Props) {
       .map((s) => ({
         value: s.section_id,
         label: sectionLabelForUi(s),
-        sublabel: `${s.time_block.days} ${s.time_block.start_time} – ${s.time_block.end_time}`,
+        sublabel: s.time_block ? `${s.time_block.days} ${s.time_block.start_time} – ${s.time_block.end_time}` : 'Unassigned',
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
     return [none, ...partners];

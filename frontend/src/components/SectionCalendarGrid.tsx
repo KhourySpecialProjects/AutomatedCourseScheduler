@@ -69,6 +69,7 @@ export default function SectionCalendarGrid({
   const calendarTimeRows = useMemo(() => {
     const byRange = new Map<string, { start_time: string; end_time: string }>();
     for (const s of sections) {
+      if (!s.time_block) continue;
       const key = `${s.time_block.start_time}|${s.time_block.end_time}`;
       if (!byRange.has(key))
         byRange.set(key, { start_time: s.time_block.start_time, end_time: s.time_block.end_time });
@@ -85,6 +86,7 @@ export default function SectionCalendarGrid({
   const calendarMap = useMemo(() => {
     const map = new Map<string, Map<string, SectionRichResponse[]>>();
     for (const s of visible) {
+      if (!s.time_block) continue;
       const key = `${s.time_block.start_time}|${s.time_block.end_time}`;
       if (!map.has(key)) map.set(key, new Map());
       const row = map.get(key)!;

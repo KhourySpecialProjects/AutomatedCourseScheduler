@@ -202,11 +202,7 @@ def test_create_warning_persisted_to_db(client, db_session):
         json={"SeverityRank": 2, "Message": "Persisted"},
     )
     db_session.expire_all()
-    warnings = (
-        db_session.query(ScheduleWarning)
-        .filter(ScheduleWarning.schedule_id == schedule.schedule_id)
-        .all()
-    )
+    warnings = db_session.query(ScheduleWarning).filter(ScheduleWarning.schedule_id == schedule.schedule_id).all()
     assert len(warnings) == 1
     assert warnings[0].message == "Persisted"
 

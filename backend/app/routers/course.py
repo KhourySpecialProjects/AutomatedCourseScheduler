@@ -12,9 +12,7 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 
 @router.get("", response_model=list[CourseResponse])
 def get_courses(
-    schedule_id: int | None = Query(
-        None, description="Filter to courses with sections in this schedule"
-    ),
+    schedule_id: int | None = Query(None, description="Filter to courses with sections in this schedule"),
     db: Session = Depends(get_db),
 ):
     "Retrieve all courses, optionally filtered by schedule"
