@@ -229,6 +229,10 @@ function InlineTimeBlockForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function deleteBlock(timeBlockId: number): Promise<void> {
+    await axiosInstance({ method: 'DELETE', url: `/time-blocks/${timeBlockId}` });
+  }
+
   async function postBlock(
     meetingDays: string,
     startTime: string,
@@ -274,22 +278,29 @@ function InlineTimeBlockForm({
         let lastErr: unknown;
         for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
           const group = generateBlockGroup();
-          try {
-            const [tb1, tb2] = await Promise.all([
-              postBlock(daysStr1, start1, end1, group),
-              postBlock(orderDays(days2), start2, end2, group),
-            ]);
-            onCreated([tb1, tb2]);
+          const results = await Promise.allSettled([
+            postBlock(daysStr1, start1, end1, group),
+            postBlock(orderDays(days2), start2, end2, group),
+          ]);
+          const [r1, r2] = results;
+
+          if (r1.status === 'fulfilled' && r2.status === 'fulfilled') {
+            onCreated([r1.value, r2.value]);
             lastErr = null;
             break;
-          } catch (err: unknown) {
-            const status = (err as { response?: { status?: number } })?.response?.status;
-            if (status === 409 && attempt < MAX_ATTEMPTS - 1) {
-              lastErr = err;
-              continue;
-            }
-            throw err;
           }
+
+          // Roll back any block that committed before the other failed
+          if (r1.status === 'fulfilled') await deleteBlock(r1.value.time_block_id).catch(() => {});
+          if (r2.status === 'fulfilled') await deleteBlock(r2.value.time_block_id).catch(() => {});
+
+          const rejected = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')!;
+          const status = (rejected.reason as { response?: { status?: number } })?.response?.status;
+          if (status === 409 && attempt < MAX_ATTEMPTS - 1) {
+            lastErr = rejected.reason;
+            continue;
+          }
+          throw rejected.reason;
         }
         if (lastErr) throw lastErr;
       } else {

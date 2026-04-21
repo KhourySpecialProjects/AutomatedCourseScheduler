@@ -7,7 +7,8 @@ import {
   type SemesterResponse,
   type UploadResponse,
 } from '../api/generated';
-import { axiosInstance, instance } from '../api/axiosInstance';
+import { axiosInstance } from '../api/axiosInstance';
+import { downloadScheduleCsv } from '../utils/exportCsv';
 
 /* ------------------------------------------------------------------ */
 /*  Schedule card                                                      */
@@ -34,16 +35,11 @@ function ScheduleCard({
 
   async function handleExportCsv(e: React.MouseEvent) {
     e.stopPropagation();
-    const scheduleId = schedule.schedule_id;
-    const response = await instance.get(`/schedules/${scheduleId}/export/csv`, { responseType: 'blob' });
-    const url = URL.createObjectURL(new Blob([response.data as BlobPart]));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `schedule_${scheduleId}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      await downloadScheduleCsv(schedule.schedule_id);
+    } catch {
+      alert('Failed to export CSV. Please try again.');
+    }
   }
 
   function openEdit(e: React.MouseEvent) {

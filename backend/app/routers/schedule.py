@@ -177,7 +177,7 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
         instructors = sorted(section.instructors, key=lambda i: (i.last_name, i.nuid))
         if instructors:
             instructor_name = "; ".join(f"{i.first_name} {i.last_name}" for i in instructors)
-            instructor_nuid = "; ".join(i.nuid for i in instructors)
+            instructor_nuid = "; ".join(str(i.nuid) for i in instructors)
             course_pref = "; ".join(
                 next(
                     (

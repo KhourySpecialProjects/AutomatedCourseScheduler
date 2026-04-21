@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import ScheduleSectionRowView from '../components/ScheduleSectionRowView';
 import { useScheduleWebSocket, type WsStatus } from '../hooks/useScheduleWebSocket';
 import { getAutomatedCourseSchedulerAPI, type ScheduleResponse, type UserResponse } from '../api/generated';
-import { instance } from '../api/axiosInstance';
+import { downloadScheduleCsv } from '../utils/exportCsv';
 
 type ViewMode = 'table' | 'calendar';
 type SchedulePersona = 'faculty' | 'admin';
@@ -85,15 +85,11 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
   }, [scheduleId]);
 
   async function handleExportCsv() {
-    const response = await instance.get(`/schedules/${scheduleId}/export/csv`, { responseType: 'blob' });
-    const url = URL.createObjectURL(new Blob([response.data as BlobPart]));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `schedule_${scheduleId}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      await downloadScheduleCsv(scheduleId);
+    } catch {
+      alert('Failed to export CSV. Please try again.');
+    }
   }
 
   const scheduleName = schedule?.name ?? `Schedule ${scheduleId}`;

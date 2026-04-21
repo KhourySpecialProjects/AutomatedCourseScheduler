@@ -129,7 +129,20 @@ def update_time_block(
         tb.campus = body.campus_id
 
     if "block_group" in fields:
-        # Allows explicitly setting block_group to None to unlink a split block
+        if body.block_group:
+            existing = (
+                db.query(TimeBlock)
+                .filter(
+                    TimeBlock.campus == tb.campus,
+                    TimeBlock.block_group == body.block_group,
+                    TimeBlock.time_block_id != time_block_id,
+                )
+                .count()
+            )
+            if existing >= 2:
+                raise BlockGroupConflictError(
+                    f"block_group '{body.block_group}' already has a complete pair on this campus"
+                )
         tb.block_group = body.block_group
 
     time_block_repo.save(db, tb)
