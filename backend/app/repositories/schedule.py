@@ -30,7 +30,8 @@ def get_by_id(db: Session, schedule_id: int) -> Schedule | None:
 
 
 def create(db: Session, data: dict) -> Schedule:
-    db.execute(text("SELECT setval(pg_get_serial_sequence('schedule', 'schedule_id'), COALESCE(MAX(schedule_id), 0) + 1, false) FROM schedule"))
+    if db.bind.dialect.name == "postgresql":
+        db.execute(text("SELECT setval(pg_get_serial_sequence('schedule', 'schedule_id'), COALESCE(MAX(schedule_id), 0) + 1, false) FROM schedule"))
     schedule = Schedule(**data)
     db.add(schedule)
     db.commit()
