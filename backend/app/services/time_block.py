@@ -20,7 +20,7 @@ def _parse_time(value: str) -> time:
             raise ValueError
         return time(int(parts[0]), int(parts[1]))
     except (ValueError, TypeError):
-        raise ValueError(f"Time must be in HH:MM format, got '{value}'")
+        raise ValueError(f"Time must be in HH:MM format, got '{value}'") from None
 
 
 def _to_response(tb: TimeBlock) -> TimeBlockResponse:

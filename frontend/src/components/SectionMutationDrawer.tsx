@@ -29,7 +29,7 @@ const STANDARD_SEQUENCES = [
   { name: 'Seq 3', days: 'MWR', start: '10:30', end: '11:35' },
   { name: 'Seq A', days: 'MR',  start: '11:45', end: '13:25' },
   { name: 'Seq 4', days: 'MWR', start: '13:35', end: '14:40' },
-  { name: 'Seq B', days: 'MWR', start: '15:25', end: '16:30' },
+  { name: 'Seq B', days: 'MW',  start: '14:50', end: '16:30' },
   { name: 'Seq 5', days: 'MWR', start: '16:35', end: '17:40' },
   { name: 'Seq C', days: 'TF',  start: '08:00', end: '09:40' },
   { name: 'Seq D', days: 'TF',  start: '09:50', end: '11:30' },
@@ -618,9 +618,16 @@ export default function SectionMutationDrawer(props: Props) {
     // Only show multi-day blocks (the standard named sequences) and split block halves.
     // Exclude single-day blocks (days.length === 1 and no block_group) — those are legacy
     // seed blocks that aren't useful for manual section assignment.
-    const eligible = timeBlocks.filter(
-      (tb) => tb.days.length > 1 || tb.block_group != null,
-    );
+    const eligible = timeBlocks.filter((tb) => {
+      // Always keep split-block halves
+      if (tb.block_group != null) return true;
+      // Only show blocks that exactly match a known standard sequence —
+      // this filters out legacy seed blocks that don't correspond to any
+      // official NEU meeting pattern.
+      return STANDARD_SEQUENCES.some(
+        (s) => s.days === tb.days && s.start === tb.start_time && s.end === tb.end_time,
+      );
+    });
 
     // Sort by start time so the earlier block of a pair is always processed first
     const sorted = [...eligible].sort((a, b) => a.start_time.localeCompare(b.start_time));
