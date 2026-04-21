@@ -108,9 +108,9 @@ function timeBlockLabel(days: string, start: string, end: string): string {
   return seqName ? `${seqName}  ·  ${daysStr}  ${timeRange}` : `${daysStr}  ${timeRange}`;
 }
 
-/** Pick a random uppercase letter to use as a split-block group identifier. */
+/** Generate a random 8-char hex string as a split-block group identifier. */
 function generateBlockGroup(): string {
-  return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 8);
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────

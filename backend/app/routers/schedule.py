@@ -1,6 +1,7 @@
 """Schedule router."""
 
 import csv
+from collections import defaultdict
 from io import StringIO
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.campus import Campus
+from app.models.time_block import TimeBlock
 from app.schemas.schedule import (
     ScheduleCreate,
     ScheduleResponse,
@@ -123,6 +125,18 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
     campus_obj = db.query(Campus).filter(Campus.campus_id == schedule.campus).first()
     campus_name = campus_obj.name if campus_obj else str(schedule.campus)
 
+    all_tbs = db.query(TimeBlock).filter(TimeBlock.campus == schedule.campus).all()
+    tb_by_id = {tb.time_block_id: tb for tb in all_tbs}
+    tb_by_group: dict[str, list] = defaultdict(list)
+    for tb in all_tbs:
+        if tb.block_group:
+            tb_by_group[tb.block_group].append(tb)
+    for blocks in tb_by_group.values():
+        blocks.sort(key=lambda tb: tb.start_time)
+
+    def _fmt(t) -> str:
+        return t.strftime("%I:%M %p").lstrip("0")
+
     sections = section_service.get_rich_sections(db, schedule_id)
 
     output = StringIO()
@@ -142,10 +156,18 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
     ])
 
     for section in sections:
-        time_block = (
-            f"{section.time_block.days} "
-            f"{section.time_block.start_time}-{section.time_block.end_time}"
-        )
+        raw_tb = tb_by_id.get(section.time_block.time_block_id)
+        if raw_tb and raw_tb.block_group:
+            siblings = tb_by_group.get(raw_tb.block_group, [raw_tb])
+            time_block = " / ".join(
+                f"{p.meeting_days} {_fmt(p.start_time)}-{_fmt(p.end_time)}"
+                for p in siblings
+            )
+        else:
+            time_block = (
+                f"{section.time_block.days} "
+                f"{section.time_block.start_time}-{section.time_block.end_time}"
+            )
 
         if section.instructors:
             instr = section.instructors[0]
