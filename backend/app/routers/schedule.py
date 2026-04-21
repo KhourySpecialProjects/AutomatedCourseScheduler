@@ -178,14 +178,22 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
             instructor_nuid = "; ".join(i.nuid for i in instructors)
             course_pref = "; ".join(
                 next(
-                    (cp.preference for cp in i.course_preferences if cp.course_id == section.course.course_id),
+                    (
+                        cp.preference
+                        for cp in i.course_preferences
+                        if cp.course_id == section.course.course_id
+                    ),
                     "",
                 )
                 for i in instructors
             )
             time_pref = "; ".join(
                 next(
-                    (mp.preference for mp in i.meeting_preferences if mp.time_block_id == section.time_block.time_block_id),
+                    (
+                        mp.preference
+                        for mp in i.meeting_preferences
+                        if mp.time_block_id == section.time_block.time_block_id
+                    ),
                     "",
                 )
                 for i in instructors
