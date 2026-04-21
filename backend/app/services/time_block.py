@@ -9,6 +9,10 @@ from app.repositories import time_block as time_block_repo
 from app.schemas.time_block import TimeBlockCreate, TimeBlockResponse, TimeBlockUpdate
 
 
+class BlockGroupConflictError(Exception):
+    """Raised when a block_group already has a complete split pair on this campus."""
+
+
 def _parse_time(value: str) -> time:
     """Parse a "HH:MM" string into a Python time object.
 
@@ -61,6 +65,17 @@ def create_time_block(db: Session, body: TimeBlockCreate) -> TimeBlockResponse:
     days = [c for c in body.meeting_days.strip().upper() if c.isalpha()]
     if not days:
         raise ValueError("meeting_days must contain at least one day letter (e.g. 'MWF')")
+
+    if body.block_group:
+        existing = (
+            db.query(TimeBlock)
+            .filter(TimeBlock.campus == body.campus_id, TimeBlock.block_group == body.block_group)
+            .count()
+        )
+        if existing >= 2:
+            raise BlockGroupConflictError(
+                f"block_group '{body.block_group}' already has a complete pair on this campus"
+            )
 
     tb = TimeBlock(
         meeting_days=body.meeting_days.strip().upper(),

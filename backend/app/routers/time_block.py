@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.time_block import TimeBlockCreate, TimeBlockResponse, TimeBlockUpdate
 from app.services import time_block as time_block_service
+from app.services.time_block import BlockGroupConflictError
 
 router = APIRouter(prefix="/time-blocks", tags=["time-blocks"])
 
@@ -30,6 +31,8 @@ def create_time_block(body: TimeBlockCreate, db: Session = Depends(get_db)):
     """
     try:
         return time_block_service.create_time_block(db, body)
+    except BlockGroupConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 

@@ -5,7 +5,7 @@ from collections import defaultdict
 from io import StringIO
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -166,6 +166,8 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
             time_block = " / ".join(
                 f"{p.meeting_days} {_fmt(p.start_time)}-{_fmt(p.end_time)}" for p in siblings
             )
+        elif raw_tb:
+            time_block = f"{raw_tb.meeting_days} {_fmt(raw_tb.start_time)}-{_fmt(raw_tb.end_time)}"
         else:
             time_block = (
                 f"{section.time_block.days} "
@@ -220,9 +222,8 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
             ]
         )
 
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
+    return Response(
+        content=output.getvalue(),
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="schedule_{schedule_id}.csv"'},
     )

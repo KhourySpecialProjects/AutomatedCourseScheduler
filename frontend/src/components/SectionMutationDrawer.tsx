@@ -270,12 +270,28 @@ function InlineTimeBlockForm({
     setError(null);
     try {
       if (isSplit) {
-        const group = generateBlockGroup();
-        const [tb1, tb2] = await Promise.all([
-          postBlock(daysStr1, start1, end1, group),
-          postBlock(orderDays(days2), start2, end2, group),
-        ]);
-        onCreated([tb1, tb2]);
+        const MAX_ATTEMPTS = 3;
+        let lastErr: unknown;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+          const group = generateBlockGroup();
+          try {
+            const [tb1, tb2] = await Promise.all([
+              postBlock(daysStr1, start1, end1, group),
+              postBlock(orderDays(days2), start2, end2, group),
+            ]);
+            onCreated([tb1, tb2]);
+            lastErr = null;
+            break;
+          } catch (err: unknown) {
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 409 && attempt < MAX_ATTEMPTS - 1) {
+              lastErr = err;
+              continue;
+            }
+            throw err;
+          }
+        }
+        if (lastErr) throw lastErr;
       } else {
         onCreated(await postBlock(daysStr1, start1, end1, null));
       }
