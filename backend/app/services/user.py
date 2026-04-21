@@ -20,7 +20,7 @@ class InviteResult:
 
 
 def invite_admin(db: Session, body: AdminInviteRequest) -> InviteResult:
-    """Create a pending admin without a faculty record; signup URL uses email for Auth0 login_hint."""
+    """Create pending admin without a faculty record; signup URL uses email for Auth0 login_hint."""
     if user_repo.get_by_nuid(db, body.nuid) is not None:
         raise ValueError(f"A user with NUID {body.nuid} already exists")
 
