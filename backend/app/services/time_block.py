@@ -67,7 +67,7 @@ def create_time_block(db: Session, body: TimeBlockCreate) -> TimeBlockResponse:
         start_time=start,
         end_time=end,
         campus=body.campus_id,
-        block_group=body.block_group,
+        block_group=body.block_group or None,
     )
     time_block_repo.create(db, tb)
     return _to_response(tb)
