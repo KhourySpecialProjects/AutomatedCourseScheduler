@@ -272,6 +272,13 @@ export interface InviteResponse {
   signup_url: string;
 }
 
+export interface AdminInviteRequest {
+  nuid: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 export interface MeetingPreferenceInfo {
   time_block_id: number;
   preference: string;
