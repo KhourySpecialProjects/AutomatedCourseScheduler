@@ -41,7 +41,7 @@ function getSortValue(section: SectionRichResponse, key: SortKey): string | numb
     case 'section':
       return section.section_number;
     case 'time':
-      return section.time_block.start_time;
+      return section.time_block?.start_time ?? '';
     case 'instructor': {
       const inst = primaryInstructor(section);
       return inst ? inst.last_name.toLowerCase() : '';
@@ -286,7 +286,7 @@ export default function ScheduleSectionRowView({
     const byId = new Map<number, { days: string; start: string; end: string; opt: SelectOption<number> }>();
     for (const s of sections) {
       const tb = s.time_block;
-      if (byId.has(tb.time_block_id)) continue;
+      if (!tb || byId.has(tb.time_block_id)) continue;
       byId.set(tb.time_block_id, {
         days: tb.days,
         start: tb.start_time,
@@ -355,7 +355,7 @@ export default function ScheduleSectionRowView({
     const courseMatch = courseFilterIds.length === 0 || courseFilterIds.includes(s.course.course_id);
     const instructorMatch =
       instructorFilterNuids.length === 0 || s.instructors.some((i) => instructorFilterNuids.includes(i.nuid));
-    const timeBlockMatch = timeBlockFilterIds.length === 0 || timeBlockFilterIds.includes(s.time_block.time_block_id);
+    const timeBlockMatch = timeBlockFilterIds.length === 0 || (s.time_block != null && timeBlockFilterIds.includes(s.time_block.time_block_id));
     return courseMatch && instructorMatch && timeBlockMatch;
   });
 
@@ -570,9 +570,9 @@ export default function ScheduleSectionRowView({
 
                       {/* Time */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="text-sm font-medium text-gray-900">{section.time_block.days}</span>
+                        <span className="text-sm font-medium text-gray-900">{section.time_block?.days ?? '—'}</span>
                         <span className="text-sm text-gray-500 ml-1.5">
-                          {section.time_block.start_time} – {section.time_block.end_time}
+                          {section.time_block ? `${section.time_block.start_time} – ${section.time_block.end_time}` : 'Unassigned'}
                         </span>
                       </td>
 

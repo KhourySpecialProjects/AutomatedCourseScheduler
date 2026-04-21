@@ -206,9 +206,7 @@ def test_create_course_success(client, db_session):
 
 
 def test_patch_course_success(client, db_session):
-    course = Course(
-        subject="CS", code=2500, name="CS 2500", description="Was old", credits=4, priority=True
-    )
+    course = Course(subject="CS", code=2500, name="CS 2500", description="Was old", credits=4, priority=True)
     db_session.add(course)
     db_session.commit()
 
@@ -229,9 +227,7 @@ def test_patch_course_success(client, db_session):
 
 
 def test_patch_course_priority_null_returns_400(client, db_session):
-    course = Course(
-        subject="CS", code=2600, name="CS 2600", description="X", credits=4, priority=False
-    )
+    course = Course(subject="CS", code=2600, name="CS 2600", description="X", credits=4, priority=False)
     db_session.add(course)
     db_session.commit()
 

@@ -41,9 +41,7 @@ def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
         course_list = []
     else:
         try:
-            course_list = course_service.generate_course_list(
-                db, previous_year, schedule.new_courses, schedule.campus
-            )
+            course_list = course_service.generate_course_list(db, previous_year, schedule.new_courses, schedule.campus)
         except ValueError as e:
             course_list = []
             raise HTTPException(status_code=404, detail=e.args[0]) from e
@@ -114,9 +112,7 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{schedule_id}/locks", response_model=list[ScheduleActiveLockResponse])
-def get_schedule_locks(
-    schedule_id: int, db: Session = Depends(get_db)
-) -> list[ScheduleActiveLockResponse]:
+def get_schedule_locks(schedule_id: int, db: Session = Depends(get_db)) -> list[ScheduleActiveLockResponse]:
     """
     Get all active locks for a schedule.
 

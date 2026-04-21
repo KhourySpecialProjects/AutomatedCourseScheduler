@@ -2333,6 +2333,10 @@ def seed(db: Session) -> None:
     # ------------------------------------------------------------------
     # (nuid, first_name, last_name, email)
     _faculty_data = [
+        (627, "Vance", "Ricks", "v.ricks@northeastern.edu"),
+        (103140, "Jayshree", "Sarathy", "j.sarathy@northeastern.edu"),
+        (344, "Jackson", "Alden", "a.jackson@northeastern.edu"),
+        (774, "Tory", "Melanie", "m.tory@northeastern.edu"),
         (12, "Amal", "Ahmed", "ahmed.a@northeastern.edu"),
         (696, "Dawn", "Shirak", "shirak.d@northeastern.edu"),
         (384, "Mary", "Kennedy", "kennedy.m@northeastern.edu"),
@@ -3679,45 +3683,19 @@ def seed(db: Session) -> None:
     )
 
     past_schedules = [
-        Schedule(
-            schedule_id=1, name="Fall 2020", semester_id=1, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=2, name="Fall 2021", semester_id=2, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=3, name="Fall 2022", semester_id=3, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=4, name="Fall 2023", semester_id=4, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=5, name="Fall 2024", semester_id=5, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=6, name="Fall 2025", semester_id=6, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=7, name="Spring 2020", semester_id=7, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=8, name="Spring 2021", semester_id=8, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=9, name="Spring 2022", semester_id=9, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=10, name="Spring 2023", semester_id=10, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=11, name="Spring 2024", semester_id=11, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=12, name="Spring 2025", semester_id=12, draft=False, campus=1, active=False
-        ),
-        Schedule(
-            schedule_id=13, name="Spring 2026", semester_id=13, draft=False, campus=1, active=False
-        ),
+        Schedule(schedule_id=1, name="Fall 2020", semester_id=1, draft=False, campus=1, active=False),
+        Schedule(schedule_id=2, name="Fall 2021", semester_id=2, draft=False, campus=1, active=False),
+        Schedule(schedule_id=3, name="Fall 2022", semester_id=3, draft=False, campus=1, active=False),
+        Schedule(schedule_id=4, name="Fall 2023", semester_id=4, draft=False, campus=1, active=False),
+        Schedule(schedule_id=5, name="Fall 2024", semester_id=5, draft=False, campus=1, active=False),
+        Schedule(schedule_id=6, name="Fall 2025", semester_id=6, draft=False, campus=1, active=False),
+        Schedule(schedule_id=7, name="Spring 2020", semester_id=7, draft=False, campus=1, active=False),
+        Schedule(schedule_id=8, name="Spring 2021", semester_id=8, draft=False, campus=1, active=False),
+        Schedule(schedule_id=9, name="Spring 2022", semester_id=9, draft=False, campus=1, active=False),
+        Schedule(schedule_id=10, name="Spring 2023", semester_id=10, draft=False, campus=1, active=False),
+        Schedule(schedule_id=11, name="Spring 2024", semester_id=11, draft=False, campus=1, active=False),
+        Schedule(schedule_id=12, name="Spring 2025", semester_id=12, draft=False, campus=1, active=False),
+        Schedule(schedule_id=13, name="Spring 2026", semester_id=13, draft=False, campus=1, active=False),
         Schedule(
             schedule_id=14,
             name="Summer 1 2020",
@@ -11332,6 +11310,47 @@ def seed(db: Session) -> None:
             time_block_id=None,
             crosslisted_section_id=None,
         ),
+        # ------------------------------------------------------------------
+        # Fall 2026 Draft (schedule_id=35) — indices 824–845
+        # ------------------------------------------------------------------
+        # CS 1800 Discrete Structures — 3 sections
+        Section(schedule_id=35, course_id=7, section_number=1, capacity=60, room=None, time_block_id=77, crosslisted_section_id=None),  # MWR 9:15
+        Section(schedule_id=35, course_id=7, section_number=2, capacity=60, room=None, time_block_id=82, crosslisted_section_id=None),  # TF 9:50
+        Section(schedule_id=35, course_id=7, section_number=3, capacity=60, room=None, time_block_id=85, crosslisted_section_id=None),  # WF 11:45
+        # CS 2800 Logic and Computation — 2 sections
+        Section(schedule_id=35, course_id=18, section_number=1, capacity=50, room=None, time_block_id=76, crosslisted_section_id=None),  # MWR 8:00
+        Section(schedule_id=35, course_id=18, section_number=2, capacity=50, room=None, time_block_id=83, crosslisted_section_id=None),  # TF 13:35
+        # CS 3000 Algorithms and Data — 2 sections
+        Section(schedule_id=35, course_id=21, section_number=1, capacity=40, room=None, time_block_id=78, crosslisted_section_id=None),  # MWR 10:30
+        Section(schedule_id=35, course_id=21, section_number=2, capacity=40, room=None, time_block_id=82, crosslisted_section_id=None),  # TF 9:50
+        # CS 3650 Computer Systems — 1 section
+        Section(schedule_id=35, course_id=32, section_number=1, capacity=35, room=None, time_block_id=77, crosslisted_section_id=None),  # MWR 9:15
+        # CS 3700 Networks — 1 section
+        Section(schedule_id=35, course_id=33, section_number=1, capacity=40, room=None, time_block_id=84, crosslisted_section_id=None),  # TF 15:25
+        # CS 3800 Theory of Computation — 1 section
+        Section(schedule_id=35, course_id=34, section_number=1, capacity=35, room=None, time_block_id=75, crosslisted_section_id=None),  # MR 11:45
+        # CS 4400 Programming Languages — 1 section
+        Section(schedule_id=35, course_id=48, section_number=1, capacity=30, room=None, time_block_id=79, crosslisted_section_id=None),  # MWR 13:35
+        # CS 4530 Foundations of Software Engineering — 2 sections
+        Section(schedule_id=35, course_id=52, section_number=1, capacity=35, room=None, time_block_id=84, crosslisted_section_id=None),  # TF 15:25
+        Section(schedule_id=35, course_id=52, section_number=2, capacity=35, room=None, time_block_id=85, crosslisted_section_id=None),  # WF 11:45
+        # CS 5001 Intensive Foundations of CS — 2 sections
+        Section(schedule_id=35, course_id=69, section_number=1, capacity=40, room=None, time_block_id=77, crosslisted_section_id=None),  # MWR 9:15
+        Section(schedule_id=35, course_id=69, section_number=2, capacity=40, room=None, time_block_id=81, crosslisted_section_id=None),  # TF 8:00
+        # CS 5002 Discrete Structures for CS — 1 section
+        Section(schedule_id=35, course_id=70, section_number=1, capacity=40, room=None, time_block_id=78, crosslisted_section_id=None),  # MWR 10:30
+        # CS 5004 Object-Oriented Design — 1 section
+        Section(schedule_id=35, course_id=72, section_number=1, capacity=35, room=None, time_block_id=83, crosslisted_section_id=None),  # TF 13:35
+        # CS 5008 Data Structures — 1 section
+        Section(schedule_id=35, course_id=76, section_number=1, capacity=40, room=None, time_block_id=86, crosslisted_section_id=None),  # WF 8:45
+        # CS 5010 Programming Design Paradigm — 1 section
+        Section(schedule_id=35, course_id=78, section_number=1, capacity=35, room=None, time_block_id=79, crosslisted_section_id=None),  # MWR 13:35
+        # CS 5800 Algorithms — 1 section
+        Section(schedule_id=35, course_id=102, section_number=1, capacity=30, room=None, time_block_id=82, crosslisted_section_id=None),  # TF 9:50
+        # CY 3740 System Security — 1 section
+        Section(schedule_id=35, course_id=166, section_number=1, capacity=30, room=None, time_block_id=75, crosslisted_section_id=None),  # MR 11:45
+        # CY 4740 Network Security — 1 section
+        Section(schedule_id=35, course_id=169, section_number=1, capacity=25, room=None, time_block_id=74, crosslisted_section_id=None),  # MW 14:50
     ]
     # section_specs = [
     #     # CS1 — 4 sections
@@ -11423,6 +11442,47 @@ def seed(db: Session) -> None:
         FacultyAssignment(faculty_nuid=391, section_id=sections[2].section_id),
         # Wand → CS 5010 Programming Design Paradigm
         FacultyAssignment(faculty_nuid=824, section_id=sections[27].section_id),
+        # ------------------------------------------------------------------
+        # Fall 2026 Draft assignments (sections 824–845)
+        # ------------------------------------------------------------------
+        # Barzilay → CS 1800 sec 1 & 2  (eager: 1800, willing: 2800)
+        FacultyAssignment(faculty_nuid=58, section_id=sections[824].section_id),
+        FacultyAssignment(faculty_nuid=58, section_id=sections[825].section_id),
+        # CS 1800 sec 3 left unassigned
+        # Wand → CS 2800 sec 1  (eager: 2800)
+        FacultyAssignment(faculty_nuid=824, section_id=sections[827].section_id),
+        # Barzilay → CS 2800 sec 2  (willing: 2800)
+        FacultyAssignment(faculty_nuid=58, section_id=sections[828].section_id),
+        # Cohen → CS 3000 sec 1  (eager: 3000)
+        FacultyAssignment(faculty_nuid=141, section_id=sections[829].section_id),
+        # CS 3000 sec 2 left unassigned
+        # Kirda → CS 3650 sec 1  (willing: 3650)
+        FacultyAssignment(faculty_nuid=391, section_id=sections[831].section_id),
+        # Choffnes → CS 3700 sec 1  (eager: 3700)
+        FacultyAssignment(faculty_nuid=131, section_id=sections[832].section_id),
+        # Cohen → CS 3800 sec 1  (eager: 3800)
+        FacultyAssignment(faculty_nuid=141, section_id=sections[833].section_id),
+        # Wand → CS 4400 sec 1  (eager: PL)
+        FacultyAssignment(faculty_nuid=824, section_id=sections[834].section_id),
+        # Tip → CS 4530 sec 1  (eager: 4530)
+        FacultyAssignment(faculty_nuid=769, section_id=sections[835].section_id),
+        # CS 4530 sec 2 left unassigned
+        # Felleisen → CS 5001 sec 1 & 2  (eager: 5001)
+        FacultyAssignment(faculty_nuid=227, section_id=sections[837].section_id),
+        FacultyAssignment(faculty_nuid=227, section_id=sections[838].section_id),
+        # Wand → CS 5002 sec 1  (eager: 5002)
+        FacultyAssignment(faculty_nuid=824, section_id=sections[839].section_id),
+        # Tip → CS 5004 sec 1  (eager: 5004)
+        FacultyAssignment(faculty_nuid=769, section_id=sections[840].section_id),
+        # Derbinsky → CS 5008 sec 1  (eager: 5008)
+        FacultyAssignment(faculty_nuid=177, section_id=sections[841].section_id),
+        # Wand → CS 5010 sec 1  (willing: 5010)
+        FacultyAssignment(faculty_nuid=824, section_id=sections[842].section_id),
+        # Cohen → CS 5800 sec 1  (willing: 5800)
+        FacultyAssignment(faculty_nuid=141, section_id=sections[843].section_id),
+        # Kirda → CY 3740 sec 1 & CY 4740 sec 1  (eager: both)
+        FacultyAssignment(faculty_nuid=391, section_id=sections[844].section_id),
+        FacultyAssignment(faculty_nuid=391, section_id=sections[845].section_id),
     ]
     db.add_all(assignments)
 
@@ -11431,82 +11491,36 @@ def seed(db: Session) -> None:
     # ------------------------------------------------------------------
     preferences = [
         # Felleisen — intro CS / foundations
-        CoursePreference(
-            faculty_nuid=227, course_id=69, preference=PreferenceLevel.EAGER
-        ),  # CS 5001
-        CoursePreference(
-            faculty_nuid=227, course_id=70, preference=PreferenceLevel.WILLING
-        ),  # CS 5002
-        CoursePreference(
-            faculty_nuid=227, course_id=15, preference=PreferenceLevel.WILLING
-        ),  # CS 2500
+        CoursePreference(faculty_nuid=227, course_id=69, preference=PreferenceLevel.EAGER),  # CS 5001
+        CoursePreference(faculty_nuid=227, course_id=70, preference=PreferenceLevel.WILLING),  # CS 5002
+        CoursePreference(faculty_nuid=227, course_id=15, preference=PreferenceLevel.WILLING),  # CS 2500
         # Cohen — theory / algorithms
-        CoursePreference(
-            faculty_nuid=141, course_id=34, preference=PreferenceLevel.EAGER
-        ),  # CS 3800 Theory
-        CoursePreference(
-            faculty_nuid=141, course_id=21, preference=PreferenceLevel.EAGER
-        ),  # CS 3000 Algorithms
-        CoursePreference(
-            faculty_nuid=141, course_id=102, preference=PreferenceLevel.WILLING
-        ),  # CS 5800 Algorithms
+        CoursePreference(faculty_nuid=141, course_id=34, preference=PreferenceLevel.EAGER),  # CS 3800 Theory
+        CoursePreference(faculty_nuid=141, course_id=21, preference=PreferenceLevel.EAGER),  # CS 3000 Algorithms
+        CoursePreference(faculty_nuid=141, course_id=102, preference=PreferenceLevel.WILLING),  # CS 5800 Algorithms
         # Barzilay — discrete math / logic
-        CoursePreference(
-            faculty_nuid=58, course_id=7, preference=PreferenceLevel.EAGER
-        ),  # CS 1800 Discrete
-        CoursePreference(
-            faculty_nuid=58, course_id=18, preference=PreferenceLevel.WILLING
-        ),  # CS 2800 Logic
+        CoursePreference(faculty_nuid=58, course_id=7, preference=PreferenceLevel.EAGER),  # CS 1800 Discrete
+        CoursePreference(faculty_nuid=58, course_id=18, preference=PreferenceLevel.WILLING),  # CS 2800 Logic
         # Wand — logic / PL / programming paradigms
-        CoursePreference(
-            faculty_nuid=824, course_id=18, preference=PreferenceLevel.EAGER
-        ),  # CS 2800 Logic
-        CoursePreference(
-            faculty_nuid=824, course_id=70, preference=PreferenceLevel.EAGER
-        ),  # CS 5002 Discrete
-        CoursePreference(
-            faculty_nuid=824, course_id=48, preference=PreferenceLevel.EAGER
-        ),  # CS 4400 PL
-        CoursePreference(
-            faculty_nuid=824, course_id=78, preference=PreferenceLevel.WILLING
-        ),  # CS 5010 Prog Paradigm
+        CoursePreference(faculty_nuid=824, course_id=18, preference=PreferenceLevel.EAGER),  # CS 2800 Logic
+        CoursePreference(faculty_nuid=824, course_id=70, preference=PreferenceLevel.EAGER),  # CS 5002 Discrete
+        CoursePreference(faculty_nuid=824, course_id=48, preference=PreferenceLevel.EAGER),  # CS 4400 PL
+        CoursePreference(faculty_nuid=824, course_id=78, preference=PreferenceLevel.WILLING),  # CS 5010 Prog Paradigm
         # Tip — software engineering / PL
-        CoursePreference(
-            faculty_nuid=769, course_id=72, preference=PreferenceLevel.EAGER
-        ),  # CS 5004 OOD
-        CoursePreference(
-            faculty_nuid=769, course_id=52, preference=PreferenceLevel.EAGER
-        ),  # CS 4530 SE
-        CoursePreference(
-            faculty_nuid=769, course_id=50, preference=PreferenceLevel.WILLING
-        ),  # CS 4500 SW Dev
+        CoursePreference(faculty_nuid=769, course_id=72, preference=PreferenceLevel.EAGER),  # CS 5004 OOD
+        CoursePreference(faculty_nuid=769, course_id=52, preference=PreferenceLevel.EAGER),  # CS 4530 SE
+        CoursePreference(faculty_nuid=769, course_id=50, preference=PreferenceLevel.WILLING),  # CS 4500 SW Dev
         # Choffnes — networks
-        CoursePreference(
-            faculty_nuid=131, course_id=33, preference=PreferenceLevel.EAGER
-        ),  # CS 3700 Networks
-        CoursePreference(
-            faculty_nuid=131, course_id=57, preference=PreferenceLevel.WILLING
-        ),  # CS 4700 Network Fund
-        CoursePreference(
-            faculty_nuid=131, course_id=101, preference=PreferenceLevel.WILLING
-        ),  # CS 5700 Networking
+        CoursePreference(faculty_nuid=131, course_id=33, preference=PreferenceLevel.EAGER),  # CS 3700 Networks
+        CoursePreference(faculty_nuid=131, course_id=57, preference=PreferenceLevel.WILLING),  # CS 4700 Network Fund
+        CoursePreference(faculty_nuid=131, course_id=101, preference=PreferenceLevel.WILLING),  # CS 5700 Networking
         # Kirda — security
-        CoursePreference(
-            faculty_nuid=391, course_id=166, preference=PreferenceLevel.EAGER
-        ),  # CY 3740 Sys Security
-        CoursePreference(
-            faculty_nuid=391, course_id=169, preference=PreferenceLevel.EAGER
-        ),  # CY 4740 Net Security
-        CoursePreference(
-            faculty_nuid=391, course_id=32, preference=PreferenceLevel.WILLING
-        ),  # CS 3650 Comp Systems
+        CoursePreference(faculty_nuid=391, course_id=166, preference=PreferenceLevel.EAGER),  # CY 3740 Sys Security
+        CoursePreference(faculty_nuid=391, course_id=169, preference=PreferenceLevel.EAGER),  # CY 4740 Net Security
+        CoursePreference(faculty_nuid=391, course_id=32, preference=PreferenceLevel.WILLING),  # CS 3650 Comp Systems
         # Derbinsky — systems / data structures
-        CoursePreference(
-            faculty_nuid=177, course_id=76, preference=PreferenceLevel.EAGER
-        ),  # CS 5008 Data Struct
-        CoursePreference(
-            faculty_nuid=177, course_id=32, preference=PreferenceLevel.WILLING
-        ),  # CS 3650 Comp Systems
+        CoursePreference(faculty_nuid=177, course_id=76, preference=PreferenceLevel.EAGER),  # CS 5008 Data Struct
+        CoursePreference(faculty_nuid=177, course_id=32, preference=PreferenceLevel.WILLING),  # CS 3650 Comp Systems
     ]
     db.add_all(preferences)
 
@@ -11632,10 +11646,7 @@ def seed(db: Session) -> None:
     print(f"  {len(assignments)} faculty assignments")
     print(f"  {len(preferences)} course preferences")
     print(f"  {len(meeting_prefs)} meeting preferences")
-    print(
-        f"  {len(seed_admins)} seed admin users (fake emails"
-        f" — run bootstrap_admin.py for real login)"
-    )
+    print(f"  {len(seed_admins)} seed admin users (fake emails — run bootstrap_admin.py for real login)")
 
 
 if __name__ == "__main__":

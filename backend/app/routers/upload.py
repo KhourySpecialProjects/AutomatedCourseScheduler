@@ -5,12 +5,14 @@ import logging
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import ValidationError
-from sqlalchemy import insert, update
+from sqlalchemy import String, cast, func, insert, text, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.enums import Campus
+from app.models.campus import Campus as CampusModel
 from app.models.course import Course
 from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
@@ -39,15 +41,8 @@ def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
         to_insert = parse_file(file, COURSE_OFFERINGS, db)
         if to_insert:
-            db.execute(insert(Course), to_insert)
+            db.execute(pg_insert(Course).on_conflict_do_nothing(), to_insert)
             db.commit()
-        else:
-            return UploadResponse(
-                status="success",
-                message=("File does not contain any non-existing courses. Nothing inserted."),
-                records_processed=len(to_insert),
-                records_successful=len(to_insert),
-            )
     except HTTPException:
         raise
     except SQLAlchemyError as e:
@@ -137,9 +132,7 @@ def parse_file(file, schema, db):
     if not headers_ok.get("valid"):
         raise HTTPException(
             status_code=422,
-            detail=(
-                f"Invalid column names {reader.fieldnames}. Expected {headers_ok.get('expected')}"
-            ),
+            detail=(f"Invalid column names {reader.fieldnames}. Expected {headers_ok.get('expected')}"),
         )
 
     if schema == COURSE_OFFERINGS:
@@ -149,10 +142,7 @@ def parse_file(file, schema, db):
     elif schema == TIME_PREFERENCES:
         return parse_time_preferences(db, reader)
     else:
-        logger.error(
-            f"Unknown file content type {schema}. Expected one of: "
-            f"{[COURSE_OFFERINGS, COURSE_PREFERENCES, TIME_PREFERENCES]}"
-        )
+        logger.error(f"Unknown file content type {schema}. Expected one of: {[COURSE_OFFERINGS, COURSE_PREFERENCES, TIME_PREFERENCES]}")
         return
 
 
@@ -161,6 +151,12 @@ def parse_time_preferences(db, reader):
     updates = []
     errors = []
     faculty_ids = set()
+    boston = db.query(CampusModel).filter(CampusModel.name == Campus.BOSTON.value).first()
+    if not boston:
+        raise HTTPException(status_code=400, detail="Boston campus not found in database. Run seed.py first.")
+    db.execute(
+        text("SELECT setval(pg_get_serial_sequence('time_block', 'time_block_id'), COALESCE(MAX(time_block_id), 0) + 1, false) FROM time_block")
+    )
     for i, row in enumerate(reader):
         try:
             normalized = normalize_headers(row, TIME_PREFERENCES)
@@ -169,9 +165,7 @@ def parse_time_preferences(db, reader):
 
             segments = validated.normalize_meeting_time()
             for days, start_time, end_time in segments:
-                logger.info(
-                    f"Row {i}: parsed segment — days={days}, start={start_time}, end={end_time}"
-                )
+                logger.info(f"Row {i}: parsed segment — days={days}, start={start_time}, end={end_time}")
 
                 time_block = (
                     db.query(TimeBlock)
@@ -190,16 +184,13 @@ def parse_time_preferences(db, reader):
                         meeting_days=days,
                         start_time=start_time,
                         end_time=end_time,
-                        campus=Campus.BOSTON,
+                        campus=boston.campus_id,
                     )
                     db.add(time_block)
                     db.flush()
 
                 elif not faculty:
-                    errors.append(
-                        f"Row {i}: faculty '{validated.facultyName}' "
-                        f"with id '{validated.facultyId}' not found"
-                    )
+                    errors.append(f"Row {i}: faculty '{validated.facultyName}' with id '{validated.facultyId}' not found")
                     continue
 
                 existing_pref = (
@@ -237,21 +228,7 @@ def parse_course_offerings(db, reader):
         try:
             normalized = normalize_headers(row, COURSE_OFFERINGS)
             validated = CourseOfferingsSchema(**normalized)
-            existing = (
-                db.query(Course)
-                .filter(
-                    Course.subject == validated.courseSubject, Course.code == validated.courseCode
-                )
-                .first()
-            )
-            if existing:
-                logger.info(
-                    f"Row {i}: course '{validated.courseName}' with the same description "
-                    f"already exists, skipping"
-                )
-                continue
-            db_entry = validated.translate()
-            table_entries.append(db_entry)
+            table_entries.append(validated.translate())
         except (ValidationError, ValueError) as e:
             errors.append(f"Row {i}: {e}")
 
@@ -271,15 +248,14 @@ def parse_course_preferences(db, reader):
             normalized = normalize_headers(row, COURSE_PREFERENCES)
             validated = CoursePreferencesSchema(**normalized)
             faculty_ids.add(validated.facultyId)
-            course = db.query(Course).filter(Course.name == validated.course).first()
+            course = (
+                db.query(Course).filter(func.concat(Course.subject, " ", func.lpad(cast(Course.code, String), 4, "0")) == validated.course).first()
+            )
             faculty = db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
             if not course:
                 errors.append(f"Row {i}: course '{validated.course}' not found")
             elif not faculty:
-                errors.append(
-                    f"Row {i}: faculty '{validated.facultyName}' "
-                    f"with id '{validated.facultyId}' not found"
-                )
+                errors.append(f"Row {i}: faculty '{validated.facultyName}' with id '{validated.facultyId}' not found")
             else:
                 existing_pref = (
                     db.query(CoursePreference)
@@ -331,10 +307,7 @@ def validate_headers(headers, schema):
             "Preference",
         ]
     else:
-        logger.error(
-            f"Unknown schema {schema}. Expected one of: "
-            f"{[COURSE_OFFERINGS, COURSE_PREFERENCES, TIME_PREFERENCES]}"
-        )
+        logger.error(f"Unknown schema {schema}. Expected one of: {[COURSE_OFFERINGS, COURSE_PREFERENCES, TIME_PREFERENCES]}")
 
     valid = set(expected_headers) == set(headers)
 

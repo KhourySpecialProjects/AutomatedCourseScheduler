@@ -21,9 +21,7 @@ class SectionLockConflictError(Exception):
         self.lock = lock
 
 
-async def acquire_lock(
-    db: Session, section_id: int, user_id: int, display_name: str
-) -> SectionLock:
+async def acquire_lock(db: Session, section_id: int, user_id: int, display_name: str) -> SectionLock:
     """Acquire a lock on a section for editing, auto-releasing any other lock the user
     currently holds. Broadcasts lock_acquired only when a new lock is created (not on
     refresh of an existing lock by the same user).
@@ -131,17 +129,11 @@ def verify_lock(db: Session, section_id: int, user_id: int) -> None:
     now = datetime.now(UTC).replace(tzinfo=None)
     existing_lock = section_lock_repo.get_by_section_id(db, section_id)
 
-    if (
-        existing_lock is None
-        or existing_lock.expires_at < now
-        or existing_lock.locked_by != user_id
-    ):
+    if existing_lock is None or existing_lock.expires_at < now or existing_lock.locked_by != user_id:
         raise HTTPException(status_code=403, detail="User does not own this lock")
 
 
-def get_active_locks_for_schedule(
-    db: Session, schedule_id: int
-) -> list[ScheduleActiveLockResponse]:
+def get_active_locks_for_schedule(db: Session, schedule_id: int) -> list[ScheduleActiveLockResponse]:
     """
     Return all active locks for a schedule with user display names.
 

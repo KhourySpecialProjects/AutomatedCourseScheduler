@@ -92,10 +92,7 @@ def make_faculty_multi(
     course_prefs: list of (course_id, preference_str)
     time_prefs:   list of (time_block_id, preference_str)
     """
-    cps = [
-        CoursePreferenceInfo(course_id=cid, course_name=f"Course {cid}", preference=p)
-        for cid, p in (course_prefs or [])
-    ]
+    cps = [CoursePreferenceInfo(course_id=cid, course_name=f"Course {cid}", preference=p) for cid, p in (course_prefs or [])]
     tps = [MeetingPreferenceInfo(time_block_id=tid, preference=p) for tid, p in (time_prefs or [])]
     return FacultyState(
         nuid=nuid,
@@ -132,13 +129,8 @@ def make_faculty_profile(
     course_prefs: list[tuple[int, str]] | None = None,
     meeting_prefs: list[tuple[int, str]] | None = None,
 ) -> FacultyProfileResponse:
-    cps = [
-        CoursePreferenceInfo(course_id=cid, course_name=f"Course {cid}", preference=p)
-        for cid, p in (course_prefs or [])
-    ]
-    mps = [
-        MeetingPreferenceInfo(time_block_id=tid, preference=p) for tid, p in (meeting_prefs or [])
-    ]
+    cps = [CoursePreferenceInfo(course_id=cid, course_name=f"Course {cid}", preference=p) for cid, p in (course_prefs or [])]
+    mps = [MeetingPreferenceInfo(time_block_id=tid, preference=p) for tid, p in (meeting_prefs or [])]
     return FacultyProfileResponse(
         nuid=nuid,
         first_name="Faculty",
@@ -483,9 +475,7 @@ class TestFindDisplacementTarget:
 
         assignments = {0: (1, 3)}
         faculty_states, section_lookup, pref_lookup = self._setup([existing, incoming], [faculty])
-        result = _find_displacement_target(
-            incoming, faculty_states, assignments, section_lookup, pref_lookup
-        )
+        result = _find_displacement_target(incoming, faculty_states, assignments, section_lookup, pref_lookup)
         assert result == (0, 1)
 
     def test_within_tier_strict_improvement(self):
@@ -501,9 +491,7 @@ class TestFindDisplacementTarget:
 
         assignments = {0: (1, 3)}
         faculty_states, section_lookup, pref_lookup = self._setup([existing, incoming], [faculty])
-        result = _find_displacement_target(
-            incoming, faculty_states, assignments, section_lookup, pref_lookup
-        )
+        result = _find_displacement_target(incoming, faculty_states, assignments, section_lookup, pref_lookup)
         assert result == (0, 1)
 
     def test_within_tier_no_improvement_blocked(self):
@@ -519,9 +507,7 @@ class TestFindDisplacementTarget:
 
         assignments = {0: (1, 1)}
         faculty_states, section_lookup, pref_lookup = self._setup([existing, incoming], [faculty])
-        result = _find_displacement_target(
-            incoming, faculty_states, assignments, section_lookup, pref_lookup
-        )
+        result = _find_displacement_target(incoming, faculty_states, assignments, section_lookup, pref_lookup)
         assert result is None
 
     def test_must_have_protection(self):
@@ -537,9 +523,7 @@ class TestFindDisplacementTarget:
 
         assignments = {0: (1, 3)}
         faculty_states, section_lookup, pref_lookup = self._setup([existing, incoming], [faculty])
-        result = _find_displacement_target(
-            incoming, faculty_states, assignments, section_lookup, pref_lookup
-        )
+        result = _find_displacement_target(incoming, faculty_states, assignments, section_lookup, pref_lookup)
         assert result is None
 
     def test_seen_second_pass_blocks_cascade(self):
@@ -550,16 +534,12 @@ class TestFindDisplacementTarget:
             current_load=1,
             course_prefs=[(100, EAGER), (200, WILLING)],
         )
-        existing = make_section(
-            section_id=0, course_id=200, is_priority=False, seen_second_pass=True
-        )
+        existing = make_section(section_id=0, course_id=200, is_priority=False, seen_second_pass=True)
         incoming = make_section(section_id=1, course_id=100, is_priority=True)
 
         assignments = {0: (1, 3)}
         faculty_states, section_lookup, pref_lookup = self._setup([existing, incoming], [faculty])
-        result = _find_displacement_target(
-            incoming, faculty_states, assignments, section_lookup, pref_lookup
-        )
+        result = _find_displacement_target(incoming, faculty_states, assignments, section_lookup, pref_lookup)
         assert result is None
 
     def test_faculty_not_at_capacity_skipped(self):
@@ -575,9 +555,7 @@ class TestFindDisplacementTarget:
 
         assignments = {0: (1, 3)}
         faculty_states, section_lookup, pref_lookup = self._setup([existing, incoming], [faculty])
-        result = _find_displacement_target(
-            incoming, faculty_states, assignments, section_lookup, pref_lookup
-        )
+        result = _find_displacement_target(incoming, faculty_states, assignments, section_lookup, pref_lookup)
         assert result is None
 
     def test_unqualified_faculty_skipped(self):
@@ -593,20 +571,14 @@ class TestFindDisplacementTarget:
 
         assignments = {0: (1, 1)}
         faculty_states, section_lookup, pref_lookup = self._setup([existing, incoming], [faculty])
-        result = _find_displacement_target(
-            incoming, faculty_states, assignments, section_lookup, pref_lookup
-        )
+        result = _find_displacement_target(incoming, faculty_states, assignments, section_lookup, pref_lookup)
         assert result is None
 
     def test_no_assignments_returns_none(self):
-        faculty = make_faculty_multi(
-            nuid=1, max_load=1, current_load=1, course_prefs=[(100, EAGER)]
-        )
+        faculty = make_faculty_multi(nuid=1, max_load=1, current_load=1, course_prefs=[(100, EAGER)])
         incoming = make_section(section_id=0, course_id=100)
 
-        result = _find_displacement_target(
-            incoming, {1: faculty}, {}, {}, _build_pref_lookup([faculty])
-        )
+        result = _find_displacement_target(incoming, {1: faculty}, {}, {}, _build_pref_lookup([faculty]))
         assert result is None
 
 

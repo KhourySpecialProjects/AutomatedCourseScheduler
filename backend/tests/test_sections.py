@@ -684,9 +684,7 @@ def test_patch_section_invalid_crosslisted_returns_400(client, db_session):
     )
     db_session.add(section)
     db_session.commit()
-    response = client.patch(
-        f"/sections/{section.section_id}", json={"crosslisted_section_id": 99999}
-    )
+    response = client.patch(f"/sections/{section.section_id}", json={"crosslisted_section_id": 99999})
     assert response.status_code == 400
     assert response.json()["detail"] == "CrosslistedSectionID is invalid"
 
@@ -723,9 +721,7 @@ def test_patch_section_clear_nullable_fields(client, db_session):
     assert reloaded is not None
     assert reloaded.room is None
     assert reloaded.crosslisted_section_id is None
-    other_reloaded = (
-        db_session.query(Section).filter(Section.section_id == other.section_id).first()
-    )
+    other_reloaded = db_session.query(Section).filter(Section.section_id == other.section_id).first()
     assert other_reloaded is not None
     assert other_reloaded.crosslisted_section_id is None
 
@@ -761,11 +757,7 @@ def test_patch_section_replace_faculty_assignments(client, db_session):
     response = client.patch(f"/sections/{section.section_id}", json={"faculty_nuids": [f2.nuid]})
     assert response.status_code == 200
 
-    assignments = (
-        db_session.query(FacultyAssignment)
-        .filter(FacultyAssignment.section_id == section.section_id)
-        .all()
-    )
+    assignments = db_session.query(FacultyAssignment).filter(FacultyAssignment.section_id == section.section_id).all()
     assert len(assignments) == 1
     assert assignments[0].faculty_nuid == f2.nuid
 
@@ -846,9 +838,7 @@ def test_patch_section_acquires_lock_automatically(client, db_session):
     response = client.patch(f"/sections/{section.section_id}", json={"capacity": 30})
 
     assert response.status_code == 200
-    lock = (
-        db_session.query(SectionLock).filter(SectionLock.section_id == section.section_id).first()
-    )
+    lock = db_session.query(SectionLock).filter(SectionLock.section_id == section.section_id).first()
     assert lock is not None
     assert lock.locked_by == user.user_id
 
@@ -872,12 +862,8 @@ def test_patch_section_locked_by_other_user_returns_423(client, db_session):
     )
     db_session.add(section)
     db_session.flush()
-    owner = User(
-        nuid=9001, first_name="Owner", last_name="User", email="owner@test.com", role="ADMIN"
-    )
-    caller = User(
-        nuid=9002, first_name="Caller", last_name="User", email="caller@test.com", role="ADMIN"
-    )
+    owner = User(nuid=9001, first_name="Owner", last_name="User", email="owner@test.com", role="ADMIN")
+    caller = User(nuid=9002, first_name="Caller", last_name="User", email="caller@test.com", role="ADMIN")
     db_session.add_all([owner, caller])
     db_session.commit()
 

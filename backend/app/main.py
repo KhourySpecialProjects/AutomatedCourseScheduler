@@ -47,9 +47,7 @@ def custom_openapi():
         routes=app.routes,
     )
     schema.setdefault("components", {})
-    schema["components"]["securitySchemes"] = {
-        "BearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
-    }
+    schema["components"]["securitySchemes"] = {"BearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}}
     schema["security"] = [{"BearerAuth": []}]
     app.openapi_schema = schema
     return schema

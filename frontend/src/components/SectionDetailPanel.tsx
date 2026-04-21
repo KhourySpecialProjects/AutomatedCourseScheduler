@@ -58,7 +58,7 @@ function parseHour(timeStr: string): number {
 }
 
 export default function SectionDetailPanel({ section, allSections, onClose }: Props) {
-  const startHour = parseHour(section.time_block.start_time);
+  const startHour = section.time_block ? parseHour(section.time_block.start_time) : null;
 
   return (
     <>
@@ -107,9 +107,9 @@ export default function SectionDetailPanel({ section, allSections, onClose }: Pr
                 <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="font-medium text-gray-900">{section.time_block.days}</span>
+                <span className="font-medium text-gray-900">{section.time_block?.days ?? '—'}</span>
                 <span className="text-gray-600">
-                  {section.time_block.start_time} – {section.time_block.end_time}
+                  {section.time_block ? `${section.time_block.start_time} – ${section.time_block.end_time}` : 'Unassigned'}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -133,12 +133,12 @@ export default function SectionDetailPanel({ section, allSections, onClose }: Pr
               <div className="space-y-4">
                 {section.instructors.map((instructor) => {
                   const coursePref = coursePreferenceFor(instructor, section.course.course_id);
-                  const meetingPref = meetingPreferenceFor(
+                  const meetingPref = section.time_block && startHour != null ? meetingPreferenceFor(
                     instructor,
                     section.time_block.days,
                     startHour,
                     section.time_block.time_block_id,
-                  );
+                  ) : null;
 
                   return (
                     <div key={instructor.nuid} className="border border-gray-100 rounded-lg p-3">

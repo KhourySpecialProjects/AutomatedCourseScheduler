@@ -27,9 +27,7 @@ def test_department_code_from_course_name():
 def test_prefers_better_time_preference():
     blocks = [_block(1, "MW"), _block(2, "TR")]
     faculty_prefs = {10: _prefs((1, "Willing to teach"), (2, "Eager to teach"))}
-    assignments = [
-        MatchedAssignment(section_id=1, course_id=100, faculty_nuid=10, department_code="CS")
-    ]
+    assignments = [MatchedAssignment(section_id=1, course_id=100, faculty_nuid=10, department_code="CS")]
     result = assign_time_blocks(assignments, blocks, faculty_prefs)
     placed = result.assignments[0]
     assert placed.time_block_id == 2
@@ -59,10 +57,7 @@ def test_fifteen_percent_cap_per_department():
         )
         for i in range(10)
     }
-    assignments = [
-        MatchedAssignment(section_id=i, course_id=200 + i, faculty_nuid=i, department_code="CS")
-        for i in range(10)
-    ]
+    assignments = [MatchedAssignment(section_id=i, course_id=200 + i, faculty_nuid=i, department_code="CS") for i in range(10)]
     params = AlgorithmParameters(MaxTimeBlockCapacity=0.15)
     result = assign_time_blocks(assignments, blocks, faculty_prefs, parameters=params)
     assert all(w.Type == WarningType.NO_VALID_TIME_BLOCK for w in result.warnings)
@@ -148,18 +143,9 @@ def test_department_section_totals_tighten_cap():
 
 
 def test_max_sections_per_block_helper():
-    assert (
-        max_sections_per_block_for_department(10, AlgorithmParameters(MaxTimeBlockCapacity=0.15))
-        == 1
-    )
-    assert (
-        max_sections_per_block_for_department(20, AlgorithmParameters(MaxTimeBlockCapacity=0.15))
-        == 3
-    )
-    assert (
-        max_sections_per_block_for_department(1, AlgorithmParameters(MaxTimeBlockCapacity=0.15))
-        == 1
-    )
+    assert max_sections_per_block_for_department(10, AlgorithmParameters(MaxTimeBlockCapacity=0.15)) == 1
+    assert max_sections_per_block_for_department(20, AlgorithmParameters(MaxTimeBlockCapacity=0.15)) == 3
+    assert max_sections_per_block_for_department(1, AlgorithmParameters(MaxTimeBlockCapacity=0.15)) == 1
 
 
 def test_warning_severity_and_metadata():

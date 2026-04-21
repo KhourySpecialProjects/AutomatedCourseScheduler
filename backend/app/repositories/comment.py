@@ -23,12 +23,7 @@ def count_active_by_schedule(db: Session, schedule_id: int) -> dict[int, int]:
 
 
 def get_by_section(db: Session, section_id: int) -> list[Comment]:
-    stmt = (
-        select(Comment)
-        .join(Section.comments)
-        .where(Comment.section_id == section_id, Comment.active.is_(True))
-        .options(joinedload(Comment.user))
-    )
+    stmt = select(Comment).join(Section.comments).where(Comment.section_id == section_id, Comment.active.is_(True)).options(joinedload(Comment.user))
     results = db.scalars(stmt).all()
     return results
 

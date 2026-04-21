@@ -68,11 +68,7 @@ def post_reply(db: Session, replyIn: CommentSchema, parent_id: int) -> CommentRe
         raise ValueError("Parent comment section does not match reply section")
 
     # If you "reply to a reply", re-parent to the top-level comment.
-    root_parent_id = (
-        parent_comment.parent_id
-        if parent_comment.parent_id is not None
-        else parent_comment.comment_id
-    )
+    root_parent_id = parent_comment.parent_id if parent_comment.parent_id is not None else parent_comment.comment_id
 
     reply = comment_repo.post_reply(db, replyIn, root_parent_id)
 

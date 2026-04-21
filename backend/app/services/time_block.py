@@ -73,9 +73,7 @@ def create_time_block(db: Session, body: TimeBlockCreate) -> TimeBlockResponse:
     return _to_response(tb)
 
 
-def update_time_block(
-    db: Session, time_block_id: int, body: TimeBlockUpdate
-) -> TimeBlockResponse | None:
+def update_time_block(db: Session, time_block_id: int, body: TimeBlockUpdate) -> TimeBlockResponse | None:
     """Partially update a time block.  Returns None if the block is not found.
 
     Only fields explicitly included in the request body are updated.
@@ -132,10 +130,7 @@ def delete_time_block(db: Session, time_block_id: int) -> bool:
         return False
 
     if time_block_repo.has_sections(db, time_block_id):
-        raise ValueError(
-            "Time block has sections assigned to it and cannot be deleted. "
-            "Reassign or remove those sections first."
-        )
+        raise ValueError("Time block has sections assigned to it and cannot be deleted. Reassign or remove those sections first.")
 
     time_block_repo.delete(db, tb)
     return True

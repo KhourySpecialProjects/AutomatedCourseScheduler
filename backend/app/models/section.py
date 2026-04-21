@@ -39,13 +39,9 @@ class Section(Base):
 
     # Foreign Keys
     schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("schedule.schedule_id"))
-    time_block_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("time_block.time_block_id")
-    )
+    time_block_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("time_block.time_block_id"))
     course_id: Mapped[int] = mapped_column(Integer, ForeignKey("course.course_id"))
-    crosslisted_section_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("section.section_id"), unique=True
-    )
+    crosslisted_section_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("section.section_id"), unique=True)
 
     # Relationships
     schedule: Mapped[Schedule] = relationship("Schedule", back_populates="sections")
@@ -56,18 +52,10 @@ class Section(Base):
         remote_side="Section.section_id",
         post_update=True,
     )
-    faculty_assignments: Mapped[list[FacultyAssignment]] = relationship(
-        "FacultyAssignment", back_populates="section", cascade="all, delete-orphan"
-    )
-    section_lock: Mapped[SectionLock] = relationship(
-        "SectionLock", back_populates="section", uselist=False, cascade="all, delete-orphan"
-    )
-    comments: Mapped[list[Comment]] = relationship(
-        "Comment", back_populates="section", cascade="all, delete-orphan"
-    )
+    faculty_assignments: Mapped[list[FacultyAssignment]] = relationship("FacultyAssignment", back_populates="section", cascade="all, delete-orphan")
+    section_lock: Mapped[SectionLock] = relationship("SectionLock", back_populates="section", uselist=False, cascade="all, delete-orphan")
+    comments: Mapped[list[Comment]] = relationship("Comment", back_populates="section", cascade="all, delete-orphan")
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
