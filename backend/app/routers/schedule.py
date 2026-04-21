@@ -135,6 +135,10 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
     def _fmt(t) -> str:
         return t.strftime("%I:%M %p").lstrip("0")
 
+    def _safe(v: object) -> str:
+        s = "" if v is None else str(v)
+        return "'" + s if s and s[0] in ("=", "+", "-", "@", "\t", "\r") else s
+
     sections = section_service.get_rich_sections(db, schedule_id)
 
     output = StringIO()
@@ -168,25 +172,23 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
                 f"{section.time_block.start_time}-{section.time_block.end_time}"
             )
 
-        if section.instructors:
-            instr = section.instructors[0]
-            instructor_name = f"{instr.first_name} {instr.last_name}"
-            instructor_nuid = instr.nuid
-            course_pref = next(
-                (
-                    cp.preference
-                    for cp in instr.course_preferences
-                    if cp.course_id == section.course.course_id
-                ),
-                "",
+        instructors = sorted(section.instructors, key=lambda i: (i.last_name, i.nuid))
+        if instructors:
+            instructor_name = "; ".join(f"{i.first_name} {i.last_name}" for i in instructors)
+            instructor_nuid = "; ".join(i.nuid for i in instructors)
+            course_pref = "; ".join(
+                next(
+                    (cp.preference for cp in i.course_preferences if cp.course_id == section.course.course_id),
+                    "",
+                )
+                for i in instructors
             )
-            time_pref = next(
-                (
-                    mp.preference
-                    for mp in instr.meeting_preferences
-                    if mp.time_block_id == section.time_block.time_block_id
-                ),
-                "",
+            time_pref = "; ".join(
+                next(
+                    (mp.preference for mp in i.meeting_preferences if mp.time_block_id == section.time_block.time_block_id),
+                    "",
+                )
+                for i in instructors
             )
         else:
             instructor_name = ""
@@ -196,17 +198,17 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
 
         writer.writerow(
             [
-                section.course.name,
+                _safe(section.course.name),
                 section.section_number,
-                instructor_name,
+                _safe(instructor_name),
                 instructor_nuid,
                 time_block,
-                section.room or "",
+                _safe(section.room or ""),
                 section.capacity,
                 campus_name,
                 section.crosslisted_section_id or "",
-                course_pref,
-                time_pref,
+                _safe(course_pref),
+                _safe(time_pref),
             ]
         )
 
