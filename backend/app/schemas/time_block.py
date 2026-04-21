@@ -24,9 +24,9 @@ class TimeBlockCreate(BaseModel):
 
     `start_time` and `end_time` must be in "HH:MM" 24-hour format.
 
-    `block_group` is optional.  Set it to the same single character on two
-    sibling rows to mark them as a split block (e.g. "T 9:50–11:30" and
-    "R 1:30–2:50" both with block_group="A").  Split blocks are excluded
+    `block_group` is optional.  Set it to the same 8-character hex string on
+    two sibling rows to mark them as a split block (e.g. "T 9:50–11:30" and
+    "R 1:30–2:50" both with the same block_group).  Split blocks are excluded
     from auto-assignment and must be assigned manually.
     """
 
@@ -36,8 +36,8 @@ class TimeBlockCreate(BaseModel):
     campus_id: int
     block_group: str | None = Field(
         default=None,
-        max_length=1,
-        description="Single character linking two rows of a split block pair",
+        max_length=8,
+        description="8-character hex string linking two rows of a split block pair",
     )
 
 
@@ -49,4 +49,4 @@ class TimeBlockUpdate(BaseModel):
     start_time: str | None = None
     end_time: str | None = None
     campus_id: int | None = None
-    block_group: str | None = Field(default=None, max_length=1)
+    block_group: str | None = Field(default=None, max_length=8)
