@@ -6,6 +6,7 @@ import logging
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import ValidationError
 from sqlalchemy import insert, update
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -47,9 +48,12 @@ def upload_courses(file: UploadFile = File(...), db: Session = Depends(get_db)):
                 records_processed=len(to_insert),
                 records_successful=len(to_insert),
             )
-    except HTTPException as e:
-        logger.error(f"Database error in upload_courses: {str(e)}")
+    except HTTPException:
         raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error in upload_courses: {e}")
+        raise HTTPException(status_code=400, detail=f"Database error: {e.orig}") from e
 
     return UploadResponse(
         status="success",
@@ -76,9 +80,12 @@ def upload_faculty_preferences(file: UploadFile = File(...), db: Session = Depen
         if to_update:
             db.execute(update(CoursePreference), to_update)
         db.commit()
-    except HTTPException as e:
-        logger.error(f"Upload error in upload_faculty_preferences: {str(e)}")
+    except HTTPException:
         raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error in upload_faculty_preferences: {e}")
+        raise HTTPException(status_code=400, detail=f"Database error: {e.orig}") from e
 
     return UploadResponse(
         status="success",
@@ -106,9 +113,12 @@ def upload_time_preferences(file: UploadFile = File(...), db: Session = Depends(
         if to_update:
             db.execute(update(MeetingPreference), to_update)
         db.commit()
-    except HTTPException as e:
-        logger.error(f"Upload error in upload_time_preferences: {str(e)}")
+    except HTTPException:
         raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error in upload_time_preferences: {e}")
+        raise HTTPException(status_code=400, detail=f"Database error: {e.orig}") from e
 
     return UploadResponse(
         status="success",
