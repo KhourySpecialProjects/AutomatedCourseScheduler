@@ -67,15 +67,9 @@ def create_time_block(db: Session, body: TimeBlockCreate) -> TimeBlockResponse:
         raise ValueError("meeting_days must contain at least one day letter (e.g. 'MWF')")
 
     if body.block_group:
-        existing = (
-            db.query(TimeBlock)
-            .filter(TimeBlock.campus == body.campus_id, TimeBlock.block_group == body.block_group)
-            .count()
-        )
+        existing = db.query(TimeBlock).filter(TimeBlock.campus == body.campus_id, TimeBlock.block_group == body.block_group).count()
         if existing >= 2:
-            raise BlockGroupConflictError(
-                f"block_group '{body.block_group}' already has a complete pair on this campus"
-            )
+            raise BlockGroupConflictError(f"block_group '{body.block_group}' already has a complete pair on this campus")
 
     tb = TimeBlock(
         meeting_days=body.meeting_days.strip().upper(),
@@ -138,9 +132,7 @@ def update_time_block(db: Session, time_block_id: int, body: TimeBlockUpdate) ->
                 .count()
             )
             if existing >= 2:
-                raise BlockGroupConflictError(
-                    f"block_group '{body.block_group}' already has a complete pair on this campus"
-                )
+                raise BlockGroupConflictError(f"block_group '{body.block_group}' already has a complete pair on this campus")
         tb.block_group = body.block_group
 
     time_block_repo.save(db, tb)

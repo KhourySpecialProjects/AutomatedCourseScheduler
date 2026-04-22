@@ -155,9 +155,7 @@ def test_error_check_no_time_block_overload_below_threshold(db_session):
     db_session.commit()
 
     # 9 time blocks: tb[0]–tb[7] for the existing sections, tb[8] for the target
-    time_blocks = [
-        _make_time_block(db_session, campus, start_h=8 + i, end_h=9 + i) for i in range(9)
-    ]
+    time_blocks = [_make_time_block(db_session, campus, start_h=8 + i, end_h=9 + i) for i in range(9)]
     db_session.flush()
 
     sections = []
@@ -351,9 +349,7 @@ def test_error_check_faculty_overload_warning(db_session):
     # Faculty with max_load=1 already has 1 assignment
     faculty = _make_faculty(db_session, campus, nuid=1001, email="f1@test.edu", max_load=1)
     other_section = _make_section(db_session, schedule, course, tb, number=1)
-    db_session.add(
-        FacultyAssignment(faculty_nuid=faculty.nuid, section_id=other_section.section_id)
-    )
+    db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=other_section.section_id))
     section = _make_section(db_session, schedule, course, tb, number=2)
     db_session.commit()
 
@@ -419,9 +415,7 @@ def test_update_section_returns_dict_with_updated_and_warnings_keys(db_session):
     section = _make_section(db_session, schedule, course, tb)
     db_session.commit()
 
-    result = section_service.update_section(
-        db_session, section.section_id, SectionUpdate(capacity=99)
-    )
+    result = section_service.update_section(db_session, section.section_id, SectionUpdate(capacity=99))
 
     assert result is not None
     assert "updated" in result
@@ -437,9 +431,7 @@ def test_update_section_applies_capacity_change(db_session):
     section = _make_section(db_session, schedule, course, tb, capacity=30)
     db_session.commit()
 
-    result = section_service.update_section(
-        db_session, section.section_id, SectionUpdate(capacity=50)
-    )
+    result = section_service.update_section(db_session, section.section_id, SectionUpdate(capacity=50))
 
     assert result["updated"].capacity == 50
 
@@ -453,9 +445,7 @@ def test_update_section_applies_room_change(db_session):
     section = _make_section(db_session, schedule, course, tb)
     db_session.commit()
 
-    result = section_service.update_section(
-        db_session, section.section_id, SectionUpdate(room="WVH108")
-    )
+    result = section_service.update_section(db_session, section.section_id, SectionUpdate(room="WVH108"))
 
     assert result["updated"].room == "WVH108"
 
@@ -470,9 +460,7 @@ def test_update_section_empty_warnings_on_simple_update(db_session):
     section = _make_section(db_session, schedule, course, tb)
     db_session.commit()
 
-    result = section_service.update_section(
-        db_session, section.section_id, SectionUpdate(capacity=40)
-    )
+    result = section_service.update_section(db_session, section.section_id, SectionUpdate(capacity=40))
 
     assert result["warnings"] == []
 
@@ -487,9 +475,7 @@ def test_update_section_raises_on_invalid_time_block(db_session):
     db_session.commit()
 
     with pytest.raises(ValueError, match="TimeBlockID is invalid"):
-        section_service.update_section(
-            db_session, section.section_id, SectionUpdate(time_block_id=99999)
-        )
+        section_service.update_section(db_session, section.section_id, SectionUpdate(time_block_id=99999))
 
 
 def test_update_section_raises_on_invalid_course(db_session):
@@ -502,9 +488,7 @@ def test_update_section_raises_on_invalid_course(db_session):
     db_session.commit()
 
     with pytest.raises(ValueError, match="CourseID is invalid"):
-        section_service.update_section(
-            db_session, section.section_id, SectionUpdate(course_id=99999)
-        )
+        section_service.update_section(db_session, section.section_id, SectionUpdate(course_id=99999))
 
 
 def test_update_section_raises_on_self_crosslist(db_session):
@@ -539,15 +523,11 @@ def test_update_section_returns_faculty_overload_warning_and_saves(db_session):
 
     faculty = _make_faculty(db_session, campus, nuid=1001, email="f1@test.edu", max_load=1)
     other_section = _make_section(db_session, schedule, course, tb, number=1)
-    db_session.add(
-        FacultyAssignment(faculty_nuid=faculty.nuid, section_id=other_section.section_id)
-    )
+    db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=other_section.section_id))
     section = _make_section(db_session, schedule, course, tb, number=2)
     db_session.commit()
 
-    result = section_service.update_section(
-        db_session, section.section_id, SectionUpdate(faculty_nuids=[faculty.nuid])
-    )
+    result = section_service.update_section(db_session, section.section_id, SectionUpdate(faculty_nuids=[faculty.nuid]))
 
     assert result is not None
     assert WarningType.FACULTY_OVERLOAD in result["warnings"]
@@ -567,9 +547,7 @@ def test_update_section_returns_unpreferenced_course_warning(db_session):
     db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id))
     db_session.commit()
 
-    result = section_service.update_section(
-        db_session, section.section_id, SectionUpdate(course_id=course_b.course_id)
-    )
+    result = section_service.update_section(db_session, section.section_id, SectionUpdate(course_id=course_b.course_id))
 
     assert WarningType.UNPREFERENCED_COURSE in result["warnings"]
     assert result["updated"].course_id == course_b.course_id
@@ -595,9 +573,7 @@ def test_update_section_no_warnings_when_faculty_prefers_new_course(db_session):
     )
     db_session.commit()
 
-    result = section_service.update_section(
-        db_session, section.section_id, SectionUpdate(course_id=course_b.course_id)
-    )
+    result = section_service.update_section(db_session, section.section_id, SectionUpdate(course_id=course_b.course_id))
 
     assert WarningType.UNPREFERENCED_COURSE not in result["warnings"]
 
@@ -616,9 +592,7 @@ def test_update_section_returns_unpreferenced_time_warning(db_session):
     db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id))
     db_session.commit()
 
-    result = section_service.update_section(
-        db_session, section.section_id, SectionUpdate(time_block_id=tb_b.time_block_id)
-    )
+    result = section_service.update_section(db_session, section.section_id, SectionUpdate(time_block_id=tb_b.time_block_id))
 
     assert WarningType.UNPREFERENCED_TIME in result["warnings"]
 
@@ -639,9 +613,7 @@ def test_update_section_multiple_warnings_returned_together(db_session):
     # No time preference for tb_b
     db_session.commit()
 
-    result = section_service.update_section(
-        db_session, section.section_id, SectionUpdate(time_block_id=tb_b.time_block_id)
-    )
+    result = section_service.update_section(db_session, section.section_id, SectionUpdate(time_block_id=tb_b.time_block_id))
 
     assert WarningType.TIME_BLOCK_OVERLOAD in result["warnings"]
     assert WarningType.UNPREFERENCED_TIME in result["warnings"]

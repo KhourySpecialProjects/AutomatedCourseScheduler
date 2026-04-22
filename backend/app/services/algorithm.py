@@ -205,9 +205,7 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
     unmatched = [a for a in phase1_results if not a.is_matched]
 
     for a in unmatched:
-        logger.warning(
-            f"Section {a.section_id} (course {a.course_id}) unmatched: {a.unmatched_reason}"
-        )
+        logger.warning(f"Section {a.section_id} (course {a.course_id}) unmatched: {a.unmatched_reason}")
 
     logger.info(f"Phase 1 complete: {len(matched)} matched, {len(unmatched)} unmatched")
 

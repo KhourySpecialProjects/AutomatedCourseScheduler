@@ -6,8 +6,8 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.faculty_assignment import FacultyAssignment
 from app.core.enums import WarningType
+from app.models.faculty_assignment import FacultyAssignment
 from app.models.schedule import Schedule
 from app.models.section import Section
 from app.repositories import comment as comment_repo
@@ -320,9 +320,7 @@ def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[W
         if exceeds_meeting_time_capcacity(db, schedule, meeting_time, course_subject):
             warnings.append(WarningType.TIME_BLOCK_OVERLOAD)
         for nuid in assignments:
-            time_pref_exists = faculty_repo.find_meeting_time_preference(
-                db, nuid, section.time_block_id
-            )
+            time_pref_exists = faculty_repo.find_meeting_time_preference(db, nuid, section.time_block_id)
             double_booked = section_repo.double_booked(
                 db,
                 faculty_repo.get_assginments(db, nuid, section.schedule_id),
@@ -351,9 +349,7 @@ def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[W
     return warnings
 
 
-def exceeds_meeting_time_capcacity(
-    db: Session, schedule: Schedule, time_block: int, dept: str
-) -> bool:
+def exceeds_meeting_time_capcacity(db: Session, schedule: Schedule, time_block: int, dept: str) -> bool:
     sections = schedule.sections
     dept_count_total = 0
     dept_time_block_count = 0
