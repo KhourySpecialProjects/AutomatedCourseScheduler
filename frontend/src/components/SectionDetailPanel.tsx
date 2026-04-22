@@ -1,10 +1,12 @@
-import type { SectionRichResponse } from '../api/generated';
 import CrosslistSectionHint from './CrosslistSectionHint';
+import type { SectionRichResponse, WarningResponse } from '../api/generated';
+import { Severity } from '../api/generated';
 import SectionComments from './SectionComments';
 
 interface Props {
   section: SectionRichResponse;
   allSections: SectionRichResponse[];
+  warnings?: WarningResponse[];
   onClose: () => void;
 }
 
@@ -57,7 +59,13 @@ function parseHour(timeStr: string): number {
   return h;
 }
 
-export default function SectionDetailPanel({ section, allSections, onClose }: Props) {
+const WARNING_SEVERITY_STYLES = {
+  [Severity.NUMBER_3]: { dot: 'bg-red-500', badge: 'text-red-700 bg-red-50 border border-red-200', label: 'High' },
+  [Severity.NUMBER_2]: { dot: 'bg-amber-500', badge: 'text-amber-700 bg-amber-50 border border-amber-200', label: 'Medium' },
+  [Severity.NUMBER_1]: { dot: 'bg-yellow-400', badge: 'text-yellow-700 bg-yellow-50 border border-yellow-200', label: 'Low' },
+} as const;
+
+export default function SectionDetailPanel({ section, allSections, warnings, onClose }: Props) {
   const startHour = section.time_block ? parseHour(section.time_block.start_time) : null;
 
   return (
@@ -189,6 +197,24 @@ export default function SectionDetailPanel({ section, allSections, onClose }: Pr
           </section>
 
           <SectionComments sectionId={section.section_id} />
+
+          {warnings && warnings.length > 0 && (
+            <section>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Warnings</h3>
+              <div className="space-y-1.5">
+                {warnings.map((w) => {
+                  const s = WARNING_SEVERITY_STYLES[w.SeverityRank as 1 | 2 | 3] ?? WARNING_SEVERITY_STYLES[Severity.NUMBER_2];
+                  return (
+                    <div key={w.warning_id} className="flex items-center gap-2 text-xs">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`} />
+                      <span className="flex-1 text-gray-700">{w.Message}</span>
+                      <span className={`px-1.5 py-0.5 rounded border text-xs font-medium ${s.badge}`}>{s.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </>

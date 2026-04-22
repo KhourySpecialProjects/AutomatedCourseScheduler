@@ -4,6 +4,7 @@ import ScheduleSectionRowView from '../components/ScheduleSectionRowView';
 import { useScheduleWebSocket, type WsStatus } from '../hooks/useScheduleWebSocket';
 import { getAutomatedCourseSchedulerAPI, type ScheduleResponse, type UserResponse } from '../api/generated';
 import { downloadScheduleCsv } from '../utils/exportCsv';
+import AlgorithmWarningsBanner from '../components/AlgorithmWarningsBanner';
 
 type ViewMode = 'table' | 'calendar';
 type SchedulePersona = 'faculty' | 'admin';
@@ -50,7 +51,7 @@ function CalendarIcon({ active }: { active: boolean }) {
 }
 
 function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?: boolean }) {
-  const { sections, locks, loading, status } = useScheduleWebSocket(scheduleId);
+  const { sections, locks, warnings, loading, status } = useScheduleWebSocket(scheduleId);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [schedulePersona, setSchedulePersona] = useState<SchedulePersona>('admin');
   const [selectedCourseCount, setSelectedCourseCount] = useState(0);
@@ -234,11 +235,18 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
         </div>
       )}
 
+      {!loading && !effectiveReadOnly && (
+        <AlgorithmWarningsBanner
+          warnings={warnings.filter((w) => w.section_id == null && !w.dismissed)}
+        />
+      )}
+
       {!loading && (
         <ScheduleSectionRowView
           sections={sections}
           scheduleId={scheduleId}
           locks={locks}
+          warnings={warnings}
           campusName={campusName}
           campusId={schedule?.campus ?? null}
           viewMode={effectiveViewMode}

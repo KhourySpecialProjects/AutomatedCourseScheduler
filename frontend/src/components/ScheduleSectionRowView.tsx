@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CourseResponse, InstructorInfo, SectionRichResponse, TimeBlockInfo } from '../api/generated';
-import { getAutomatedCourseSchedulerAPI } from '../api/generated';
+import type { CourseResponse, InstructorInfo, SectionRichResponse, TimeBlockInfo, WarningResponse } from '../api/generated';
 import { axiosInstance } from '../api/axiosInstance';
+import { getAutomatedCourseSchedulerAPI, Severity } from '../api/generated';
 import type { LockInfo } from '../hooks/useScheduleWebSocket';
 import CrosslistSectionHint from './CrosslistSectionHint';
 import FacultyTooltip from './FacultyTooltip';
@@ -20,6 +20,7 @@ interface Props {
   sections: SectionRichResponse[];
   scheduleId: number;
   locks: Map<number, LockInfo>;
+  warnings: WarningResponse[];
   campusName: string | null;
   campusId: number | null;
   readOnly?: boolean;
@@ -77,6 +78,7 @@ export default function ScheduleSectionRowView({
   sections,
   scheduleId,
   locks,
+  warnings,
   campusName,
   campusId,
   readOnly = false,
@@ -558,6 +560,22 @@ export default function ScheduleSectionRowView({
                             </>
                           );
                         })()}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {conflict && (
+                            <span title="Instructor preference conflict" className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                          )}
+                          {!readOnly && (() => {
+                            const sw = warnings.filter((w) => w.section_id === section.section_id && !w.dismissed);
+                            const maxSev = sw.reduce((m, w) => Math.max(m, w.SeverityRank), 0);
+                            if (maxSev === 0) return null;
+                            const color = maxSev === Severity.NUMBER_3 ? 'bg-red-500' : maxSev === Severity.NUMBER_2 ? 'bg-amber-500' : 'bg-yellow-400';
+                            const titles = sw.map((w) => w.Message).join('\n');
+                            return <span title={titles} className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${color}`} />;
+                          })()}
+                          <span className="text-sm font-medium text-gray-900">{section.course.name}</span>
+                          {lock && <LockBadge lock={lock} />}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5">{section.course.credits} cr</div>
                       </td>
 
                       {/* Section # */}
@@ -632,6 +650,7 @@ export default function ScheduleSectionRowView({
         <SectionDetailPanel
           section={selectedSection}
           allSections={sections}
+          warnings={!readOnly ? warnings.filter((w) => w.section_id === selectedSection.section_id && !w.dismissed) : []}
           onClose={() => setSelectedSection(null)}
         />
       )}
