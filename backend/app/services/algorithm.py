@@ -242,14 +242,13 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         logger.warning(f"Phase 2 warning: {w.Message}")
     logger.info(f"Phase 2 complete: {len(placed)} placed, {len(unplaced)} unplaced")
 
-    # Step 8: Write sections to DB
+    # Step 8: Write sections to DB — all sections are written regardless of assignment status
     matched_lookup = {a.section_id: a for a in matched}
     section_number_tracker: dict[int, int] = {}
     sections_written = 0
 
+    # Matched sections (placed or unplaced) — write with faculty, time block optional
     for sa in phase2_result.assignments:
-        if sa.time_block_id is None:
-            continue
         original = matched_lookup.get(sa.section_id)
         if original is None:
             continue
@@ -269,6 +268,19 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
             section_id=section_obj.section_id,
         )
         db.add(fa)
+        sections_written += 1
+
+    # Unmatched sections — write with no faculty and no time block
+    for a in unmatched:
+        section_number_tracker[a.course_id] = section_number_tracker.get(a.course_id, 0) + 1
+        section_obj = Section(
+            schedule_id=schedule_id,
+            course_id=a.course_id,
+            time_block_id=None,
+            section_number=section_number_tracker[a.course_id],
+            capacity=30,
+        )
+        db.add(section_obj)
         sections_written += 1
 
     # Step 9: Persist warnings (respects dismissed)
@@ -415,9 +427,9 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
         section_number_tracker[s.course_id] = max(current, s.section_number)
 
     sections_written = 0
+
+    # Matched sections (placed or unplaced) — write with faculty, time block optional
     for sa in phase2_result.assignments:
-        if sa.time_block_id is None:
-            continue
         original = matched_lookup.get(sa.section_id)
         if original is None:
             continue
@@ -437,6 +449,19 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
             section_id=section_obj.section_id,
         )
         db.add(fa)
+        sections_written += 1
+
+    # Unmatched sections — write with no faculty and no time block
+    for a in unmatched:
+        section_number_tracker[a.course_id] = section_number_tracker.get(a.course_id, 0) + 1
+        section_obj = Section(
+            schedule_id=schedule_id,
+            course_id=a.course_id,
+            time_block_id=None,
+            section_number=section_number_tracker[a.course_id],
+            capacity=30,
+        )
+        db.add(section_obj)
         sections_written += 1
 
     # Step 11: Persist warnings (append to existing, respect dismissed)
