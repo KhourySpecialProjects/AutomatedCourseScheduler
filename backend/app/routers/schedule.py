@@ -46,8 +46,8 @@ def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
     previous_year = semester_service.get_last_year(db, created.semester_id)
     if previous_year is None:
         raise HTTPException(
-          status_code=422,
-          detail="No prior same-season schedule found. A completed prior-year schedule with sections is required to create a new draft."
+            status_code=422,
+            detail="No prior same-season schedule found. A completed prior-year schedule with sections is required to create a new draft.",
         )
     try:
         course_list = course_service.generate_course_list(db, previous_year, schedule.campus)
@@ -162,16 +162,11 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
         raw_tb = tb_by_id.get(section.time_block.time_block_id)
         if raw_tb and raw_tb.block_group:
             siblings = tb_by_group.get(raw_tb.block_group, [raw_tb])
-            time_block = " / ".join(
-                f"{p.meeting_days} {_fmt(p.start_time)}-{_fmt(p.end_time)}" for p in siblings
-            )
+            time_block = " / ".join(f"{p.meeting_days} {_fmt(p.start_time)}-{_fmt(p.end_time)}" for p in siblings)
         elif raw_tb:
             time_block = f"{raw_tb.meeting_days} {_fmt(raw_tb.start_time)}-{_fmt(raw_tb.end_time)}"
         else:
-            time_block = (
-                f"{section.time_block.days} "
-                f"{section.time_block.start_time}-{section.time_block.end_time}"
-            )
+            time_block = f"{section.time_block.days} {section.time_block.start_time}-{section.time_block.end_time}"
 
         instructors = sorted(section.instructors, key=lambda i: (i.last_name, i.nuid))
         if instructors:
@@ -179,22 +174,14 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
             instructor_nuid = "; ".join(str(i.nuid) for i in instructors)
             course_pref = "; ".join(
                 next(
-                    (
-                        cp.preference
-                        for cp in i.course_preferences
-                        if cp.course_id == section.course.course_id
-                    ),
+                    (cp.preference for cp in i.course_preferences if cp.course_id == section.course.course_id),
                     "",
                 )
                 for i in instructors
             )
             time_pref = "; ".join(
                 next(
-                    (
-                        mp.preference
-                        for mp in i.meeting_preferences
-                        if mp.time_block_id == section.time_block.time_block_id
-                    ),
+                    (mp.preference for mp in i.meeting_preferences if mp.time_block_id == section.time_block.time_block_id),
                     "",
                 )
                 for i in instructors
