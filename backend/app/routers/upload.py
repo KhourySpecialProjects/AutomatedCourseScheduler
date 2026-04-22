@@ -282,7 +282,7 @@ def parse_course_preferences(db, reader):
     print(faculty_ids)
 
     if errors:
-        raise HTTPException(status_code=422, detail=errors)
+        raise HTTPException(status_code=422, detail=errors[:10])
 
     return {"inserts": inserts, "updates": updates, "available_faculty": list(faculty_ids)}
 
