@@ -98,22 +98,30 @@ def sort_course_list(course_list: list[CourseResponse]) -> list[CourseResponse]:
     return sorted(course_list, key=lambda c: (not c.priority, c.qualified_faculty, c.code or 0))
 
 
-def generate_course_list(db: Session, semester_id: int, new_course_ids: list[int], campus_id: int) -> list[CourseResponse]:
-    new_courses = course_repo.get_by_ids(db, new_course_ids)
+def generate_course_list(db: Session, semester_id: int, campus_id: int) -> list[CourseResponse]:
+    """Build the course list for a new schedule draft.
 
+    Courses and section counts are copied directly from the prior same-season
+    schedule's sections.  Courses in the offerings catalog that were not offered
+    last year are not auto-added — they can be added manually after creation.
+
+    Raises ValueError if no prior same-season schedule exists or if it has no
+    sections — a prior schedule with historical data is required to bootstrap
+    a new draft.
+    """
     semester = semester_repo.get_by_id(db, semester_id)
-    schedule = semester_repo.get_schedules(db, semester, campus_id)
+    if semester is None:
+        raise ValueError(f"Semester {semester_id} not found")
 
-    if len(schedule) > 1:
-        raise ValueError(f"Semester with id {semester_id} invalid. Multiple schedules present. Expected 1.")
-    else:
-        courses = schedule_repo.get_courses(schedule[0])
-        course_list = get_section_count(schedule[0], courses, new_courses)
+    schedules = semester_repo.get_schedules(db, semester, campus_id)
+    if len(schedules) > 1:
+        raise ValueError(f"Semester {semester_id} has multiple schedules for campus {campus_id}; expected 1")
 
+    courses = schedule_repo.get_courses(schedules[0])
     if not courses:
-        raise ValueError(f"No courses found for schedule with id {schedule[0].schedule_id}")
+        raise ValueError(f"Prior schedule (id={schedules[0].schedule_id}) has no sections to copy from")
 
-    return sort_course_list(course_list)
+    return sort_course_list(get_section_count(schedules[0], courses, []))
 
 
 def create_course(db: Session, body: CourseCreate) -> CourseResponse:

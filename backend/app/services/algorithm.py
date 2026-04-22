@@ -22,6 +22,7 @@ from app.schemas.algorithm_params import AlgorithmParameters
 from app.schemas.course import CourseResponse
 from app.services import course as course_service
 from app.services import faculty as faculty_service
+from app.services import semester as semester_service
 
 logger = logging.getLogger(__name__)
 
@@ -168,8 +169,14 @@ def run_algorithm_task(schedule_id: int, parameters: AlgorithmParameters):
 
 
 def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
-    # Step 1: Load courses
-    courses = course_service.get_courses(db, schedule_id)
+    # Step 1: Load courses from prior same-season schedule
+    schedule = db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
+    if not schedule:
+        raise ValueError(f"Schedule {schedule_id} not found")
+    prior_semester_id = semester_service.get_last_year(db, schedule.semester_id)
+    if prior_semester_id is None:
+        raise ValueError(f"No prior same-season semester found for schedule {schedule_id}")
+    courses = course_service.generate_course_list(db, prior_semester_id, schedule.campus)
     if not courses:
         raise ValueError(f"No courses found for schedule {schedule_id}")
     logger.info(f"Loaded {len(courses)} courses for schedule {schedule_id}")

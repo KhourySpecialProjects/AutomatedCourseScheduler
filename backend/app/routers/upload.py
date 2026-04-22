@@ -82,12 +82,15 @@ def upload_faculty_preferences(file: UploadFile = File(...), db: Session = Depen
         logger.error(f"Database error in upload_faculty_preferences: {e}")
         raise HTTPException(status_code=400, detail=f"Database error: {e.orig}") from e
 
+    skipped = result.get("skipped_courses", [])
     return UploadResponse(
         status="success",
         message="Faculty preferences updated successfully",
-        records_processed=len(to_insert) + len(to_update),
+        records_processed=len(to_insert) + len(to_update) + len(skipped),
         records_successful=len(to_insert) + len(to_update),
+        records_failed=len(skipped),
         available_faculty=result.get("available_faculty"),
+        errors=[f"Skipped {len(skipped)} unrecognized courses: {', '.join(skipped)}"] if skipped else None,
     )
 
 
@@ -243,6 +246,7 @@ def parse_course_preferences(db, reader):
     updates = []
     errors = []
     faculty_ids = set()
+    skipped_courses: set[str] = set()
     for i, row in enumerate(reader):
         try:
             normalized = normalize_headers(row, COURSE_PREFERENCES)
@@ -251,10 +255,11 @@ def parse_course_preferences(db, reader):
             course = (
                 db.query(Course).filter(func.concat(Course.subject, " ", func.lpad(cast(Course.code, String), 4, "0")) == validated.course).first()
             )
-            faculty = db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
             if not course:
-                errors.append(f"Row {i}: course '{validated.course}' not found")
-            elif not faculty:
+                skipped_courses.add(validated.course)
+                continue
+            faculty = db.query(Faculty).filter(Faculty.nuid == validated.facultyId).first()
+            if not faculty:
                 errors.append(f"Row {i}: faculty '{validated.facultyName}' with id '{validated.facultyId}' not found")
             else:
                 existing_pref = (
@@ -279,12 +284,10 @@ def parse_course_preferences(db, reader):
         except ValidationError as e:
             errors.append(f"Row {i}: {e.errors()}")
 
-    print(faculty_ids)
-
     if errors:
         raise HTTPException(status_code=422, detail=errors[:10])
 
-    return {"inserts": inserts, "updates": updates, "available_faculty": list(faculty_ids)}
+    return {"inserts": inserts, "updates": updates, "available_faculty": list(faculty_ids), "skipped_courses": sorted(skipped_courses)}
 
 
 def validate_headers(headers, schema):

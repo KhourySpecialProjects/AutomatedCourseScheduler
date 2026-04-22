@@ -20,7 +20,6 @@ from app.models.campus import Campus
 from app.models.course import Course
 from app.models.course_preference import CoursePreference
 from app.models.faculty import Faculty
-from app.models.faculty_assignment import FacultyAssignment
 from app.models.meeting_preference import MeetingPreference
 from app.models.schedule import Schedule
 from app.models.section import Section
@@ -11289,139 +11288,10 @@ def seed(db: Session) -> None:
             crosslisted_section_id=None,
         ),
     ]
-    # section_specs = [
-    #     # CS1 — 4 sections
-    #     (0, 0, 1, 60),
-    #     (0, 1, 2, 60),
-    #     (0, 5, 3, 60),
-    #     (0, 7, 4, 60),
-    #     # CS2 — 4 sections
-    #     (1, 1, 1, 50),
-    #     (1, 3, 2, 50),
-    #     (1, 5, 3, 50),
-    #     (1, 6, 4, 50),
-    #     # OOD — 4 sections
-    #     (2, 2, 1, 40),
-    #     (2, 4, 2, 40),
-    #     (2, 6, 3, 40),
-    #     (2, 7, 4, 40),
-    #     # Algorithms — 2 sections
-    #     (3, 3, 1, 40),
-    #     (3, 4, 2, 40),
-    #     # Computer Systems — 2 sections
-    #     (4, 1, 1, 35),
-    #     (4, 4, 2, 35),
-    #     # Software Dev — 2 sections
-    #     (5, 5, 1, 30),
-    #     (5, 7, 2, 30),
-    #     # Theory of Computation — 2 sections
-    #     (6, 0, 1, 30),
-    #     (6, 1, 2, 30),
-    #     # Foundations of AI — 2 sections
-    #     (7, 2, 1, 35),
-    #     (7, 3, 2, 35),
-    #     # Database Design — 2 sections
-    #     (8, 0, 1, 35),
-    #     (8, 6, 2, 35),
-    #     # Networks — 2 sections
-    #     (9, 3, 1, 30),
-    #     (9, 7, 2, 30),
-    #     # Programming Languages — 2 sections
-    #     (10, 2, 1, 25),
-    #     (10, 4, 2, 25),
-    #     # Capstone — 3 sections
-    #     (11, 5, 1, 20),
-    #     (11, 3, 2, 20),
-    #     (11, 6, 3, 20),
-    # ]
-
-    # sections = []
-    # for course_idx, tb_idx, sec_num, cap in section_specs:
-    #     sections.append(
-    #         Section(
-    #             section_number=sec_num,
-    #             capacity=cap,
-    #             schedule_id=current_draft.schedule_id,
-    #             time_block_id=time_blocks[tb_idx].time_block_id,
-    #             course_id=courses[course_idx].course_id,
-    #         )
-    #     )
     db.add_all(sections)
     db.flush()
 
     print(f"Created {len(sections)} sections.")
-
-    # ------------------------------------------------------------------
-    # Faculty assignments
-    # sections[5,6]=CS5001, [7]=CS3800, [13]=CS1800, [14]=CS2800,
-    # [15]=CS5002, [22]=CS5004, [24]=CS5008, [25]=CS4530,
-    # [1,2]=CS4973 topics, [27]=CS5010
-    # ------------------------------------------------------------------
-    # assignments = [
-    #     # Felleisen → CS 5001 Intensive Foundations
-    #     FacultyAssignment(faculty_nuid=227, section_id=sections[5].section_id),
-    #     FacultyAssignment(faculty_nuid=227, section_id=sections[6].section_id),
-    #     # Cohen → CS 3800 Theory of Computation
-    #     FacultyAssignment(faculty_nuid=141, section_id=sections[7].section_id),
-    #     # Barzilay → CS 1800 Discrete Structures
-    #     FacultyAssignment(faculty_nuid=58, section_id=sections[13].section_id),
-    #     # Wand → CS 2800 Logic and CS 5002 Discrete Structures
-    #     FacultyAssignment(faculty_nuid=824, section_id=sections[14].section_id),
-    #     FacultyAssignment(faculty_nuid=824, section_id=sections[15].section_id),
-    #     # Tip → CS 5004 OOD and CS 4530 SE
-    #     FacultyAssignment(faculty_nuid=769, section_id=sections[22].section_id),
-    #     FacultyAssignment(faculty_nuid=769, section_id=sections[25].section_id),
-    #     # Derbinsky → CS 5008 Data Structures
-    #     FacultyAssignment(faculty_nuid=177, section_id=sections[24].section_id),
-    #     # Choffnes → CS 4973 Topics (networking)
-    #     FacultyAssignment(faculty_nuid=131, section_id=sections[1].section_id),
-    #     # Kirda → CS 4973 Topics (security)
-    #     FacultyAssignment(faculty_nuid=391, section_id=sections[2].section_id),
-    #     # Wand → CS 5010 Programming Design Paradigm
-    #     FacultyAssignment(faculty_nuid=824, section_id=sections[27].section_id),
-    #     # ------------------------------------------------------------------
-    #     # Fall 2026 Draft assignments (sections 824–845)
-    #     # ------------------------------------------------------------------
-    #     # Barzilay → CS 1800 sec 1 & 2  (eager: 1800, willing: 2800)
-    #     FacultyAssignment(faculty_nuid=58, section_id=sections[824].section_id),
-    #     FacultyAssignment(faculty_nuid=58, section_id=sections[825].section_id),
-    #     # CS 1800 sec 3 left unassigned
-    #     # Wand → CS 2800 sec 1  (eager: 2800)
-    #     FacultyAssignment(faculty_nuid=824, section_id=sections[827].section_id),
-    #     # Barzilay → CS 2800 sec 2  (willing: 2800)
-    #     FacultyAssignment(faculty_nuid=58, section_id=sections[828].section_id),
-    #     # Cohen → CS 3000 sec 1  (eager: 3000)
-    #     FacultyAssignment(faculty_nuid=141, section_id=sections[829].section_id),
-    #     # CS 3000 sec 2 left unassigned
-    #     # Kirda → CS 3650 sec 1  (willing: 3650)
-    #     FacultyAssignment(faculty_nuid=391, section_id=sections[831].section_id),
-    #     # Choffnes → CS 3700 sec 1  (eager: 3700)
-    #     FacultyAssignment(faculty_nuid=131, section_id=sections[832].section_id),
-    #     # Cohen → CS 3800 sec 1  (eager: 3800)
-    #     FacultyAssignment(faculty_nuid=141, section_id=sections[833].section_id),
-    #     # Wand → CS 4400 sec 1  (eager: PL)
-    #     FacultyAssignment(faculty_nuid=824, section_id=sections[834].section_id),
-    #     # Tip → CS 4530 sec 1  (eager: 4530)
-    #     FacultyAssignment(faculty_nuid=769, section_id=sections[835].section_id),
-    #     # CS 4530 sec 2 left unassigned
-    #     # Felleisen → CS 5001 sec 1 & 2  (eager: 5001)
-    #     FacultyAssignment(faculty_nuid=227, section_id=sections[837].section_id),
-    #     FacultyAssignment(faculty_nuid=227, section_id=sections[838].section_id),
-    #     # Wand → CS 5002 sec 1  (eager: 5002)
-    #     FacultyAssignment(faculty_nuid=824, section_id=sections[839].section_id),
-    #     # Tip → CS 5004 sec 1  (eager: 5004)
-    #     FacultyAssignment(faculty_nuid=769, section_id=sections[840].section_id),
-    #     # Derbinsky → CS 5008 sec 1  (eager: 5008)
-    #     FacultyAssignment(faculty_nuid=177, section_id=sections[841].section_id),
-    #     # Wand → CS 5010 sec 1  (willing: 5010)
-    #     FacultyAssignment(faculty_nuid=824, section_id=sections[842].section_id),
-    #     # Cohen → CS 5800 sec 1  (willing: 5800)
-    #     FacultyAssignment(faculty_nuid=141, section_id=sections[843].section_id),
-    #     # Kirda → CY 3740 sec 1 & CY 4740 sec 1  (eager: both)
-    #     FacultyAssignment(faculty_nuid=391, section_id=sections[844].section_id),
-    #     FacultyAssignment(faculty_nuid=391, section_id=sections[845].section_id),
-    # ]
-    # db.add_all(assignments)
 
     # ------------------------------------------------------------------
     # Course preferences
@@ -11580,7 +11450,6 @@ def seed(db: Session) -> None:
     print(f"  {len(time_blocks)} time blocks")
     print(f"  {len(past_schedules)} schedules")
     print(f"  {len(sections)} sections")
-    # print(f"  {len(assignments)} faculty assignments")
     print(f"  {len(preferences)} course preferences")
     print(f"  {len(meeting_prefs)} meeting preferences")
     print(f"  {len(seed_admins)} seed admin users (fake emails — run bootstrap_admin.py for real login)")
