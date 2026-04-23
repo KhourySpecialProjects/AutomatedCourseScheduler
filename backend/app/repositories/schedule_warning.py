@@ -11,8 +11,7 @@ def get_by_schedule(
     severity: str | None = None,
     include_dismissed: bool = False,
 ) -> list[ScheduleWarning]:
-    query = db.query(ScheduleWarning).filter(
-        ScheduleWarning.schedule_id == schedule_id)
+    query = db.query(ScheduleWarning).filter(ScheduleWarning.schedule_id == schedule_id)
     if not include_dismissed:
         query = query.filter(ScheduleWarning.dismissed == False)  # noqa: E712
     if warning_type:
@@ -28,12 +27,7 @@ def get_by_id(db: Session, warning_id: int) -> ScheduleWarning | None:
 
 def delete_by_schedule(db: Session, schedule_id: int) -> None:
     """Clear all warnings for a schedule (before a new algorithm run)."""
-    db.query(ScheduleWarning).filter(
-        ScheduleWarning.schedule_id == schedule_id).delete()
-
-
-def get_by_section(db: Session, section_id: int) -> list[ScheduleWarning]:
-    return db.query(ScheduleWarning).filter(ScheduleWarning.section_id == section_id).all()
+    db.query(ScheduleWarning).filter(ScheduleWarning.schedule_id == schedule_id).delete()
 
 
 def get_by_section(db: Session, section_id: int) -> list[ScheduleWarning]:
