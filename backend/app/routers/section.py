@@ -112,17 +112,6 @@ async def update_section(
                 },
             },
         )
-    if warnings:
-        await manager.broadcast(
-            updated.schedule_id,
-            {
-                "type": "section_warnings",
-                "payload": {
-                    "section_id": section_id,
-                    "warnings": [w.value for w in warnings],
-                },
-            },
-        )
 
     return updated
 

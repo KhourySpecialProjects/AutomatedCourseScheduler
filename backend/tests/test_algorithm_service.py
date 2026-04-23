@@ -10,10 +10,10 @@ from app.models.course import Course
 from app.models.faculty import Faculty
 from app.models.schedule import Schedule
 from app.models.schedule_warning import ScheduleWarning
-from app.models.section import Section
 from app.models.semester import Semester
 from app.models.time_block import TimeBlock
 from app.schemas.algorithm_params import AlgorithmParameters
+from app.schemas.course import CourseResponse
 from app.services.algorithm import _persist_warnings, _run_algorithm
 
 # ---------------------------------------------------------------------------
@@ -135,16 +135,6 @@ def _seed_full(db):
     tb = TimeBlock(meeting_days="MW", start_time=time(10, 0), end_time=time(11, 0), campus=campus.campus_id)
     db.add(tb)
     db.flush()
-    # Link course to schedule via a Section row (how get_courses discovers courses)
-    seed_section = Section(
-        schedule_id=schedule.schedule_id,
-        course_id=course.course_id,
-        time_block_id=tb.time_block_id,
-        section_number=1,
-        capacity=30,
-    )
-    db.add(seed_section)
-    db.flush()
     db.commit()
     return schedule, course
 
@@ -160,7 +150,10 @@ def test_run_algorithm_creates_insufficient_faculty_warning_for_unmatched(db_ses
     )
     fake_phase2 = TimeBlockAssignmentResult(assignments=[], warnings=[])
 
+    dummy_course = CourseResponse(course_id=course.course_id, subject="CS", code=9999, name="CS 9999", description="", credits=4, section_count=1)
     with (
+        patch("app.services.algorithm.semester_service.get_last_year", return_value=999),
+        patch("app.services.algorithm.course_service.generate_course_list", return_value=[dummy_course]),
         patch("app.services.algorithm.match_courses_to_faculty", return_value=[fake_unmatched]),
         patch("app.services.algorithm.assign_time_blocks", return_value=fake_phase2),
     ):
