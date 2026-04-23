@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+@keyframes step-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-step-enter {
+  animation: step-enter 200ms ease-out both;
+}
+
 @theme {
   --color-burgundy-50: #fdf2f4;
   --color-burgundy-100: #fce7ec;

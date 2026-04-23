@@ -245,36 +245,51 @@ const STEP_LABELS: Record<Step, string> = {
   generate: 'Generate Schedule',
 };
 
-function StepIndicator({ current }: { current: Step }) {
+function StepIndicator({ current, done = false }: { current: Step; done?: boolean }) {
   const steps: Step[] = ['upload', 'info', 'generate'];
   const idx = steps.indexOf(current);
   return (
-    <div className="flex items-center gap-2 mb-5">
-      {steps.map((s, i) => (
-        <div key={s} className="flex items-center gap-2">
-          <div
-            className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold ${
-              i < idx
-                ? 'bg-burgundy-600 text-white'
-                : i === idx
-                  ? 'bg-burgundy-100 text-burgundy-700 ring-2 ring-burgundy-600'
-                  : 'bg-gray-100 text-gray-400'
-            }`}
-          >
-            {i < idx ? (
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              i + 1
+    <div className="flex items-start mb-6">
+      {steps.map((s, i) => {
+        const isCompleted = i < idx || (done && i === idx);
+        const isActive = i === idx && !done;
+        return (
+          <div key={s} className={`flex items-start ${i < steps.length - 1 ? 'flex-1' : ''}`}>
+            <div className="flex flex-col items-center">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-all duration-300 ${
+                  isCompleted
+                    ? 'bg-burgundy-600 text-white'
+                    : isActive
+                      ? 'bg-white text-burgundy-700 ring-2 ring-burgundy-600 ring-offset-2'
+                      : 'bg-gray-100 text-gray-400'
+                }`}
+              >
+                {isCompleted ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  i + 1
+                )}
+              </div>
+              <span className={`mt-1.5 text-xs font-medium text-center transition-colors duration-300 ${
+                isActive ? 'text-burgundy-700' : isCompleted ? 'text-gray-500' : 'text-gray-400'
+              }`}>
+                {STEP_LABELS[s]}
+              </span>
+            </div>
+            {i < steps.length - 1 && (
+              <div className="flex-1 mx-3 mt-4 h-0.5 bg-gray-200 relative overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 bg-burgundy-500 transition-all duration-500 ease-in-out"
+                  style={{ width: i < idx ? '100%' : '0%' }}
+                />
+              </div>
             )}
           </div>
-          <span className={`text-xs font-medium ${i === idx ? 'text-gray-900' : 'text-gray-400'}`}>
-            {STEP_LABELS[s]}
-          </span>
-          {i < steps.length - 1 && <div className="w-6 h-px bg-gray-200" />}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -290,6 +305,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
     'time-preferences': null,
   });
   const [uploadBusy, setUploadBusy] = useState<UploadKind | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<Record<UploadKind, number>>({ courses: 0, 'faculty-preferences': 0, 'time-preferences': 0 });
   const [uploadError, setUploadError] = useState<string | null>(null);
   const coursesRef = useRef<HTMLInputElement>(null);
   const prefRef = useRef<HTMLInputElement>(null);
@@ -323,6 +339,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
   async function doUpload(kind: UploadKind, file: File) {
     setUploadError(null);
     setUploadBusy(kind);
+    setUploadProgress((prev) => ({ ...prev, [kind]: 0 }));
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -330,6 +347,10 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
         url: uploadUrl(kind),
         method: 'POST',
         data: formData,
+        onUploadProgress: (e) => {
+          const pct = e.total ? Math.round((e.loaded * 100) / e.total) : 0;
+          setUploadProgress((prev) => ({ ...prev, [kind]: pct }));
+        },
       });
       setUploadResults((prev) => ({ ...prev, [kind]: res }));
     } catch (e: unknown) {
@@ -396,9 +417,14 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
     }
   }
 
+  const canClose = step !== 'generate' || generateDone;
+
   return (
     // backdrop
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+      onClick={canClose ? onClose : undefined}
+    >
       {/* modal */}
       <div
         className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 overflow-hidden"
@@ -407,7 +433,11 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
         {/* header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900">New Schedule</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button
+            onClick={canClose ? onClose : undefined}
+            disabled={!canClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -416,12 +446,12 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
 
         {/* body */}
         <div className="px-6 py-5">
-          <StepIndicator current={step} />
+          <StepIndicator current={step} done={generateDone} />
 
           {/* Step 1: CSV uploads */}
           {step === 'upload' && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-500">Upload all three CSV files before creating the schedule.</p>
+            <div className="space-y-3 animate-step-enter">
+              <p className="text-sm text-gray-500 mb-4">Upload all three CSV files before continuing.</p>
 
               {uploadError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 whitespace-pre-wrap">{uploadError}</div>
@@ -430,53 +460,75 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
               {UPLOAD_KINDS.map((u) => {
                 const result = uploadResults[u.kind];
                 const isDone = result?.status === 'success';
+                const isBusy = uploadBusy === u.kind;
                 return (
-                  <div key={u.kind} className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        {u.label}
-                        {isDone && (
-                          <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500">{u.description}</div>
-                      {result?.errors?.length ? (
-                        <div className="mt-1.5 flex items-start gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1.5 text-xs text-amber-800">
-                          <svg className="mt-px shrink-0 w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                          </svg>
-                          <span>{result.errors[0]}</span>
+                  <div
+                    key={u.kind}
+                    className={`rounded-xl border p-4 transition-colors duration-300 ${
+                      isDone ? 'border-green-200 bg-green-50/50' : 'border-gray-200 bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`flex items-center justify-center w-5 h-5 rounded-full shrink-0 transition-colors duration-300 ${isDone ? 'bg-green-500' : 'bg-gray-300'}`}>
+                          {isDone ? (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          )}
                         </div>
-                      ) : null}
+                        <div className="min-w-0">
+                          <span className="text-sm font-semibold text-gray-900">{u.label}</span>
+                          <p className="text-xs text-gray-500">{u.description}</p>
+                          {result?.errors?.length ? (
+                            <div className="mt-1.5 flex items-start gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1.5 text-xs text-amber-800">
+                              <svg className="mt-px shrink-0 w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                              </svg>
+                              <span>{result.errors[0]}</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <input
+                          ref={refFor(u.kind)}
+                          type="file"
+                          accept=".csv,text/csv"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            void doUpload(u.kind, file);
+                            e.currentTarget.value = '';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={uploadBusy !== null}
+                          onClick={() => refFor(u.kind).current?.click()}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                            isDone
+                              ? 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                              : 'bg-burgundy-600 text-white hover:bg-burgundy-700'
+                          }`}
+                        >
+                          {isBusy ? 'Uploading…' : isDone ? 'Re-upload' : 'Upload CSV'}
+                        </button>
+                      </div>
                     </div>
-                    <div className="shrink-0">
-                      <input
-                        ref={refFor(u.kind)}
-                        type="file"
-                        accept=".csv,text/csv"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          void doUpload(u.kind, file);
-                          e.currentTarget.value = '';
-                        }}
-                      />
-                      <button
-                        type="button"
-                        disabled={uploadBusy !== null}
-                        onClick={() => refFor(u.kind).current?.click()}
-                        className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
-                          isDone
-                            ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-                            : 'bg-burgundy-600 text-white hover:bg-burgundy-700'
-                        }`}
-                      >
-                        {uploadBusy === u.kind ? 'Uploading...' : isDone ? 'Re-upload' : 'Upload CSV'}
-                      </button>
-                    </div>
+                    {isBusy && (
+                      <div className="mt-3 bg-gray-200 rounded-full h-1 overflow-hidden">
+                        <div
+                          className="h-full bg-burgundy-500 rounded-full transition-all duration-150 ease-out"
+                          style={{ width: `${uploadProgress[u.kind]}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -485,7 +537,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
 
           {/* Step 2: Schedule info */}
           {step === 'info' && (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-step-enter">
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{formError}</div>
               )}
@@ -537,7 +589,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
 
           {/* Step 3: Generate */}
           {step === 'generate' && (
-            <div className="space-y-4 text-center py-4">
+            <div className="space-y-4 text-center py-4 animate-step-enter">
               {generateError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 text-left">{generateError}</div>
               )}
