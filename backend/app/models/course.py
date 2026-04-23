@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -16,6 +16,7 @@ class Course(Base):
     """Represents a course offered by the college."""
 
     __tablename__ = "course"
+    __table_args__ = (UniqueConstraint("subject", "code", name="uq_course_subject_code"),)
 
     course_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     subject: Mapped[str] = mapped_column(String(10))
