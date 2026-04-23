@@ -1,0 +1,164 @@
+name: Deploy (S3 + CloudFront + ECS)
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  S3_BUCKET: ${{ vars.S3_BUCKET }}
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+  ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+  ECS_TASK_FAMILY: ${{ vars.ECS_TASK_FAMILY }}
+  ECS_CONTAINER_NAME: ${{ vars.ECS_CONTAINER_NAME }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate required config
+        shell: bash
+        run: |
+          set -euo pipefail
+          required_vars=(
+            AWS_REGION S3_BUCKET CLOUDFRONT_DISTRIBUTION_ID
+            ECR_REPOSITORY ECS_CLUSTER ECS_SERVICE ECS_TASK_FAMILY ECS_CONTAINER_NAME
+          )
+          for v in "${required_vars[@]}"; do
+            if [[ -z "${!v:-}" ]]; then
+              echo "Missing required GitHub Actions variable: $v"
+              exit 1
+            fi
+          done
+          if [[ -z "${{ secrets.AWS_ROLE_TO_ASSUME }}" ]]; then
+            echo "Missing required GitHub Actions secret: AWS_ROLE_TO_ASSUME"
+            exit 1
+          fi
+
+      # ----------------------------
+      # Frontend: build + S3 sync
+      # ----------------------------
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_AUTH0_DOMAIN: ${{ secrets.VITE_AUTH0_DOMAIN }}
+          VITE_AUTH0_CLIENT_ID: ${{ secrets.VITE_AUTH0_CLIENT_ID }}
+          VITE_AUTH0_AUDIENCE: ${{ secrets.VITE_AUTH0_AUDIENCE }}
+        run: npm run build
+
+      - name: Upload frontend to S3
+        run: |
+          aws s3 sync "frontend/dist/" "s3://${S3_BUCKET}/" --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+            --paths "/*"
+
+      # ----------------------------
+      # Backend: build + push to ECR
+      # ----------------------------
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" \
+            -f backend/Dockerfile \
+            backend \
+            --push
+
+      # ----------------------------
+      # ECS: update service to new image
+      # ----------------------------
+      - name: Render new task definition (swap image)
+        id: render-task-def
+        shell: bash
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          aws ecs describe-task-definition \
+            --task-definition "${ECS_TASK_FAMILY}" \
+            --query taskDefinition \
+            --output json > taskdef.json
+
+          new_image="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+          jq --arg IMAGE "$new_image" --arg NAME "$ECS_CONTAINER_NAME" '
+            .containerDefinitions |=
+              (map(if .name == $NAME then .image = $IMAGE else . end)) |
+            del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy
+            )
+          ' taskdef.json > taskdef.rendered.json
+
+          echo "taskdef_path=taskdef.rendered.json" >> "$GITHUB_OUTPUT"
+
+      - name: Register task definition
+        id: register-task-def
+        shell: bash
+        run: |
+          set -euo pipefail
+          arn=$(aws ecs register-task-definition \
+            --cli-input-json file://${{ steps.render-task-def.outputs.taskdef_path }} \
+            --query "taskDefinition.taskDefinitionArn" \
+            --output text)
+          echo "arn=$arn" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy ECS service
+        run: |
+          aws ecs update-service \
+            --cluster "${ECS_CLUSTER}" \
+            --service "${ECS_SERVICE}" \
+            --task-definition "${{ steps.register-task-def.outputs.arn }}" \
+            --force-new-deployment
+
