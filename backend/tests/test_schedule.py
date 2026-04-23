@@ -316,7 +316,7 @@ def test_create_schedule_new_courses_field_is_ignored(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
     _make_historical_context(db_session, campus, season="Fall", current_year=2024)
-    new_course = _make_course(db_session, name="CS 3800", description="Theory of Computation", credits=4)
+    new_course = _make_course(db_session, code=3800, name="CS 3800", description="Theory of Computation", credits=4)
     db_session.commit()
     response = client.post(
         "/schedules",
