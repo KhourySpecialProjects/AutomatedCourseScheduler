@@ -14,7 +14,8 @@ from app.models.section import Section
 def get_all(db: Session, campus: int | None = None, active_only: bool = False) -> list[Faculty]:
     query = db.query(Faculty)
     if campus is not None:
-        query = query.join(Campus, Faculty.campus == Campus.campus_id).filter(Campus.name == campus)
+        query = query.join(Campus, Faculty.campus ==
+                           Campus.campus_id).filter(Campus.name == campus)
     if active_only:
         query = query.filter(Faculty.active.is_(True))
     return query.order_by(Faculty.last_name, Faculty.first_name).all()
@@ -35,7 +36,8 @@ def get_by_nuid_with_preferences(db: Session, nuid: int) -> Faculty | None:
     return (
         db.query(Faculty)
         .options(
-            selectinload(Faculty.course_preferences).joinedload(CoursePreference.course),
+            selectinload(Faculty.course_preferences).joinedload(
+                CoursePreference.course),
             selectinload(Faculty.meeting_preferences),
         )
         .filter(Faculty.nuid == nuid)
@@ -83,7 +85,7 @@ def get_uninvited_or_pending_active(db: Session) -> list[Faculty]:
     )
 
 
-def get_assginments(db: Session, faculty_nuid: int, schedule_id: int) -> list[FacultyAssignment]:
+def get_assignments(db: Session, faculty_nuid: int, schedule_id: int) -> list[FacultyAssignment]:
     assignments = (
         db.query(FacultyAssignment)
         .join(Section, Section.section_id == FacultyAssignment.section_id)

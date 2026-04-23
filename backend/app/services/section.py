@@ -143,7 +143,8 @@ def create_section(db: Session, section: SectionCreate) -> Section:
 
     section_made = section_repo.create(db, section_obj)
     if section.faculty_nuids:
-        section_repo.replace_faculty_assignments(db, section_made.section_id, section.faculty_nuids)
+        section_repo.replace_faculty_assignments(
+            db, section_made.section_id, section.faculty_nuids)
     return section_repo.save(db, section_made)
 
 
@@ -179,7 +180,8 @@ def update_section(db: Session, section_id: int, section: SectionUpdate) -> dict
 
     saved = section_repo.save(db, section_obj)
     detected = error_check(db, saved, section)
-    warnings_repo.sync_section_warnings(db, saved.section_id, saved.schedule_id, detected)
+    warnings_repo.sync_section_warnings(
+        db, saved.section_id, saved.schedule_id, detected)
     return {"updated": saved, "warnings": detected}
 
 
@@ -202,8 +204,7 @@ def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[W
         meeting_time = section.time_block_id
         schedule = schedule_repo.get_by_id(db, section.schedule_id)
         course = course_repo.get_by_id(db, section.course_id)
-        split_name = course.name.split(" ", 1)
-        course_subject = split_name[0]
+        course_subject = course.subject
         if exceeds_meeting_time_capcacity(db, schedule, meeting_time, course_subject):
             warnings.append(WarningType.TIME_BLOCK_OVERLOAD)
         for nuid in assignments:
@@ -212,7 +213,7 @@ def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[W
             )
             double_booked = section_repo.double_booked(
                 db,
-                faculty_repo.get_assginments(db, nuid, section.schedule_id),
+                faculty_repo.get_assignments(db, nuid, section.schedule_id),
                 section.time_block_id,
             )
             if not time_pref_exists:
@@ -221,13 +222,15 @@ def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[W
                 warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
     if "course_id" in updates.model_fields_set:
         for nuid in assignments:
-            course_pref_exists = faculty_repo.find_course_preference(db, nuid, section.course_id)
+            course_pref_exists = faculty_repo.find_course_preference(
+                db, nuid, section.course_id)
             if not course_pref_exists:
                 warnings.append(WarningType.UNPREFERENCED_COURSE)
     if "faculty_nuids" in updates.model_fields_set:
         for faculty_id in updates.faculty_nuids or []:
             f = faculty_repo.get_by_nuid(db, faculty_id)
-            assigned = faculty_repo.get_assginments(db, faculty_id, section.schedule_id)
+            assigned = faculty_repo.get_assignments(
+                db, faculty_id, section.schedule_id)
             assignment_count = len(assigned)
             if section_repo.double_booked(db, assigned, section.time_block_id):
                 warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
