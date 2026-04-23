@@ -22,6 +22,7 @@ from app.schemas.algorithm_params import AlgorithmParameters
 from app.schemas.course import CourseResponse
 from app.services import course as course_service
 from app.services import faculty as faculty_service
+from app.services import semester as semester_service
 
 logger = logging.getLogger(__name__)
 
@@ -168,8 +169,14 @@ def run_algorithm_task(schedule_id: int, parameters: AlgorithmParameters):
 
 
 def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
-    # Step 1: Load courses
-    courses = course_service.get_courses(db, schedule_id)
+    # Step 1: Load courses from prior same-season schedule
+    schedule = db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
+    if not schedule:
+        raise ValueError(f"Schedule {schedule_id} not found")
+    prior_semester_id = semester_service.get_last_year(db, schedule.semester_id)
+    if prior_semester_id is None:
+        raise ValueError(f"No prior same-season semester found for schedule {schedule_id}")
+    courses = course_service.generate_course_list(db, prior_semester_id, schedule.campus)
     if not courses:
         raise ValueError(f"No courses found for schedule {schedule_id}")
     logger.info(f"Loaded {len(courses)} courses for schedule {schedule_id}")
@@ -235,14 +242,13 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         logger.warning(f"Phase 2 warning: {w.Message}")
     logger.info(f"Phase 2 complete: {len(placed)} placed, {len(unplaced)} unplaced")
 
-    # Step 8: Write sections to DB
+    # Step 8: Write sections to DB — all sections are written regardless of assignment status
     matched_lookup = {a.section_id: a for a in matched}
     section_number_tracker: dict[int, int] = {}
     sections_written = 0
 
+    # Matched sections (placed or unplaced) — write with faculty, time block optional
     for sa in phase2_result.assignments:
-        if sa.time_block_id is None:
-            continue
         original = matched_lookup.get(sa.section_id)
         if original is None:
             continue
@@ -262,6 +268,19 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
             section_id=section_obj.section_id,
         )
         db.add(fa)
+        sections_written += 1
+
+    # Unmatched sections — write with no faculty and no time block
+    for a in unmatched:
+        section_number_tracker[a.course_id] = section_number_tracker.get(a.course_id, 0) + 1
+        section_obj = Section(
+            schedule_id=schedule_id,
+            course_id=a.course_id,
+            time_block_id=None,
+            section_number=section_number_tracker[a.course_id],
+            capacity=30,
+        )
+        db.add(section_obj)
         sections_written += 1
 
     # Step 9: Persist warnings (respects dismissed)
@@ -408,9 +427,9 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
         section_number_tracker[s.course_id] = max(current, s.section_number)
 
     sections_written = 0
+
+    # Matched sections (placed or unplaced) — write with faculty, time block optional
     for sa in phase2_result.assignments:
-        if sa.time_block_id is None:
-            continue
         original = matched_lookup.get(sa.section_id)
         if original is None:
             continue
@@ -430,6 +449,19 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
             section_id=section_obj.section_id,
         )
         db.add(fa)
+        sections_written += 1
+
+    # Unmatched sections — write with no faculty and no time block
+    for a in unmatched:
+        section_number_tracker[a.course_id] = section_number_tracker.get(a.course_id, 0) + 1
+        section_obj = Section(
+            schedule_id=schedule_id,
+            course_id=a.course_id,
+            time_block_id=None,
+            section_number=section_number_tracker[a.course_id],
+            capacity=30,
+        )
+        db.add(section_obj)
         sections_written += 1
 
     # Step 11: Persist warnings (append to existing, respect dismissed)

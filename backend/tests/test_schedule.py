@@ -133,7 +133,8 @@ def _make_historical_context(db, campus, season="Fall", current_year=2024):
 
 def test_create_schedule_returns_201(client, db_session):
     campus = _make_campus(db_session)
-    semester = _make_semester(db_session)
+    semester = _make_semester(db_session, season="Fall", year=2024)
+    _make_historical_context(db_session, campus, season="Fall", current_year=2024)
     response = client.post(
         "/schedules",
         json={
@@ -147,7 +148,8 @@ def test_create_schedule_returns_201(client, db_session):
 
 def test_create_schedule_response_shape(client, db_session):
     campus = _make_campus(db_session)
-    semester = _make_semester(db_session)
+    semester = _make_semester(db_session, season="Fall", year=2024)
+    _make_historical_context(db_session, campus, season="Fall", current_year=2024)
     response = client.post(
         "/schedules",
         json={
@@ -171,7 +173,8 @@ def test_create_schedule_response_shape(client, db_session):
 
 def test_create_schedule_correct_values(client, db_session):
     campus = _make_campus(db_session)
-    semester = _make_semester(db_session)
+    semester = _make_semester(db_session, season="Fall", year=2024)
+    _make_historical_context(db_session, campus, season="Fall", current_year=2024)
     response = client.post(
         "/schedules",
         json={
@@ -186,9 +189,10 @@ def test_create_schedule_correct_values(client, db_session):
     assert data["semester_id"] == semester.semester_id
 
 
-def test_create_schedule_defaults(client, db_session):
+def test_create_schedule_no_prior_year_returns_422(client, db_session):
+    """Creating a schedule with no prior same-season schedule must fail with 422."""
     campus = _make_campus(db_session)
-    semester = _make_semester(db_session)
+    semester = _make_semester(db_session, season="Fall", year=2024)
     response = client.post(
         "/schedules",
         json={
@@ -197,14 +201,13 @@ def test_create_schedule_defaults(client, db_session):
             "campus": campus.campus_id,
         },
     )
-    data = response.json()
-    assert data["draft"] is True
-    assert data["course_list"] == []
+    assert response.status_code == 422
 
 
 def test_create_schedule_persisted_to_db(client, db_session):
     campus = _make_campus(db_session)
-    semester = _make_semester(db_session)
+    semester = _make_semester(db_session, season="Fall", year=2024)
+    _make_historical_context(db_session, campus, season="Fall", current_year=2024)
     response = client.post(
         "/schedules",
         json={
@@ -222,7 +225,8 @@ def test_create_schedule_persisted_to_db(client, db_session):
 
 def test_create_schedule_returns_id(client, db_session):
     campus = _make_campus(db_session)
-    semester = _make_semester(db_session)
+    semester = _make_semester(db_session, season="Fall", year=2024)
+    _make_historical_context(db_session, campus, season="Fall", current_year=2024)
     response = client.post(
         "/schedules",
         json={
@@ -306,8 +310,9 @@ def test_create_schedule_course_list_item_correct_values(client, db_session):
     assert item["section_count"] == 1  # one section in the historical schedule
 
 
-def test_create_schedule_course_list_includes_new_courses(client, db_session):
-    """Courses passed via new_courses are appended to course_list."""
+def test_create_schedule_new_courses_field_is_ignored(client, db_session):
+    """new_courses in the request body is accepted but ignored — course list comes
+    entirely from the prior same-season schedule."""
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
     _make_historical_context(db_session, campus, season="Fall", current_year=2024)
@@ -324,28 +329,7 @@ def test_create_schedule_course_list_includes_new_courses(client, db_session):
     )
     assert response.status_code == 201
     course_ids = [c["course_id"] for c in response.json()["course_list"]]
-    assert new_course.course_id in course_ids
-
-
-def test_create_schedule_new_courses_section_count_is_one(client, db_session):
-    """Courses added via new_courses always have section_count == 1."""
-    campus = _make_campus(db_session)
-    semester = _make_semester(db_session, season="Fall", year=2024)
-    _make_historical_context(db_session, campus, season="Fall", current_year=2024)
-    new_course = _make_course(db_session, name="CS 3800", description="Theory of Computation", credits=4)
-    db_session.commit()
-    response = client.post(
-        "/schedules",
-        json={
-            "name": "Fall 2024",
-            "semester_id": semester.semester_id,
-            "campus": campus.campus_id,
-            "new_courses": [new_course.course_id],
-        },
-    )
-    course_list = response.json()["course_list"]
-    new_entry = next(c for c in course_list if c["course_id"] == new_course.course_id)
-    assert new_entry["section_count"] == 1
+    assert new_course.course_id not in course_ids
 
 
 def test_create_multiple_schedules_same_campus(client, db_session):

@@ -45,13 +45,14 @@ def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
     created = schedule_service.create(db, schedule)
     previous_year = semester_service.get_last_year(db, created.semester_id)
     if previous_year is None:
-        course_list = []
-    else:
-        try:
-            course_list = course_service.generate_course_list(db, previous_year, schedule.new_courses, schedule.campus)
-        except ValueError as e:
-            course_list = []
-            raise HTTPException(status_code=404, detail=e.args[0]) from e
+        raise HTTPException(
+            status_code=422,
+            detail="No prior same-season schedule found. A completed prior-year schedule with sections is required to create a new draft.",
+        )
+    try:
+        course_list = course_service.generate_course_list(db, previous_year, schedule.campus)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
     return schedule_service.add_course_list(db, created, course_list)
 
