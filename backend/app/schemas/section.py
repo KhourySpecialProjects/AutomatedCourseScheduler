@@ -38,6 +38,8 @@ class SectionUpdate(BaseModel):
 
 class CourseInfo(BaseModel):
     course_id: int
+    subject: str
+    code: int
     name: str
     description: str
     credits: int

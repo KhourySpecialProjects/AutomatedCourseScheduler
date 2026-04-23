@@ -33,7 +33,7 @@ const mockSection: SectionRichResponse = {
   schedule_id: 42,
   comment_count: 0,
   crosslisted_section_id: null,
-  course: { course_id: 10, name: 'Algorithms', description: 'Algo course', credits: 4 },
+  course: { course_id: 10, subject: 'CS', code: 3500, name: 'Algorithms', description: 'Algo course', credits: 4 },
   time_block: { time_block_id: 5, days: 'MWR', start_time: '09:00', end_time: '10:30' },
   instructors: [],
 };

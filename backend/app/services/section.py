@@ -70,6 +70,8 @@ def get_rich_sections(db: Session, schedule_id: int) -> list[SectionRichResponse
                 crosslisted_section_id=s.crosslisted_section_id,
                 course=CourseInfo(
                     course_id=s.course.course_id,
+                    subject=s.course.subject,
+                    code=s.course.code,
                     name=s.course.name,
                     description=s.course.description,
                     credits=s.course.credits,

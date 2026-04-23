@@ -487,7 +487,6 @@ export default function SectionMutationDrawer(props: Props) {
     section?.crosslisted_section_id ?? null,
   );
 
-  // Remote data — courses and scheduleSections come from props (parent owns them)
   const [faculty, setFaculty] = useState<FacultyResponse[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
