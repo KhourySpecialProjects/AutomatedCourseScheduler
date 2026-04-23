@@ -351,6 +351,7 @@ def test_error_check_faculty_overload_warning(db_session):
     other_section = _make_section(db_session, schedule, course, tb, number=1)
     db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=other_section.section_id))
     section = _make_section(db_session, schedule, course, tb, number=2)
+    db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=section.section_id))
     db_session.commit()
 
     updates = SectionUpdate(faculty_nuids=[faculty.nuid])

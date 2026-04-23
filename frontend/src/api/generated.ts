@@ -272,13 +272,6 @@ export interface InviteResponse {
   signup_url: string;
 }
 
-export interface AdminInviteRequest {
-  nuid: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-}
-
 export interface MeetingPreferenceInfo {
   time_block_id: number;
   preference: string;
@@ -372,6 +365,8 @@ export type SectionRichResponseRoom = string | null;
 
 export type SectionRichResponseCrosslistedSectionId = number | null;
 
+export type SectionRichResponseTimeBlock = TimeBlockInfo | null;
+
 export interface SectionRichResponse {
   section_id: number;
   section_number: number;
@@ -381,7 +376,7 @@ export interface SectionRichResponse {
   comment_count?: number;
   crosslisted_section_id?: SectionRichResponseCrosslistedSectionId;
   course: CourseInfo;
-  time_block: TimeBlockInfo;
+  time_block?: SectionRichResponseTimeBlock;
   instructors: InstructorInfo[];
 }
 
@@ -607,6 +602,11 @@ export type WarningResponseCourseID = number | null;
 export type WarningResponseBlockID = number | null;
 
 /**
+ * Directly linked section (manual-edit warnings only)
+ */
+export type WarningResponseSectionId = number | null;
+
+/**
  * Warning with persistence fields — returned by the API.
  */
 export interface WarningResponse {
@@ -626,8 +626,17 @@ export interface WarningResponse {
   warning_id: number;
   /** Whether this warning was dismissed */
   dismissed?: boolean;
+  /** Directly linked section (manual-edit warnings only) */
+  section_id?: WarningResponseSectionId;
 }
 
+/**
+ * Each member carries a human-readable message and a default severity.
+
+Usage:
+    WarningType.FACULTY_OVERLOAD.value    # → "Faculty overloaded with assignments"
+    WarningType.FACULTY_OVERLOAD.severity # → Severity.HIGH
+ */
 export type WarningType = typeof WarningType[keyof typeof WarningType];
 
 
@@ -640,6 +649,7 @@ export const WarningType = {
   Conflict_group_courses_overlap: 'Conflict group courses overlap',
   Faculty_overloaded_with_assignments: 'Faculty overloaded with assignments',
   Insufficient_faculty_supply_for_section: 'Insufficient faculty supply for section',
+  Faculty_double_booked_in_time_block: 'Faculty double booked in time block',
 } as const;
 
 export type GetSchedulesSchedulesGetParams = {

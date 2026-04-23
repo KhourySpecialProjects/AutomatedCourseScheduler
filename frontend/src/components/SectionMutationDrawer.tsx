@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   getAutomatedCourseSchedulerAPI,
+  Severity,
   type CourseResponse,
   type FacultyResponse,
   type InstructorInfo,
   type SectionCreate,
   type SectionRichResponse,
   type TimeBlockInfo,
+  type WarningResponse,
 } from '../api/generated';
 import { axiosInstance } from '../api/axiosInstance';
 import SearchableSelect, { type SelectOption } from './SearchableSelect';
@@ -449,6 +451,7 @@ interface CreateProps extends BaseProps {
 interface EditProps extends BaseProps {
   mode: 'edit';
   section: SectionRichResponse;
+  warnings?: WarningResponse[];
 }
 
 type Props = CreateProps | EditProps;
@@ -465,13 +468,14 @@ export default function SectionMutationDrawer(props: Props) {
   const { scheduleId, timeBlocks, campusId, campusName, onClose, onTimeBlockCreated } = props;
   const isEdit = props.mode === 'edit';
   const section = isEdit ? props.section : null;
+  const sectionWarnings: WarningResponse[] = isEdit ? (props.warnings ?? []) : [];
   const [originalCrosslistedId, setOriginalCrosslistedId] = useState<number | null>(
     section?.crosslisted_section_id ?? null,
   );
 
   // Form state
   const [courseId, setCourseId] = useState<number | null>(section?.course.course_id ?? null);
-  const [timeBlockId, setTimeBlockId] = useState<number | null>(section?.time_block.time_block_id ?? null);
+  const [timeBlockId, setTimeBlockId] = useState<number | null>(section?.time_block?.time_block_id ?? null);
   const [capacity, setCapacity] = useState<number | ''>(section?.capacity ?? '');
   const [room, setRoom] = useState(section?.room ?? '');
   const [selectedNuids, setSelectedNuids] = useState<number[]>(
@@ -603,7 +607,7 @@ export default function SectionMutationDrawer(props: Props) {
         if (section && s.crosslisted_section_id === section.section_id) return false;
         return true;
       })
-      .filter((s) => s.time_block.time_block_id === timeBlockId)
+      .filter((s) => s.time_block?.time_block_id === timeBlockId)
       .flatMap((s) =>
         s.instructors
           .filter((i) => selected.has(i.nuid))
@@ -970,6 +974,30 @@ export default function SectionMutationDrawer(props: Props) {
                   </div>
                 )}
               </div>
+
+              {isEdit && section && sectionWarnings.length > 0 && (
+                <div className="pt-4 border-t border-gray-100">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Warnings</h3>
+                  <div className="space-y-1.5">
+                    {sectionWarnings.map((w) => {
+                      const sev = w.SeverityRank;
+                      const badgeClass =
+                        sev === Severity.NUMBER_3
+                          ? 'text-red-700 bg-red-50 border border-red-200'
+                          : sev === Severity.NUMBER_2
+                            ? 'text-amber-700 bg-amber-50 border border-amber-200'
+                            : 'text-yellow-700 bg-yellow-50 border border-yellow-200';
+                      const label = sev === Severity.NUMBER_3 ? 'High' : sev === Severity.NUMBER_2 ? 'Medium' : 'Low';
+                      return (
+                        <div key={w.warning_id} className="flex items-start justify-between gap-2 text-xs">
+                          <span className="text-gray-700">{w.Message}</span>
+                          <span className={`shrink-0 px-1.5 py-0.5 rounded-full font-medium ${badgeClass}`}>{label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {isEdit && section && (
                 <div className="pt-4 border-t border-gray-100">

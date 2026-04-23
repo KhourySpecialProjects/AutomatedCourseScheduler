@@ -16,6 +16,7 @@ router = APIRouter(prefix="/schedules", tags=["warnings"])
 def _to_response(r: ScheduleWarningModel) -> WarningResponse:
     return WarningResponse(
         warning_id=r.warning_id,
+        section_id=r.section_id,
         Type=r.type if r.type in WarningType._value2member_map_ else None,
         SeverityRank=int(r.severity) if r.severity.isdigit() else Severity.MEDIUM,
         Message=r.message,

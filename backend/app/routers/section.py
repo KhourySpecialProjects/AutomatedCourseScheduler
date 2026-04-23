@@ -24,9 +24,12 @@ router = APIRouter(prefix="/sections", tags=["sections"])
 async def create_section(section: SectionCreate, db: Session = Depends(get_db)):
     """Create a new section in a schedule."""
     try:
-        created = section_service.create_section(db, section)
+        result = section_service.create_section(db, section)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+    created = result["created"]
+    warnings = result["warnings"]
 
     rich_sections = section_service.get_rich_sections(db, created.schedule_id)
     rich_section = next((s for s in rich_sections if s.section_id == created.section_id), None)
@@ -36,6 +39,18 @@ async def create_section(section: SectionCreate, db: Session = Depends(get_db)):
             {
                 "type": "section_created",
                 "payload": SectionRichResponse.model_validate(rich_section).model_dump(mode="json"),
+            },
+        )
+
+    if warnings:
+        await manager.broadcast(
+            created.schedule_id,
+            {
+                "type": "section_warnings",
+                "payload": {
+                    "section_id": created.section_id,
+                    "warnings": [w.value for w in warnings],
+                },
             },
         )
 
@@ -86,17 +101,6 @@ async def update_section(
                 },
             )
 
-    if warnings:
-        await manager.broadcast(
-            updated.schedule_id,
-            {
-                "type": "section_warnings",
-                "payload": {
-                    "section_id": section_id,
-                    "warnings": [w.value for w in warnings],
-                },
-            },
-        )
     if warnings:
         await manager.broadcast(
             updated.schedule_id,

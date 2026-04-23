@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CourseResponse, InstructorInfo, SectionRichResponse, TimeBlockInfo } from '../api/generated';
-import { getAutomatedCourseSchedulerAPI } from '../api/generated';
+import type { CourseResponse, InstructorInfo, SectionRichResponse, TimeBlockInfo, WarningResponse } from '../api/generated';
+import { getAutomatedCourseSchedulerAPI, Severity } from '../api/generated';
 import { axiosInstance } from '../api/axiosInstance';
 import type { LockInfo } from '../hooks/useScheduleWebSocket';
 import CrosslistSectionHint from './CrosslistSectionHint';
@@ -20,6 +20,7 @@ interface Props {
   sections: SectionRichResponse[];
   scheduleId: number;
   locks: Map<number, LockInfo>;
+  warnings: WarningResponse[];
   campusName: string | null;
   campusId: number | null;
   readOnly?: boolean;
@@ -77,6 +78,7 @@ export default function ScheduleSectionRowView({
   sections,
   scheduleId,
   locks,
+  warnings,
   campusName,
   campusId,
   readOnly = false,
@@ -544,12 +546,23 @@ export default function ScheduleSectionRowView({
                       <td className="px-4 py-3">
                         {(() => {
                           const m = courseMetaForUi(section);
+                          const sw = isAdmin
+                            ? warnings.filter((w) => w.section_id === section.section_id && !w.dismissed)
+                            : [];
+                          const maxSev = sw.reduce((acc, w) => Math.max(acc, w.SeverityRank), 0);
+                          const dotColor = maxSev === Severity.NUMBER_3 ? 'bg-red-500' : maxSev === Severity.NUMBER_2 ? 'bg-amber-500' : 'bg-yellow-400';
                           return (
                             <>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-sm font-semibold text-gray-900">
                                   {m.code ?? m.name}
                                 </span>
+                                {maxSev > 0 && (
+                                  <span
+                                    title={sw.map((w) => w.Message).join('\n')}
+                                    className={`inline-block w-2 h-2 rounded-full shrink-0 ${dotColor}`}
+                                  />
+                                )}
                                 <SectionCommentIndicator count={section.comment_count ?? 0} />
                                 {lock && <LockBadge lock={lock} />}
                               </div>
@@ -644,6 +657,7 @@ export default function ScheduleSectionRowView({
           mode="edit"
           scheduleId={scheduleId}
           section={editingSection}
+          warnings={warnings.filter((w) => w.section_id === editingSection.section_id && !w.dismissed)}
           timeBlocks={timeBlocks}
           campusId={campusId}
           campusName={campusName}
