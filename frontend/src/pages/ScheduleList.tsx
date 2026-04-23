@@ -443,12 +443,12 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
                       </div>
                       <div className="text-xs text-gray-500">{u.description}</div>
                       {result?.errors?.length ? (
-                        <ul className="mt-1 list-disc list-inside text-xs text-amber-700 space-y-0.5">
-                          {result.errors.slice(0, 4).map((e, i) => (
-                            <li key={i}>{e}</li>
-                          ))}
-                          {result.errors.length > 4 && <li>...and {result.errors.length - 4} more</li>}
-                        </ul>
+                        <div className="mt-1.5 flex items-start gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1.5 text-xs text-amber-800">
+                          <svg className="mt-px shrink-0 w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                          </svg>
+                          <span>{result.errors[0]}</span>
+                        </div>
                       ) : null}
                     </div>
                     <div className="shrink-0">

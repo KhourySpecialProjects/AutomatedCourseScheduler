@@ -90,7 +90,7 @@ def upload_faculty_preferences(file: UploadFile = File(...), db: Session = Depen
         records_successful=len(to_insert) + len(to_update),
         records_failed=len(skipped),
         available_faculty=result.get("available_faculty"),
-        errors=[f"Skipped {len(skipped)} unrecognized courses: {', '.join(skipped)}"] if skipped else None,
+        errors=[f"Skipped {len(skipped)} unrecognized courses: {', '.join(skipped[:5])}{'...' if len(skipped) > 5 else ''}"] if skipped else None,
     )
 
 
