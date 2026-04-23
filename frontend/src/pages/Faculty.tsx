@@ -83,8 +83,8 @@ export default function Faculty() {
 
   // Filters & sort
   const [nameSearch, setNameSearch] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('name');
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [sortKey, setSortKey] = useState<SortKey>('load');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   // Drawer state
   type DrawerState =
