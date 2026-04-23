@@ -41,11 +41,21 @@ type ApiMocks = {
 };
 
 let api: ApiMocks;
+let mockUserValue: { me: UserResponse | null; meError: string | null; meLoading: boolean } = {
+  me: null,
+  meError: null,
+  meLoading: false,
+};
 
-function mockApi(overrides: Partial<ApiMocks> = {}) {
+vi.mock('../context/UserContext', () => ({
+  useUser: () => mockUserValue,
+}));
+
+function mockApi(overrides: Partial<ApiMocks> = {}, user: UserResponse = viewerUser) {
+  mockUserValue = { me: user, meError: null, meLoading: false };
   api = {
     getSchedulesSchedulesGet: vi.fn().mockResolvedValue(mockSchedules),
-    getMeApiUsersMeGet: vi.fn().mockResolvedValue(viewerUser),
+    getMeApiUsersMeGet: vi.fn().mockResolvedValue(user),
     updateScheduleSchedulesScheduleIdPut: vi.fn(),
     deleteScheduleSchedulesScheduleIdDelete: vi.fn().mockResolvedValue(undefined),
     getAllSemestersSemestersGet: vi.fn().mockResolvedValue([]),
@@ -136,7 +146,7 @@ describe('ScheduleList page', () => {
   });
 
   it('shows "New Schedule" button for admin users', async () => {
-    mockApi({ getMeApiUsersMeGet: vi.fn().mockResolvedValue(adminUser) });
+    mockApi({}, adminUser);
     renderList();
     expect(
       await screen.findByRole('button', { name: /New Schedule/ }),
@@ -152,10 +162,10 @@ describe('ScheduleList page', () => {
   it('lets admins save a renamed schedule', async () => {
     const user = userEvent.setup();
     const updated: ScheduleResponse = { ...mockSchedules[0], name: 'Fall 2025 (renamed)' };
-    mockApi({
-      getMeApiUsersMeGet: vi.fn().mockResolvedValue(adminUser),
-      updateScheduleSchedulesScheduleIdPut: vi.fn().mockResolvedValue(updated),
-    });
+    mockApi(
+      { updateScheduleSchedulesScheduleIdPut: vi.fn().mockResolvedValue(updated) },
+      adminUser,
+    );
     renderList();
 
     await screen.findByText('Fall 2025');
@@ -177,7 +187,7 @@ describe('ScheduleList page', () => {
 
   it('deletes a schedule after confirming', async () => {
     const user = userEvent.setup();
-    mockApi({ getMeApiUsersMeGet: vi.fn().mockResolvedValue(adminUser) });
+    mockApi({}, adminUser);
     renderList();
 
     await screen.findByText('Fall 2025');
@@ -196,7 +206,7 @@ describe('ScheduleList page', () => {
 
   it('cancels delete when "No" is clicked', async () => {
     const user = userEvent.setup();
-    mockApi({ getMeApiUsersMeGet: vi.fn().mockResolvedValue(adminUser) });
+    mockApi({}, adminUser);
     renderList();
 
     await screen.findByText('Fall 2025');
@@ -212,7 +222,7 @@ describe('ScheduleList page', () => {
 
   it('opens the create-schedule modal when admin clicks "New Schedule"', async () => {
     const user = userEvent.setup();
-    mockApi({ getMeApiUsersMeGet: vi.fn().mockResolvedValue(adminUser) });
+    mockApi({}, adminUser);
     renderList();
 
     await user.click(await screen.findByRole('button', { name: /New Schedule/ }));
