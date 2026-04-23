@@ -114,8 +114,8 @@ def generate_course_list(db: Session, semester_id: int, campus_id: int) -> list[
         raise ValueError(f"Semester {semester_id} not found")
 
     # Only consider active schedules.
-    schedules = semester_repo.get_schedules(db, semester, campus_id, active_only=True)
-    if len(schedules) > 1:
+    schedules = semester_repo.get_schedules(db, semester, campus_id)
+    if len([s for s in schedules if s.active]) > 1:
         raise ValueError(f"Semester {semester_id} has multiple schedules for campus {campus_id}; expected 1")
 
     courses = schedule_repo.get_courses(schedules[0])
