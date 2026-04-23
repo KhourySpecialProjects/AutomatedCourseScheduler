@@ -439,6 +439,8 @@ interface BaseProps {
   timeBlocks: TimeBlockFull[];
   campusId: number | null;
   campusName: string | null;
+  courses: CourseResponse[];
+  scheduleSections: SectionRichResponse[];
   onClose: () => void;
   /** Called when admin creates a new time block inline — parent should add it to its list. */
   onTimeBlockCreated?: (tb: TimeBlockFull) => void;
@@ -465,7 +467,7 @@ function Label({ children }: { children: React.ReactNode }) {
 }
 
 export default function SectionMutationDrawer(props: Props) {
-  const { scheduleId, timeBlocks, campusId, campusName, onClose, onTimeBlockCreated } = props;
+  const { scheduleId, timeBlocks, campusId, campusName, courses, scheduleSections, onClose, onTimeBlockCreated } = props;
   const isEdit = props.mode === 'edit';
   const section = isEdit ? props.section : null;
   const sectionWarnings: WarningResponse[] = isEdit ? (props.warnings ?? []) : [];
@@ -485,10 +487,8 @@ export default function SectionMutationDrawer(props: Props) {
     section?.crosslisted_section_id ?? null,
   );
 
-  // Remote data
-  const [courses, setCourses] = useState<CourseResponse[]>([]);
+  // Remote data — courses and scheduleSections come from props (parent owns them)
   const [faculty, setFaculty] = useState<FacultyResponse[]>([]);
-  const [scheduleSections, setScheduleSections] = useState<SectionRichResponse[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const catalogById = useMemo(() => {
@@ -521,22 +521,13 @@ export default function SectionMutationDrawer(props: Props) {
 
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
-    Promise.allSettled([
-      // All catalog courses — "must already exist" means in the catalog, not in this schedule
-      api.getCoursesCoursesGet(),
-      // Faculty scoped to this campus; active only
-      api.getFacultyFacultyGet(
-        campusName ? { campus: campusName, active_only: true } : { active_only: true },
-      ),
-      // Schedule sections, to detect double-booking conflicts
-      api.getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet(scheduleId),
-    ]).then(([courseResult, facultyResult, sectionsResult]) => {
-      if (courseResult.status === 'fulfilled') setCourses(courseResult.value);
-      if (facultyResult.status === 'fulfilled') setFaculty(facultyResult.value);
-      if (sectionsResult.status === 'fulfilled') setScheduleSections(sectionsResult.value);
+    api.getFacultyFacultyGet(
+      campusName ? { campus: campusName, active_only: true } : { active_only: true },
+    ).then((result) => {
+      setFaculty(result);
       setLoadingData(false);
-    });
-  }, [campusName, scheduleId]);
+    }).catch(() => setLoadingData(false));
+  }, [campusName]);
 
   const crosslistOptions = useMemo((): SelectOption<number | null>[] => {
     const none: SelectOption<number | null> = { value: null, label: 'Not crosslisted' };

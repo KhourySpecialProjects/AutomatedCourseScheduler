@@ -661,6 +661,8 @@ export default function ScheduleSectionRowView({
           timeBlocks={timeBlocks}
           campusId={campusId}
           campusName={campusName}
+          courses={catalogCourses}
+          scheduleSections={sections}
           onClose={handleEditClose}
           onTimeBlockCreated={(tb: TimeBlockFull) => setTimeBlocks((prev) => [...prev, tb].sort((a, b) => {
             const ta = parseTimeToMinutes(a.start_time);
@@ -679,6 +681,8 @@ export default function ScheduleSectionRowView({
           timeBlocks={timeBlocks}
           campusId={campusId}
           campusName={campusName}
+          courses={catalogCourses}
+          scheduleSections={sections}
           onClose={() => setCreating(false)}
           onTimeBlockCreated={(tb: TimeBlockFull) => setTimeBlocks((prev) => [...prev, tb].sort((a, b) => {
             const ta = parseTimeToMinutes(a.start_time);
