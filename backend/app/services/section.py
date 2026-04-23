@@ -143,8 +143,7 @@ def _validate_update_refs(db: Session, section: SectionUpdate) -> None:
 
 
 def _next_section_number(db: Session, schedule_id: int, course_id: int) -> int:
-    max_num = db.query(func.max(Section.section_number)).filter(
-        Section.schedule_id == schedule_id, Section.course_id == course_id).scalar()
+    max_num = db.query(func.max(Section.section_number)).filter(Section.schedule_id == schedule_id, Section.course_id == course_id).scalar()
     return (max_num or 0) + 1
 
 
@@ -155,8 +154,7 @@ def create_section(db: Session, section: SectionCreate) -> Section:
     if capacity < 1:
         raise ValueError("Capacity is invalid")
 
-    section_number = _next_section_number(
-        db, section.schedule_id, section.course_id)
+    section_number = _next_section_number(db, section.schedule_id, section.course_id)
 
     section_obj = Section(
         schedule_id=section.schedule_id,
@@ -170,11 +168,9 @@ def create_section(db: Session, section: SectionCreate) -> Section:
         section_made = section_repo.create(db, section_obj)
     except IntegrityError:
         db.rollback()
-        raise ValueError(
-            "Could not create this section because it conflicts with an existing section. Please try again.") from None
+        raise ValueError("Could not create this section because it conflicts with an existing section. Please try again.") from None
     if section.faculty_nuids:
-        section_repo.replace_faculty_assignments(
-            db, section_made.section_id, section.faculty_nuids)
+        section_repo.replace_faculty_assignments(db, section_made.section_id, section.faculty_nuids)
     return section_repo.save(db, section_made)
 
 
@@ -224,8 +220,7 @@ def update_section(db: Session, section_id: int, section: SectionUpdate) -> dict
         # Legacy: if only a reverse pointer exists and the client explicitly uncrosslists,
         # clear that reverse pointer too.
         if explicit_uncrosslist and existing_partner_id is None:
-            reverse = db.query(Section).filter(
-                Section.crosslisted_section_id == section_obj.section_id).first()
+            reverse = db.query(Section).filter(Section.crosslisted_section_id == section_obj.section_id).first()
             if reverse is not None:
                 reverse.crosslisted_section_id = None
                 section_repo.save(db, reverse)
@@ -238,8 +233,7 @@ def update_section(db: Session, section_id: int, section: SectionUpdate) -> dict
             section_repo.save(db, partner)
             partner_ids_to_broadcast.add(partner.section_id)
     if "faculty_nuids" in section.model_fields_set:
-        section_repo.replace_faculty_assignments(
-            db, section_obj.section_id, section.faculty_nuids or [])
+        section_repo.replace_faculty_assignments(db, section_obj.section_id, section.faculty_nuids or [])
 
     saved = section_repo.save(db, section_obj)
 
@@ -247,8 +241,7 @@ def update_section(db: Session, section_id: int, section: SectionUpdate) -> dict
     partner_id = saved.crosslisted_section_id
     if partner_id is None and not explicit_uncrosslist:
         # Backward-compat: if only the partner points at this row, still treat it as crosslisted.
-        reverse = db.query(Section).filter(
-            Section.crosslisted_section_id == saved.section_id).first()
+        reverse = db.query(Section).filter(Section.crosslisted_section_id == saved.section_id).first()
         partner_id = reverse.section_id if reverse is not None else None
 
     if partner_id is not None:
@@ -283,8 +276,7 @@ def update_section(db: Session, section_id: int, section: SectionUpdate) -> dict
         partner_ids_to_broadcast.add(synced_partner_id)
 
     detected = error_check(db, saved, section)
-    warnings_repo.sync_section_warnings(
-        db, saved.section_id, saved.schedule_id, detected)
+    warnings_repo.sync_section_warnings(db, saved.section_id, saved.schedule_id, detected)
 
     return {"updated": saved, "warnings": detected, "partner_ids": sorted(partner_ids_to_broadcast)}
 
@@ -296,15 +288,13 @@ def delete_section(db: Session, section_id: int) -> tuple[bool, list[int]]:
     partner_ids_to_broadcast: set[int] = set()
     # If this section is crosslisted, clear the partner pointer as well.
     if section_obj.crosslisted_section_id is not None:
-        partner = section_repo.get_by_id(
-            db, section_obj.crosslisted_section_id)
+        partner = section_repo.get_by_id(db, section_obj.crosslisted_section_id)
         if partner is not None and partner.crosslisted_section_id == section_obj.section_id:
             partner.crosslisted_section_id = None
             section_repo.save(db, partner)
             partner_ids_to_broadcast.add(partner.section_id)
     else:
-        reverse = db.query(Section).filter(
-            Section.crosslisted_section_id == section_obj.section_id).first()
+        reverse = db.query(Section).filter(Section.crosslisted_section_id == section_obj.section_id).first()
         if reverse is not None:
             reverse.crosslisted_section_id = None
             section_repo.save(db, reverse)
@@ -330,8 +320,7 @@ def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[W
         if exceeds_meeting_time_capcacity(db, schedule, meeting_time, course_subject):
             warnings.append(WarningType.TIME_BLOCK_OVERLOAD)
         for nuid in assignments:
-            time_pref_exists = faculty_repo.find_meeting_time_preference(
-                db, nuid, section.time_block_id)
+            time_pref_exists = faculty_repo.find_meeting_time_preference(db, nuid, section.time_block_id)
             double_booked = section_repo.double_booked(
                 db,
                 faculty_repo.get_assignments(db, nuid, section.schedule_id),
@@ -343,15 +332,13 @@ def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[W
                 warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
     if "course_id" in updates.model_fields_set:
         for nuid in assignments:
-            course_pref_exists = faculty_repo.find_course_preference(
-                db, nuid, section.course_id)
+            course_pref_exists = faculty_repo.find_course_preference(db, nuid, section.course_id)
             if not course_pref_exists:
                 warnings.append(WarningType.UNPREFERENCED_COURSE)
     if "faculty_nuids" in updates.model_fields_set:
         for faculty_id in updates.faculty_nuids or []:
             f = faculty_repo.get_by_nuid(db, faculty_id)
-            assigned = faculty_repo.get_assignments(
-                db, faculty_id, section.schedule_id)
+            assigned = faculty_repo.get_assignments(db, faculty_id, section.schedule_id)
             assignment_count = len(assigned)
             if section_repo.double_booked(db, assigned, section.time_block_id):
                 warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
