@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useUser } from '../context/UserContext';
 import {
   getAutomatedCourseSchedulerAPI,
   type CourseCreate,
   type CourseResponse,
-  type UserResponse,
 } from '../api/generated';
 
 // ── Shared form fields ─────────────────────────────────────────────────────────
@@ -321,8 +321,7 @@ function StarIcon() {
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function Courses() {
-  const [me, setMe] = useState<UserResponse | null>(null);
-  const [meLoading, setMeLoading] = useState(true);
+  const { me, meLoading } = useUser();
 
   const [courses, setCourses] = useState<CourseResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -331,14 +330,6 @@ export default function Courses() {
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<CourseResponse | null>(null);
-
-  useEffect(() => {
-    getAutomatedCourseSchedulerAPI()
-      .getMeApiUsersMeGet()
-      .then(setMe)
-      .catch(() => {})
-      .finally(() => setMeLoading(false));
-  }, []);
 
   useEffect(() => {
     getAutomatedCourseSchedulerAPI()

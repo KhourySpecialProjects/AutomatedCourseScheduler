@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAutomatedCourseSchedulerAPI, type CommentResponse, type UserResponse } from '../api/generated';
+import { getAutomatedCourseSchedulerAPI, type CommentResponse } from '../api/generated';
+import { useUser } from '../context/UserContext';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -8,7 +9,7 @@ function formatDate(iso: string): string {
 }
 
 export default function SectionComments({ sectionId }: { sectionId: number }) {
-  const [me, setMe] = useState<UserResponse | null>(null);
+  const { me } = useUser();
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
@@ -45,9 +46,7 @@ export default function SectionComments({ sectionId }: { sectionId: number }) {
     setError(null);
     setLoading(true);
     try {
-      const api = getAutomatedCourseSchedulerAPI();
-      const [u, cs] = await Promise.all([api.getMeApiUsersMeGet(), api.getCommentsCommentsSectionIdGet(sectionId)]);
-      setMe(u);
+      const cs = await getAutomatedCourseSchedulerAPI().getCommentsCommentsSectionIdGet(sectionId);
       setComments(cs);
     } catch {
       setError('Failed to load comments.');

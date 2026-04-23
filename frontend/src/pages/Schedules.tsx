@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import ScheduleSectionRowView from '../components/ScheduleSectionRowView';
 import AlgorithmWarningsBanner from '../components/AlgorithmWarningsBanner';
 import { useScheduleWebSocket, type WsStatus } from '../hooks/useScheduleWebSocket';
-import { getAutomatedCourseSchedulerAPI, type ScheduleResponse, type UserResponse } from '../api/generated';
+import { getAutomatedCourseSchedulerAPI, type ScheduleResponse } from '../api/generated';
+import { useUser } from '../context/UserContext';
 import { downloadScheduleCsv } from '../utils/exportCsv';
 
 type ViewMode = 'table' | 'calendar';
@@ -56,23 +57,12 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
   const [schedulePersona, setSchedulePersona] = useState<SchedulePersona>('admin');
   const [selectedCourseCount, setSelectedCourseCount] = useState(0);
   const [selectedInstructorCount, setSelectedInstructorCount] = useState(0);
+  const { me, meError } = useUser();
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [campusName, setCampusName] = useState<string | null>(null);
-  const [me, setMe] = useState<UserResponse | null>(null);
-  const [meError, setMeError] = useState<string | null>(null);
 
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
-    api.getMeApiUsersMeGet()
-      .then((u) => setMe(u))
-      .catch((err: unknown) => {
-        const status = (err as { response?: { status?: number } })?.response?.status;
-        if (status === 403) {
-          setMeError('Your Auth0 account is not linked to a DB user yet. Ask an admin to invite you or run bootstrap_admin.py.');
-        } else {
-          setMeError('Could not load your user profile.');
-        }
-      });
     api.getScheduleSchedulesScheduleIdGet(scheduleId)
       .then((s) => {
         setSchedule(s);

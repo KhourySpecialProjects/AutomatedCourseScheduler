@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useUser } from '../context/UserContext';
 import {
   getAutomatedCourseSchedulerAPI,
   type CampusResponse,
   type InviteResponse,
   type ScheduleResponse,
   type SectionRichResponse,
-  type UserResponse,
 } from '../api/generated';
 import FacultyDrawer, { type FacultyRecord } from '../components/FacultyDrawer';
 import SearchableSelect, { type SelectOption } from '../components/SearchableSelect';
@@ -63,8 +63,7 @@ type SortDir = 'asc' | 'desc';
 
 export default function Faculty() {
   // Auth
-  const [me, setMe] = useState<UserResponse | null>(null);
-  const [meLoading, setMeLoading] = useState(true);
+  const { me, meLoading } = useUser();
 
   // Schedule / sections (shared with histogram)
   const [schedules, setSchedules] = useState<ScheduleResponse[]>([]);
@@ -108,15 +107,6 @@ export default function Faculty() {
   const [adminInviteCopied, setAdminInviteCopied] = useState(false);
 
   const api = getAutomatedCourseSchedulerAPI();
-
-  // Fetch current user
-  useEffect(() => {
-    getAutomatedCourseSchedulerAPI()
-      .getMeApiUsersMeGet()
-      .then(setMe)
-      .catch(() => {})
-      .finally(() => setMeLoading(false));
-  }, []);
 
   // Fetch campuses + schedules + users on mount
   useEffect(() => {

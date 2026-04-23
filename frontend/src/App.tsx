@@ -7,6 +7,7 @@ import Courses from './pages/Courses';
 import Sidebar from './components/Sidebar';
 import LoginButton from './components/LoginButton';
 import { useAuthInterceptor } from './hooks/useAuthInterceptor';
+import { UserProvider } from './context/UserContext';
 
 function App() {
   const { isAuthenticated, isLoading, error } = useAuth0();
@@ -56,21 +57,23 @@ function App() {
           </div>
         </div>
       ) : (
-        <div className="flex h-screen overflow-hidden bg-gray-50">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto">
-            <div className="p-8">
-              <Routes>
-                <Route path="/" element={<Navigate to="/schedules" replace />} />
-                <Route path="/schedules" element={<ScheduleList />} />
-                <Route path="/schedules/:scheduleId" element={<Schedules />} />
-                <Route path="/faculty/schedules/:scheduleId" element={<Schedules readOnly />} />
-                <Route path="/faculty" element={<Faculty />} />
-                <Route path="/courses" element={<Courses />} />
-              </Routes>
-            </div>
-          </main>
-        </div>
+        <UserProvider>
+          <div className="flex h-screen overflow-hidden bg-gray-50">
+            <Sidebar />
+            <main className="flex-1 overflow-y-auto">
+              <div className="p-8">
+                <Routes>
+                  <Route path="/" element={<Navigate to="/schedules" replace />} />
+                  <Route path="/schedules" element={<ScheduleList />} />
+                  <Route path="/schedules/:scheduleId" element={<Schedules />} />
+                  <Route path="/faculty/schedules/:scheduleId" element={<Schedules readOnly />} />
+                  <Route path="/faculty" element={<Faculty />} />
+                  <Route path="/courses" element={<Courses />} />
+                </Routes>
+              </div>
+            </main>
+          </div>
+        </UserProvider>
       )}
     </BrowserRouter>
   );

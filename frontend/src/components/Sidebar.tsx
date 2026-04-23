@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
-import { getAutomatedCourseSchedulerAPI } from '../api/generated';
+import { useUser } from '../context/UserContext';
 
 function CalendarIcon() {
   return (
@@ -59,15 +59,9 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { me } = useUser();
+  const isAdmin = me?.role === 'ADMIN';
   const { user, logout } = useAuth0();
-
-  useEffect(() => {
-    getAutomatedCourseSchedulerAPI()
-      .getMeApiUsersMeGet()
-      .then((me) => setIsAdmin(me.role === 'ADMIN'))
-      .catch(() => {});
-  }, []);
 
   return (
     <aside

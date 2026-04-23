@@ -9,6 +9,7 @@ import {
 } from '../api/generated';
 import { axiosInstance } from '../api/axiosInstance';
 import { downloadScheduleCsv } from '../utils/exportCsv';
+import { useUser } from '../context/UserContext';
 
 /* ------------------------------------------------------------------ */
 /*  Schedule card                                                      */
@@ -693,7 +694,8 @@ export default function ScheduleList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { me } = useUser();
+  const isAdmin = me?.role === 'ADMIN';
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -707,9 +709,6 @@ export default function ScheduleList() {
         setError('Failed to load schedules.');
         setLoading(false);
       });
-    api.getMeApiUsersMeGet()
-      .then((me) => setIsAdmin(me.role === 'ADMIN'))
-      .catch(() => {});
   }, []);
 
   function handleCreated(s: ScheduleResponse) {
