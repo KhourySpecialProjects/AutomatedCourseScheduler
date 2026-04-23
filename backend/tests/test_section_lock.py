@@ -127,9 +127,7 @@ def test_previous_lock_releases(client: TestClient, db_session: Session) -> None
     client.post(f"/sections/{section1.section_id}/lock")
     client.post(f"/sections/{section2.section_id}/lock")
 
-    lock = (
-        db_session.query(SectionLock).filter(SectionLock.section_id == section1.section_id).first()
-    )
+    lock = db_session.query(SectionLock).filter(SectionLock.section_id == section1.section_id).first()
     assert lock is None
 
 
@@ -157,9 +155,7 @@ def test_unlock_success(client: TestClient, db_session: Session) -> None:
     client.post(f"/sections/{section.section_id}/lock")
     client.post(f"/sections/{section.section_id}/unlock")
 
-    lock = (
-        db_session.query(SectionLock).filter(SectionLock.section_id == section.section_id).first()
-    )
+    lock = db_session.query(SectionLock).filter(SectionLock.section_id == section.section_id).first()
     assert lock is None
 
 

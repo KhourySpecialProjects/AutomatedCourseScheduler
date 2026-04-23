@@ -71,17 +71,29 @@ async def update_section(
 
     updated = result["updated"]
     warnings = result["warnings"]
+    partner_ids: list[int] = result.get("partner_ids", [])
 
     rich_sections = section_service.get_rich_sections(db, updated.schedule_id)
-    rich_section = next((s for s in rich_sections if s.section_id == section_id), None)
-    if rich_section:
+
+    for sid in [section_id, *partner_ids]:
+        rich = next((s for s in rich_sections if s.section_id == sid), None)
+        if rich:
+            await manager.broadcast(
+                updated.schedule_id,
+                {
+                    "type": "section_updated",
+                    "payload": {"section_id": sid, "data": rich.model_dump(mode="json")},
+                },
+            )
+
+    if warnings:
         await manager.broadcast(
             updated.schedule_id,
             {
-                "type": "section_updated",
+                "type": "section_warnings",
                 "payload": {
                     "section_id": section_id,
-                    "data": rich_section.model_dump(mode="json"),
+                    "warnings": [w.value for w in warnings],
                 },
             },
         )
@@ -107,9 +119,31 @@ async def delete_section(section_id: int, db: Session = Depends(get_db)):
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
 
-    section_service.delete_section(db, section_id)
+    ok, partner_ids_to_broadcast = section_service.delete_section(db, section_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Section not found")
 
     await manager.broadcast(
         section.schedule_id,
         {"type": "section_deleted", "payload": {"section_id": section_id}},
     )
+
+    if partner_ids_to_broadcast:
+        rich_sections = section_service.get_rich_sections(db, section.schedule_id)
+
+        async def _broadcast_section_updated(sid: int) -> None:
+            rich = next((s for s in rich_sections if s.section_id == sid), None)
+            if rich:
+                await manager.broadcast(
+                    section.schedule_id,
+                    {
+                        "type": "section_updated",
+                        "payload": {
+                            "section_id": sid,
+                            "data": rich.model_dump(mode="json"),
+                        },
+                    },
+                )
+
+        for pid in partner_ids_to_broadcast:
+            await _broadcast_section_updated(pid)

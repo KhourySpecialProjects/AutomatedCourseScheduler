@@ -32,19 +32,11 @@ def test_persist_warnings_creates_unmatched_rows(db_session):
     db_session.add(schedule)
     db_session.commit()
 
-    unmatched = [
-        CourseAssignment(
-            section_id=1, course_id=42, is_matched=False, unmatched_reason="No qualified faculty"
-        )
-    ]
+    unmatched = [CourseAssignment(section_id=1, course_id=42, is_matched=False, unmatched_reason="No qualified faculty")]
     _persist_warnings(db_session, schedule.schedule_id, [], unmatched)
     db_session.flush()
 
-    rows = (
-        db_session.query(ScheduleWarning)
-        .filter(ScheduleWarning.schedule_id == schedule.schedule_id)
-        .all()
-    )
+    rows = db_session.query(ScheduleWarning).filter(ScheduleWarning.schedule_id == schedule.schedule_id).all()
     assert len(rows) == 1
     assert rows[0].type == WarningType.INSUFFICIENT_FACULTY_SUPPLY.value
     assert rows[0].course_id == 42
@@ -74,19 +66,11 @@ def test_persist_warnings_skips_dismissed_unmatched(db_session):
     db_session.add(dismissed)
     db_session.commit()
 
-    unmatched = [
-        CourseAssignment(
-            section_id=1, course_id=42, is_matched=False, unmatched_reason="No qualified faculty"
-        )
-    ]
+    unmatched = [CourseAssignment(section_id=1, course_id=42, is_matched=False, unmatched_reason="No qualified faculty")]
     _persist_warnings(db_session, schedule.schedule_id, [], unmatched)
     db_session.flush()
 
-    rows = (
-        db_session.query(ScheduleWarning)
-        .filter(ScheduleWarning.schedule_id == schedule.schedule_id)
-        .all()
-    )
+    rows = db_session.query(ScheduleWarning).filter(ScheduleWarning.schedule_id == schedule.schedule_id).all()
     # Dismissed row survives; no new duplicate added
     assert len(rows) == 1
     assert rows[0].dismissed is True
@@ -116,11 +100,7 @@ def test_persist_warnings_replaces_non_dismissed_on_rerun(db_session):
     _persist_warnings(db_session, schedule.schedule_id, [], [])
     db_session.flush()
 
-    rows = (
-        db_session.query(ScheduleWarning)
-        .filter(ScheduleWarning.schedule_id == schedule.schedule_id)
-        .all()
-    )
+    rows = db_session.query(ScheduleWarning).filter(ScheduleWarning.schedule_id == schedule.schedule_id).all()
     assert rows == []  # stale non-dismissed row was deleted
 
 
@@ -152,9 +132,7 @@ def _seed_full(db):
     )
     db.add(faculty)
     db.flush()
-    tb = TimeBlock(
-        meeting_days="MW", start_time=time(10, 0), end_time=time(11, 0), campus=campus.campus_id
-    )
+    tb = TimeBlock(meeting_days="MW", start_time=time(10, 0), end_time=time(11, 0), campus=campus.campus_id)
     db.add(tb)
     db.flush()
     # Link course to schedule via a Section row (how get_courses discovers courses)

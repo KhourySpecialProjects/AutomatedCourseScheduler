@@ -1,29 +1,7 @@
 import { useMemo } from 'react';
 import type { InstructorInfo, SectionRichResponse } from '../api/generated';
 import type { LockInfo } from '../hooks/useScheduleWebSocket';
-
-// Exported so ScheduleSectionRowView can reuse it for time block sorting.
-export function parseTimeToMinutes(raw: string): number {
-  const s = raw.trim();
-  const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?$/);
-  if (!m) return Number.POSITIVE_INFINITY;
-  let h = Number(m[1]);
-  const mins = Number(m[2]);
-  const ampm = m[4]?.toLowerCase();
-  if (ampm) {
-    if (h === 12) h = 0;
-    if (ampm === 'pm') h += 12;
-  }
-  return h * 60 + mins;
-}
-
-export function expandDays(days: string): string[] {
-  const result: string[] = [];
-  for (const ch of days) {
-    if ('MTWRF'.includes(ch)) result.push(ch);
-  }
-  return result;
-}
+import { expandDays, parseTimeToMinutes } from '../utils/scheduleCalendar';
 
 function dayLabel(letter: string): string {
   return (
@@ -52,7 +30,7 @@ export function LockBadge({ lock }: { lock: LockInfo }) {
 }
 
 const DAYS = ['M', 'T', 'W', 'R', 'F'];
-const CARD_COLORS = { card: 'bg-violet-50 border-violet-200', accent: 'bg-violet-500' };
+const CARD_COLORS = { card: 'bg-burgundy-50 border-burgundy-200', accent: 'bg-burgundy-600' };
 
 interface Props {
   /** Used to derive the set of time-row labels (all available time slots). */
@@ -69,6 +47,7 @@ interface Props {
   ) => void;
   onInstructorMouseLeave?: () => void;
   emptyMessage?: string;
+  getCourseMetaForUi?: (section: SectionRichResponse) => { code: string | null; name: string };
 }
 
 export default function SectionCalendarGrid({
@@ -81,6 +60,7 @@ export default function SectionCalendarGrid({
   onInstructorMouseEnter,
   onInstructorMouseLeave,
   emptyMessage = 'No sections match your filters.',
+  getCourseMetaForUi,
 }: Props) {
   const visible = displaySections ?? sections;
 
@@ -89,6 +69,7 @@ export default function SectionCalendarGrid({
   const calendarTimeRows = useMemo(() => {
     const byRange = new Map<string, { start_time: string; end_time: string }>();
     for (const s of sections) {
+      if (!s.time_block) continue;
       const key = `${s.time_block.start_time}|${s.time_block.end_time}`;
       if (!byRange.has(key))
         byRange.set(key, { start_time: s.time_block.start_time, end_time: s.time_block.end_time });
@@ -105,6 +86,7 @@ export default function SectionCalendarGrid({
   const calendarMap = useMemo(() => {
     const map = new Map<string, Map<string, SectionRichResponse[]>>();
     for (const s of visible) {
+      if (!s.time_block) continue;
       const key = `${s.time_block.start_time}|${s.time_block.end_time}`;
       if (!map.has(key)) map.set(key, new Map());
       const row = map.get(key)!;
@@ -209,7 +191,7 @@ export default function SectionCalendarGrid({
                               title={
                                 isLocked
                                   ? `Locked by ${lock!.display_name}`
-                                  : `${section.course.name} §${section.section_number}`
+                                  : `${(getCourseMetaForUi?.(section).code ?? section.course.name)} Section ${section.section_number}`
                               }
                               className={`relative w-full aspect-square text-left rounded-xl border p-3 transition-colors shadow-sm overflow-hidden ${
                                 isLocked
@@ -227,7 +209,7 @@ export default function SectionCalendarGrid({
                                   title={
                                     isLocked ? `Locked by ${lock!.display_name}` : 'Edit section'
                                   }
-                                  className="absolute bottom-2 right-2 p-1.5 rounded-md text-gray-400 hover:text-violet-700 hover:bg-white/70 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                  className="absolute bottom-2 right-2 p-1.5 rounded-md text-gray-400 hover:text-burgundy-700 hover:bg-white/70 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                 >
                                   <svg
                                     className="w-4 h-4"
@@ -258,13 +240,27 @@ export default function SectionCalendarGrid({
                                         className={`w-1 h-4 rounded-full ${CARD_COLORS.accent}`}
                                       />
                                     )}
-                                    <div className="text-sm font-semibold text-gray-900 truncate">
-                                      {section.course.name}
-                                    </div>
                                   </div>
-                                  <div className="mt-1 text-[11px] text-gray-500">
-                                    <span className="font-medium">§{section.section_number}</span>
-                                  </div>
+                                  {(() => {
+                                    const meta = getCourseMetaForUi?.(section);
+                                    const code = meta?.code;
+                                    const name = meta?.name ?? section.course.name;
+                                    return (
+                                      <div className="mt-0.5 min-w-0">
+                                        <div className="text-base font-extrabold text-gray-900 leading-tight truncate">
+                                          {code ?? name}
+                                        </div>
+                                        {code && (
+                                          <div className="mt-0.5 text-[11px] text-gray-600 leading-snug line-clamp-2">
+                                            {name}
+                                          </div>
+                                        )}
+                                        <div className="mt-1 text-[11px] text-gray-500">
+                                          <span className="font-medium">Section {section.section_number}</span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                                 <div className="mt-auto flex items-end justify-between gap-2">
                                   <div className="text-[11px] text-gray-500">

@@ -27,9 +27,7 @@ async def acquire_lock(
     """
     display_name = f"{current_user.first_name} {current_user.last_name}"
     try:
-        return await section_lock_service.acquire_lock(
-            db, section_id, current_user.user_id, display_name
-        )
+        return await section_lock_service.acquire_lock(db, section_id, current_user.user_id, display_name)
     except SectionLockConflictError as e:
         raise HTTPException(
             status_code=423,

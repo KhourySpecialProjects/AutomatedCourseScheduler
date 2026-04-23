@@ -42,9 +42,7 @@ def delete(db: Session, schedule_id: int) -> None:
         raise HTTPException(status_code=404, detail="Schedule not found")
 
 
-def add_course_list(
-    db: Session, schedule: Schedule, course_list: list[CourseResponse]
-) -> ScheduleResponse:
+def add_course_list(db: Session, schedule: Schedule, course_list: list[CourseResponse]) -> ScheduleResponse:
     return ScheduleResponse(
         schedule_id=schedule.schedule_id,
         name=schedule.name,

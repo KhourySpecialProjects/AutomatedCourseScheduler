@@ -23,13 +23,11 @@ class TimeBlock(Base):
     start_time: Mapped[time] = mapped_column(Time, nullable=False)
     end_time: Mapped[time] = mapped_column(Time, nullable=False)
     campus: Mapped[int] = mapped_column(ForeignKey("campus.campus_id"), nullable=False)
-    block_group: Mapped[str | None] = mapped_column(String(1))
+    block_group: Mapped[str | None] = mapped_column(String(8))
 
     # Relationships
     sections: Mapped[list["Section"]] = relationship("Section", back_populates="time_block")
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

@@ -35,9 +35,7 @@ def _faculty_to_response(faculty: Faculty) -> FacultyResponse:
     )
 
 
-def get_faculty(
-    db: Session, campus: int | None = None, active_only: bool = False
-) -> list[FacultyResponse]:
+def get_faculty(db: Session, campus: int | None = None, active_only: bool = False) -> list[FacultyResponse]:
     faculty_list = faculty_repo.get_all(db, campus=campus, active_only=active_only)
     return [_faculty_to_response(f) for f in faculty_list]
 
@@ -144,9 +142,7 @@ def format_time_block(meeting_days, start_time, end_time):
 
 def time_block_to_string(db: Session, time_block_id: int) -> str:
     time_block = time_block_repo.get_by_id(db, time_block_id)
-    meeting_time = format_time_block(
-        time_block.meeting_days, time_block.start_time, time_block.end_time
-    )
+    meeting_time = format_time_block(time_block.meeting_days, time_block.start_time, time_block.end_time)
     return meeting_time
 
 
@@ -195,9 +191,7 @@ def normalize_buckets(facultyProfile: FacultyProfileResponse) -> FacultyProfileR
     return facultyProfile
 
 
-def get_average_max_load(
-    db: Session, previous_assignments: list[FacultyAssignment], nuid: int
-) -> int:
+def get_average_max_load(db: Session, previous_assignments: list[FacultyAssignment], nuid: int) -> int:
     semester_counts = {}
     for assignment in previous_assignments:
         section = section_repo.get_by_id(db, assignment.section_id)
@@ -217,9 +211,7 @@ def get_average_max_load(
     return math.floor((total_sections / total_sems) + 0.5)
 
 
-def process_assignments(
-    db: Session, previous_assignments: list[FacultyAssignment], faculty: Faculty
-) -> FacultyProfileResponse:
+def process_assignments(db: Session, previous_assignments: list[FacultyAssignment], faculty: Faculty) -> FacultyProfileResponse:
     course_preferences = []
     meeting_preferences = []
     unique_courses = []
@@ -239,11 +231,7 @@ def process_assignments(
         meeting_time = time_block_to_string(db, section.time_block_id)
         if meeting_time not in unique_meeting_times:
             unique_meeting_times.append(meeting_time)
-            meeting_preferences.append(
-                MeetingPreferenceInfo(
-                    time_block_id=section.time_block_id, preference=PreferenceLevel.EAGER
-                )
-            )
+            meeting_preferences.append(MeetingPreferenceInfo(time_block_id=section.time_block_id, preference=PreferenceLevel.EAGER))
     return FacultyProfileResponse(
         nuid=faculty.nuid,
         first_name=faculty.first_name,
@@ -259,9 +247,7 @@ def process_assignments(
 
 def build_profile(db: Session, nuid: int) -> FacultyProfileResponse | None:
     existing_profile = get_faculty_profile(db, nuid)
-    if existing_profile and (
-        existing_profile.course_preferences or existing_profile.meeting_preferences
-    ):
+    if existing_profile and (existing_profile.course_preferences or existing_profile.meeting_preferences):
         return normalize_buckets(existing_profile)
     else:
         faculty = faculty_repo.get_by_nuid(db, nuid)

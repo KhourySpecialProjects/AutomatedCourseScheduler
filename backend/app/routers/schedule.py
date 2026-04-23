@@ -1,9 +1,16 @@
 """Schedule router."""
 
+import csv
+from collections import defaultdict
+from io import StringIO
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.models.campus import Campus
+from app.models.time_block import TimeBlock
 from app.schemas.schedule import (
     ScheduleCreate,
     ScheduleResponse,
@@ -41,9 +48,7 @@ def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
         course_list = []
     else:
         try:
-            course_list = course_service.generate_course_list(
-                db, previous_year, schedule.new_courses, schedule.campus
-            )
+            course_list = course_service.generate_course_list(db, previous_year, schedule.new_courses, schedule.campus)
         except ValueError as e:
             course_list = []
             raise HTTPException(status_code=404, detail=e.args[0]) from e
@@ -108,15 +113,109 @@ async def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{schedule_id}/export/csv")
 def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
-    """Export a finalized schedule in CourseLeaf-compatible CSV format."""
-    # TODO: Implement CSV export
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    """Export a finalized schedule as a downloadable CSV."""
+    schedule = schedule_service.get_by_id(db, schedule_id)
+    if schedule.draft:
+        raise HTTPException(status_code=400, detail="Schedule must be finalized before exporting")
+
+    campus_obj = db.query(Campus).filter(Campus.campus_id == schedule.campus).first()
+    campus_name = campus_obj.name if campus_obj else str(schedule.campus)
+
+    all_tbs = db.query(TimeBlock).filter(TimeBlock.campus == schedule.campus).all()
+    tb_by_id = {tb.time_block_id: tb for tb in all_tbs}
+    tb_by_group: dict[str, list] = defaultdict(list)
+    for tb in all_tbs:
+        if tb.block_group:
+            tb_by_group[tb.block_group].append(tb)
+    for blocks in tb_by_group.values():
+        blocks.sort(key=lambda tb: tb.start_time)
+
+    def _fmt(t) -> str:
+        return t.strftime("%I:%M %p").lstrip("0")
+
+    def _safe(v: object) -> str:
+        s = "" if v is None else str(v)
+        return "'" + s if s and s[0] in ("=", "+", "-", "@", "\t", "\r") else s
+
+    sections = section_service.get_rich_sections(db, schedule_id)
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "course_name",
+            "section_number",
+            "instructor_name",
+            "instructor_nuid",
+            "time_block",
+            "room",
+            "capacity",
+            "campus",
+            "cross_listed_with",
+            "course_pref_level",
+            "time_pref_level",
+        ]
+    )
+
+    for section in sections:
+        raw_tb = tb_by_id.get(section.time_block.time_block_id)
+        if raw_tb and raw_tb.block_group:
+            siblings = tb_by_group.get(raw_tb.block_group, [raw_tb])
+            time_block = " / ".join(f"{p.meeting_days} {_fmt(p.start_time)}-{_fmt(p.end_time)}" for p in siblings)
+        elif raw_tb:
+            time_block = f"{raw_tb.meeting_days} {_fmt(raw_tb.start_time)}-{_fmt(raw_tb.end_time)}"
+        else:
+            time_block = f"{section.time_block.days} {section.time_block.start_time}-{section.time_block.end_time}"
+
+        instructors = sorted(section.instructors, key=lambda i: (i.last_name, i.nuid))
+        if instructors:
+            instructor_name = "; ".join(f"{i.first_name} {i.last_name}" for i in instructors)
+            instructor_nuid = "; ".join(str(i.nuid) for i in instructors)
+            course_pref = "; ".join(
+                next(
+                    (cp.preference for cp in i.course_preferences if cp.course_id == section.course.course_id),
+                    "",
+                )
+                for i in instructors
+            )
+            time_pref = "; ".join(
+                next(
+                    (mp.preference for mp in i.meeting_preferences if mp.time_block_id == section.time_block.time_block_id),
+                    "",
+                )
+                for i in instructors
+            )
+        else:
+            instructor_name = ""
+            instructor_nuid = ""
+            course_pref = ""
+            time_pref = ""
+
+        writer.writerow(
+            [
+                _safe(section.course.name),
+                section.section_number,
+                _safe(instructor_name),
+                instructor_nuid,
+                time_block,
+                _safe(section.room or ""),
+                section.capacity,
+                campus_name,
+                section.crosslisted_section_id or "",
+                _safe(course_pref),
+                _safe(time_pref),
+            ]
+        )
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="schedule_{schedule_id}.csv"'},
+    )
 
 
 @router.get("/{schedule_id}/locks", response_model=list[ScheduleActiveLockResponse])
-def get_schedule_locks(
-    schedule_id: int, db: Session = Depends(get_db)
-) -> list[ScheduleActiveLockResponse]:
+def get_schedule_locks(schedule_id: int, db: Session = Depends(get_db)) -> list[ScheduleActiveLockResponse]:
     """
     Get all active locks for a schedule.
 

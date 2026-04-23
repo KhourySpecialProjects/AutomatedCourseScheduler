@@ -12,9 +12,7 @@ router = APIRouter(prefix="/semesters", tags=["semesters"])
 
 
 @router.post("", response_model=SemesterCreate, status_code=201)
-def create_semester(
-    semester: SemesterCreate, db: Session = Depends(get_db), _=Depends(require_admin)
-):
+def create_semester(semester: SemesterCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
     """Create a new semester."""
     return semester_service.create(db, semester)
 

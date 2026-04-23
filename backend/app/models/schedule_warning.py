@@ -13,9 +13,7 @@ class ScheduleWarning(Base):
     __tablename__ = "schedule_warning"
 
     warning_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    schedule_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("schedule.schedule_id"), nullable=False
-    )
+    schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("schedule.schedule_id"), nullable=False)
     type: Mapped[str] = mapped_column(String(50))
     severity: Mapped[str] = mapped_column(String(20))
     message: Mapped[str] = mapped_column(String(500))

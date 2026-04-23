@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.comment import Comment
@@ -10,13 +10,20 @@ def get_all(db: Session) -> list[Comment]:
     return db.query(Comment).all()
 
 
-def get_by_section(db: Session, section_id: int) -> list[Comment]:
-    stmt = (
-        select(Comment)
-        .join(Section.comments)
-        .where(Comment.section_id == section_id, Comment.active.is_(True))
-        .options(joinedload(Comment.user))
+def count_active_by_schedule(db: Session, schedule_id: int) -> dict[int, int]:
+    """Return mapping section_id -> number of active comments for all sections in the schedule."""
+    rows = (
+        db.query(Comment.section_id, func.count(Comment.comment_id))
+        .join(Section, Comment.section_id == Section.section_id)
+        .filter(Section.schedule_id == schedule_id, Comment.active.is_(True))
+        .group_by(Comment.section_id)
+        .all()
     )
+    return {int(sid): int(n) for sid, n in rows}
+
+
+def get_by_section(db: Session, section_id: int) -> list[Comment]:
+    stmt = select(Comment).join(Section.comments).where(Comment.section_id == section_id, Comment.active.is_(True)).options(joinedload(Comment.user))
     results = db.scalars(stmt).all()
     return results
 
@@ -63,20 +70,19 @@ def post_reply(db: Session, replyIn: CommentSchema, parent_id: int) -> CommentRe
     return reply
 
 
-def delete_comment(db: Session, comment: Comment) -> list[CommentResponse]:
+def delete_comment(db: Session, comment: Comment) -> list[Comment]:
+    """Soft-delete a comment.
+    deleting a parent also soft-deletes its direct replies.
+    """
     comment.active = False
-    replies = comment.replies
-
-    for reply in replies:
+    deleted: list[Comment] = [comment]
+    for reply in list(comment.replies):
         reply.active = False
-
-    all = [comment] + replies
+        deleted.append(reply)
     db.commit()
-
-    for comment in all:
-        db.refresh(comment)
-
-    return all
+    for c in deleted:
+        db.refresh(c)
+    return deleted
 
 
 def resolve_comment(db: Session, comment: CommentSchema) -> list[CommentResponse]:

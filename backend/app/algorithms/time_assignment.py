@@ -137,9 +137,7 @@ def assign_time_blocks(
     )
 
     # precompute weekday sets per block (avoids re-parsing every single time)
-    block_day_cache: dict[int, frozenset[str]] = {
-        _tb_id(b): _days_set(_meeting_days(b)) for b in time_blocks
-    }
+    block_day_cache: dict[int, frozenset[str]] = {_tb_id(b): _days_set(_meeting_days(b)) for b in time_blocks}
 
     # assigning -> uses greedy
     for _, assign in indexed:
@@ -190,10 +188,7 @@ def assign_time_blocks(
                     Type=WarningType.NO_VALID_TIME_BLOCK,
                     SeverityRank=Severity.MEDIUM,
                     # returned message
-                    Message=(
-                        f"No time block available for section {assign.section_id} "
-                        f"(course {assign.course_id}, faculty {nuid}, dept {dept}). "
-                    ),
+                    Message=(f"No time block available for section {assign.section_id} (course {assign.course_id}, faculty {nuid}, dept {dept}). "),
                     FacultyID=nuid,
                     CourseID=assign.course_id,
                     BlockID=None,
@@ -214,11 +209,7 @@ def assign_time_blocks(
         # Pick the best eligible block
         # Sort ascending, the first element is the chosen one
         faculty_day_frozen = frozenset(faculty_days)
-        eligible.sort(
-            key=lambda row: _sort_key_for_block(
-                row[0], row[1], faculty_day_frozen, block_day_cache[row[0]]
-            )
-        )
+        eligible.sort(key=lambda row: _sort_key_for_block(row[0], row[1], faculty_day_frozen, block_day_cache[row[0]]))
         best_tb, pref_rank = eligible[0]
         pref_stored = None if pref_rank == 99 else pref_rank
 

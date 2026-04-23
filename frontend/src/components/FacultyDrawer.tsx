@@ -72,7 +72,7 @@ function PreferenceBadge({ preference }: { preference: string }) {
 }
 
 const INPUT_CLS =
-  'w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+  'w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500';
 
 export default function FacultyDrawer({
   mode,
@@ -118,7 +118,8 @@ export default function FacultyDrawer({
   const timeBlockMap = useMemo(() => {
     const map = new Map<number, TimeBlockInfo>();
     for (const s of sections) {
-      if (!map.has(s.time_block.time_block_id)) map.set(s.time_block.time_block_id, s.time_block);
+      if (!s.time_block || map.has(s.time_block.time_block_id)) continue;
+      map.set(s.time_block.time_block_id, s.time_block);
     }
     return map;
   }, [sections]);
@@ -361,7 +362,7 @@ export default function FacultyDrawer({
                 type="checkbox"
                 checked={active}
                 onChange={(e) => setActive(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-gray-300 text-burgundy-600 focus:ring-burgundy-500"
               />
               <label
                 htmlFor="faculty-active"
@@ -387,7 +388,7 @@ export default function FacultyDrawer({
                       onClick={() => setSectionView(v)}
                       className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
                         sectionView === v
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-burgundy-600 text-white'
                           : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                       }`}
                     >
@@ -416,10 +417,10 @@ export default function FacultyDrawer({
                               {s.course.name}
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-500 whitespace-nowrap">
-                              §{s.section_number}
+                              Section {s.section_number}
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-500 whitespace-nowrap">
-                              {s.time_block.days}&nbsp;{s.time_block.start_time}–{s.time_block.end_time}
+                              {s.time_block ? `${s.time_block.days}\u00a0${s.time_block.start_time}–${s.time_block.end_time}` : '—'}
                             </td>
                           </tr>
                         ))}
@@ -509,7 +510,7 @@ export default function FacultyDrawer({
 
               {hasAccount || inviteResult ? (
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-burgundy-50 text-burgundy-700 border border-burgundy-100">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
@@ -620,7 +621,7 @@ export default function FacultyDrawer({
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
                 >
                   {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add faculty'}
                 </button>

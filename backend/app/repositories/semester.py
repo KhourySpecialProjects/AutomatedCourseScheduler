@@ -54,19 +54,13 @@ def get_schedules(db: Session, semester: Semester, campus_id: int | None) -> lis
         .all()
     )
     if not schedules:
-        raise ValueError(
-            f"No schedules found for semester {semester.semester_id} and campus {campus_id}"
-        )
+        raise ValueError(f"No schedules found for semester {semester.semester_id} and campus {campus_id}")
 
     return schedules
 
 
 def get_last_year(db: Session, semester_id: int) -> int | None:
     semester = get_by_id(db, semester_id)
-    last_year = (
-        db.query(Semester)
-        .filter(Semester.season == semester.season, Semester.year == semester.year - 1)
-        .first()
-    )
+    last_year = db.query(Semester).filter(Semester.season == semester.season, Semester.year == semester.year - 1).first()
 
     return last_year.semester_id if last_year is not None else None

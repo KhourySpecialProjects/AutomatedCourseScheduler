@@ -156,9 +156,7 @@ def test_export_mixed_faculty(mock_url, client, db_session):
     uninvited = _make_faculty(db_session, 2001, "Uninvited", "One", "uninvited@example.com")
     pending = _make_faculty(db_session, 2002, "Pending", "Two", "pending@example.com")
     linked = _make_faculty(db_session, 2003, "Linked", "Three", "linked@example.com")
-    inactive = _make_faculty(
-        db_session, 2004, "Inactive", "Four", "inactive@example.com", active=False
-    )
+    inactive = _make_faculty(db_session, 2004, "Inactive", "Four", "inactive@example.com", active=False)
 
     _make_user(db_session, pending, auth0_sub=None)
     _make_user(db_session, linked, auth0_sub="auth0|xyz")
@@ -170,3 +168,72 @@ def test_export_mixed_faculty(mock_url, client, db_session):
     assert emails == {"uninvited@example.com", "pending@example.com"}
 
     _ = uninvited, inactive  # referenced to avoid lint warnings
+
+
+# ---------------------------------------------------------------------------
+# POST /api/invites/admin
+# ---------------------------------------------------------------------------
+
+
+@patch(
+    "app.services.user.auth0_service.build_signup_url",
+    side_effect=lambda email: f"{FAKE_URL}{email}",
+)
+def test_invite_admin_creates_pending_admin_and_returns_url(mock_url, client, db_session):
+    response = client.post(
+        "/api/invites/admin",
+        json={
+            "nuid": 88001,
+            "first_name": "Pat",
+            "last_name": "Admin",
+            "email": "pat.admin@example.com",
+        },
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["user"]["nuid"] == 88001
+    assert data["user"]["role"] == "ADMIN"
+    assert data["user"]["first_name"] == "Pat"
+    assert data["signup_url"] == f"{FAKE_URL}pat.admin@example.com"
+
+
+@patch(
+    "app.services.user.auth0_service.build_signup_url",
+    side_effect=lambda email: f"{FAKE_URL}{email}",
+)
+def test_invite_admin_rejects_duplicate_nuid(mock_url, client, db_session):
+    _make_user(db_session, _make_faculty(db_session, 88002, "A", "B", "a@example.com"))
+    db_session.commit()
+
+    response = client.post(
+        "/api/invites/admin",
+        json={
+            "nuid": 88002,
+            "first_name": "Other",
+            "last_name": "Name",
+            "email": "other@example.com",
+        },
+    )
+    assert response.status_code == 400
+    assert "88002" in response.json()["detail"]
+
+
+@patch(
+    "app.services.user.auth0_service.build_signup_url",
+    side_effect=lambda email: f"{FAKE_URL}{email}",
+)
+def test_invite_admin_rejects_duplicate_email(mock_url, client, db_session):
+    _make_user(db_session, _make_faculty(db_session, 88003, "A", "B", "taken@example.com"))
+    db_session.commit()
+
+    response = client.post(
+        "/api/invites/admin",
+        json={
+            "nuid": 999999,
+            "first_name": "Other",
+            "last_name": "Name",
+            "email": "taken@example.com",
+        },
+    )
+    assert response.status_code == 400
+    assert "taken@example.com" in response.json()["detail"]

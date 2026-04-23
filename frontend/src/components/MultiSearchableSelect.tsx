@@ -111,7 +111,7 @@ export default function MultiSearchableSelect<T>({
           disabled
             ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
             : 'bg-white border-gray-200 hover:border-gray-300 cursor-pointer'
-        } ${open ? 'ring-2 ring-indigo-500 border-transparent' : ''}`}
+        } ${open ? 'ring-2 ring-burgundy-500 border-transparent' : ''}`}
       >
         {selectedOptions.length === 0 ? (
           <span className="text-sm text-gray-400 py-0.5">{placeholder}</span>
@@ -119,14 +119,14 @@ export default function MultiSearchableSelect<T>({
           selectedOptions.map((opt, i) => (
             <span
               key={i}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-burgundy-50 text-burgundy-700 border border-burgundy-200"
             >
               {opt.label}
               {!disabled && (
                 <button
                   type="button"
                   onClick={(e) => remove(opt.value, e)}
-                  className="text-indigo-400 hover:text-indigo-700 transition-colors leading-none"
+                  className="text-burgundy-400 hover:text-burgundy-700 transition-colors leading-none"
                   aria-label={`Remove ${opt.label}`}
                 >
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -163,7 +163,7 @@ export default function MultiSearchableSelect<T>({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search…"
-                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
               />
             </div>
           </div>
@@ -180,13 +180,13 @@ export default function MultiSearchableSelect<T>({
                     key={i}
                     type="button"
                     onClick={() => toggle(opt)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-indigo-50 transition-colors ${
-                      checked ? 'bg-indigo-50/60' : ''
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-burgundy-50 transition-colors ${
+                      checked ? 'bg-burgundy-50/60' : ''
                     }`}
                   >
                     <span className={`flex items-center justify-center w-4 h-4 rounded border shrink-0 transition-colors ${
                       checked
-                        ? 'bg-indigo-600 border-indigo-600'
+                        ? 'bg-burgundy-600 border-burgundy-600'
                         : 'border-gray-300'
                     }`}>
                       {checked && (
@@ -196,7 +196,7 @@ export default function MultiSearchableSelect<T>({
                       )}
                     </span>
                     <span className="min-w-0">
-                      <span className={`block text-sm truncate ${checked ? 'font-medium text-indigo-700' : 'text-gray-900'}`}>
+                      <span className={`block text-sm truncate ${checked ? 'font-medium text-burgundy-700' : 'text-gray-900'}`}>
                         {opt.label}
                       </span>
                       {opt.sublabel && (

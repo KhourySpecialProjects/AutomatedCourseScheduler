@@ -6,6 +6,37 @@
  * OpenAPI spec version: 1.0.0
  */
 import { axiosInstance } from './axiosInstance';
+/**
+ * Pending admin user + Auth0 signup URL (no faculty row; same linking as bootstrap_admin).
+ */
+export interface AdminInviteRequest {
+  /** */
+  nuid: number;
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  first_name: string;
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  last_name: string;
+  /**
+   * @minLength 3
+   * @maxLength 100
+   */
+  email: string;
+}
+
+export interface AlgorithmParameters {
+  /**
+   * Max department percentage per time block
+   * @maximum 1
+   */
+  MaxTimeBlockCapacity?: number;
+}
+
 export interface BodyUploadCoursesUploadCoursesPost {
   file: string;
 }
@@ -206,6 +237,10 @@ export interface FacultyUpdate {
   max_load?: FacultyUpdateMaxLoad;
 }
 
+export interface GenerateScheduleRequest {
+  parameters?: AlgorithmParameters;
+}
+
 export interface HTTPValidationError {
   detail?: ValidationError[];
 }
@@ -237,9 +272,20 @@ export interface InviteResponse {
   signup_url: string;
 }
 
+export interface AdminInviteRequest {
+  nuid: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 export interface MeetingPreferenceInfo {
   time_block_id: number;
   preference: string;
+}
+
+export interface RegenerateScheduleRequest {
+  parameters?: AlgorithmParameters;
 }
 
 /**
@@ -259,6 +305,10 @@ export interface ScheduleCreate {
   new_courses?: number[];
 }
 
+export type ScheduleResponseStatus = string | null;
+
+export type ScheduleResponseErrorMessage = string | null;
+
 export interface ScheduleResponse {
   schedule_id: number;
   name: string;
@@ -266,26 +316,29 @@ export interface ScheduleResponse {
   draft: boolean;
   campus: number;
   active: boolean;
+  status?: ScheduleResponseStatus;
+  error_message?: ScheduleResponseErrorMessage;
   course_list?: CourseResponse[];
 }
 
 export type ScheduleUpdateName = string | null;
 
-export type ScheduleUpdateActive = boolean | null;
+export type ScheduleUpdateDraft = boolean | null;
 
 export interface ScheduleUpdate {
   name?: ScheduleUpdateName;
-  active?: ScheduleUpdateActive;
+  draft?: ScheduleUpdateDraft;
 }
+
+export type SectionCreateCapacity = number | null;
 
 export type SectionCreateFacultyNuids = number[] | null;
 
 export interface SectionCreate {
   schedule_id: number;
-  time_block_id: number;
   course_id: number;
-  capacity: number;
-  section_number: number;
+  time_block_id: number;
+  capacity?: SectionCreateCapacity;
   faculty_nuids?: SectionCreateFacultyNuids;
 }
 
@@ -317,12 +370,16 @@ export interface SectionResponse {
 
 export type SectionRichResponseRoom = string | null;
 
+export type SectionRichResponseCrosslistedSectionId = number | null;
+
 export interface SectionRichResponse {
   section_id: number;
   section_number: number;
   capacity: number;
   room?: SectionRichResponseRoom;
   schedule_id: number;
+  comment_count?: number;
+  crosslisted_section_id?: SectionRichResponseCrosslistedSectionId;
   course: CourseInfo;
   time_block: TimeBlockInfo;
   instructors: InstructorInfo[];
@@ -374,6 +431,49 @@ export interface SemesterUpdate {
   active?: SemesterUpdateActive;
 }
 
+export type Severity = typeof Severity[keyof typeof Severity];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const Severity = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+/**
+ * 8-character hex string linking two rows of a split block pair
+ */
+export type TimeBlockCreateBlockGroup = string | null;
+
+/**
+ * Payload for creating a new time block.
+
+`meeting_days` should be a compact string of uppercase day letters,
+e.g. "MWF" for Monday/Wednesday/Friday or "TR" for Tuesday/Thursday.
+
+`start_time` and `end_time` must be in "HH:MM" 24-hour format.
+
+`block_group` is optional.  Set it to the same 8-character hex string on
+two sibling rows to mark them as a split block (e.g. "T 9:50–11:30" and
+"R 1:30–2:50" both with the same block_group).  Split blocks are excluded
+from auto-assignment and must be assigned manually.
+ */
+export interface TimeBlockCreate {
+  /**
+   * Day letters, e.g. 'MWF' or 'TR'
+   * @minLength 1
+   */
+  meeting_days: string;
+  /** Start time in HH:MM format */
+  start_time: string;
+  /** End time in HH:MM format */
+  end_time: string;
+  campus_id: number;
+  /** 8-character hex string linking two rows of a split block pair */
+  block_group?: TimeBlockCreateBlockGroup;
+}
+
 export interface TimeBlockInfo {
   time_block_id: number;
   days: string;
@@ -381,19 +481,40 @@ export interface TimeBlockInfo {
   end_time: string;
 }
 
-export type TimeBlockResponseBlockID = number | null;
-
-export type TimeBlockResponseCampusID = number | null;
-
-export type TimeBlockResponseCount = number | null;
+export type TimeBlockResponseBlockGroup = string | null;
 
 /**
- * CampusTimeBlock.
+ * Full representation of a time block returned by the API.
  */
 export interface TimeBlockResponse {
-  BlockID?: TimeBlockResponseBlockID;
-  CampusID?: TimeBlockResponseCampusID;
-  Count?: TimeBlockResponseCount;
+  time_block_id: number;
+  meeting_days: string;
+  start_time: string;
+  end_time: string;
+  campus_id: number;
+  block_group?: TimeBlockResponseBlockGroup;
+}
+
+export type TimeBlockUpdateMeetingDays = string | null;
+
+export type TimeBlockUpdateStartTime = string | null;
+
+export type TimeBlockUpdateEndTime = string | null;
+
+export type TimeBlockUpdateCampusId = number | null;
+
+export type TimeBlockUpdateBlockGroup = string | null;
+
+/**
+ * Partial update payload for a time block.  All fields are optional —
+only the fields included in the request body will be updated.
+ */
+export interface TimeBlockUpdate {
+  meeting_days?: TimeBlockUpdateMeetingDays;
+  start_time?: TimeBlockUpdateStartTime;
+  end_time?: TimeBlockUpdateEndTime;
+  campus_id?: TimeBlockUpdateCampusId;
+  block_group?: TimeBlockUpdateBlockGroup;
 }
 
 export type UploadResponseErrors = string[] | null;
@@ -429,6 +550,97 @@ export interface ValidationError {
   input?: unknown;
   ctx?: ValidationErrorCtx;
 }
+
+/**
+ * Type of warning
+ */
+export type WarningTypeProperty = WarningType | null;
+
+/**
+ * Related faculty member
+ */
+export type WarningFacultyID = number | null;
+
+/**
+ * Related course
+ */
+export type WarningCourseID = number | null;
+
+/**
+ * Related time block
+ */
+export type WarningBlockID = number | null;
+
+export interface Warning {
+  /** Type of warning */
+  Type?: WarningTypeProperty;
+  /** Severity of this warning */
+  SeverityRank: Severity;
+  /** Warning detail for the user */
+  Message: string;
+  /** Related faculty member */
+  FacultyID?: WarningFacultyID;
+  /** Related course */
+  CourseID?: WarningCourseID;
+  /** Related time block */
+  BlockID?: WarningBlockID;
+}
+
+/**
+ * Type of warning
+ */
+export type WarningResponseType = WarningType | null;
+
+/**
+ * Related faculty member
+ */
+export type WarningResponseFacultyID = number | null;
+
+/**
+ * Related course
+ */
+export type WarningResponseCourseID = number | null;
+
+/**
+ * Related time block
+ */
+export type WarningResponseBlockID = number | null;
+
+/**
+ * Warning with persistence fields — returned by the API.
+ */
+export interface WarningResponse {
+  /** Type of warning */
+  Type?: WarningResponseType;
+  /** Severity of this warning */
+  SeverityRank: Severity;
+  /** Warning detail for the user */
+  Message: string;
+  /** Related faculty member */
+  FacultyID?: WarningResponseFacultyID;
+  /** Related course */
+  CourseID?: WarningResponseCourseID;
+  /** Related time block */
+  BlockID?: WarningResponseBlockID;
+  /** Unique warning ID */
+  warning_id: number;
+  /** Whether this warning was dismissed */
+  dismissed?: boolean;
+}
+
+export type WarningType = typeof WarningType[keyof typeof WarningType];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const WarningType = {
+  Time_block_surpasses_threshold: 'Time block surpasses threshold',
+  'No_valid_time_block_for_section-faculty_pair': 'No valid time block for section-faculty pair',
+  Faculty_assigned_unpreferenced_course: 'Faculty assigned unpreferenced course',
+  Faculty_assigned_unpreferenced_time: 'Faculty assigned unpreferenced time',
+  Conflict_group_courses_overlap: 'Conflict group courses overlap',
+  Faculty_overloaded_with_assignments: 'Faculty overloaded with assignments',
+  Insufficient_faculty_supply_for_section: 'Insufficient faculty supply for section',
+} as const;
 
 export type GetSchedulesSchedulesGetParams = {
 campus_id?: number | null;
@@ -469,6 +681,12 @@ campus_id?: number | null;
 
 export type GetAllCampusesCampusesGetParams = {
 name?: string | null;
+};
+
+export type GetScheduleWarningsSchedulesScheduleIdWarningsGetParams = {
+type?: string | null;
+severity?: string | null;
+include_dismissed?: boolean;
 };
 
 export const getAutomatedCourseSchedulerAPI = () => {
@@ -616,7 +834,7 @@ const getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet = (
     }
   
 /**
- * Export a finalized schedule in CourseLeaf-compatible CSV format.
+ * Export a finalized schedule as a downloadable CSV.
  * @summary Export Schedule Csv
  */
 const exportScheduleCsvSchedulesScheduleIdExportCsvGet = (
@@ -891,6 +1109,59 @@ const getTimeBlocksTimeBlocksGet = (
     }
   
 /**
+ * Create a new time block.
+
+`meeting_days` should be a compact uppercase day string (e.g. "MWF", "TR").
+`start_time` and `end_time` must be in HH:MM format.
+Set `block_group` to the same 8-character hex string on two rows to mark
+them as a split block pair — split blocks are excluded from auto-assignment.
+Returns 409 if the block_group already has a complete pair on this campus.
+ * @summary Create Time Block
+ */
+const createTimeBlockTimeBlocksPost = (
+    timeBlockCreate: TimeBlockCreate,
+ ) => {
+      return axiosInstance<TimeBlockResponse>(
+      {url: `/time-blocks`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: timeBlockCreate
+    },
+      );
+    }
+  
+/**
+ * Partially update a time block.  Only fields present in the request body are changed.
+ * @summary Update Time Block
+ */
+const updateTimeBlockTimeBlocksTimeBlockIdPatch = (
+    timeBlockId: number,
+    timeBlockUpdate: TimeBlockUpdate,
+ ) => {
+      return axiosInstance<TimeBlockResponse>(
+      {url: `/time-blocks/${timeBlockId}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: timeBlockUpdate
+    },
+      );
+    }
+  
+/**
+ * Delete a time block.
+
+Returns 400 if any sections are currently assigned to this block —
+those sections must be reassigned or removed first.
+ * @summary Delete Time Block
+ */
+const deleteTimeBlockTimeBlocksTimeBlockIdDelete = (
+    timeBlockId: number,
+ ) => {
+      return axiosInstance<void>(
+      {url: `/time-blocks/${timeBlockId}`, method: 'DELETE'
+    },
+      );
+    }
+  
+/**
  * Retrieve all campuses, optionally filtered by name.
  * @summary Get All Campuses
  */
@@ -1059,7 +1330,7 @@ const getCommentsCommentsSectionIdGet = (
 const deleteCommentCommentsCommentIdDelete = (
     commentId: number,
  ) => {
-      return axiosInstance<CommentResponse[]>(
+      return axiosInstance<CommentResponse>(
       {url: `/comments/${commentId}`, method: 'DELETE'
     },
       );
@@ -1111,6 +1382,104 @@ const releaseLockSectionsSectionIdUnlockPost = (
     }
   
 /**
+ * @summary Get Schedule Warnings
+ */
+const getScheduleWarningsSchedulesScheduleIdWarningsGet = (
+    scheduleId: number,
+    params?: GetScheduleWarningsSchedulesScheduleIdWarningsGetParams,
+ ) => {
+      return axiosInstance<WarningResponse[]>(
+      {url: `/schedules/${scheduleId}/warnings`, method: 'GET',
+        params
+    },
+      );
+    }
+  
+/**
+ * @summary Create Warning
+ */
+const createWarningSchedulesScheduleIdWarningsPost = (
+    scheduleId: number,
+    warning: Warning,
+ ) => {
+      return axiosInstance<WarningResponse>(
+      {url: `/schedules/${scheduleId}/warnings`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: warning
+    },
+      );
+    }
+  
+/**
+ * @summary Dismiss Warning
+ */
+const dismissWarningSchedulesScheduleIdWarningsWarningIdDismissPatch = (
+    scheduleId: number,
+    warningId: number,
+ ) => {
+      return axiosInstance<unknown>(
+      {url: `/schedules/${scheduleId}/warnings/${warningId}/dismiss`, method: 'PATCH'
+    },
+      );
+    }
+  
+/**
+ * @summary Restore Warning
+ */
+const restoreWarningSchedulesScheduleIdWarningsWarningIdRestorePatch = (
+    scheduleId: number,
+    warningId: number,
+ ) => {
+      return axiosInstance<unknown>(
+      {url: `/schedules/${scheduleId}/warnings/${warningId}/restore`, method: 'PATCH'
+    },
+      );
+    }
+  
+/**
+ * @summary Delete Warning
+ */
+const deleteWarningSchedulesScheduleIdWarningsWarningIdDelete = (
+    scheduleId: number,
+    warningId: number,
+ ) => {
+      return axiosInstance<void>(
+      {url: `/schedules/${scheduleId}/warnings/${warningId}`, method: 'DELETE'
+    },
+      );
+    }
+  
+/**
+ * @summary Run Algorithm
+ */
+const runAlgorithmSchedulesScheduleIdGeneratePost = (
+    scheduleId: number,
+    generateScheduleRequest: GenerateScheduleRequest,
+ ) => {
+      return axiosInstance<unknown>(
+      {url: `/schedules/${scheduleId}/generate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: generateScheduleRequest
+    },
+      );
+    }
+  
+/**
+ * @summary Regenerate Algorithm
+ */
+const regenerateAlgorithmSchedulesScheduleIdRegeneratePost = (
+    scheduleId: number,
+    regenerateScheduleRequest: RegenerateScheduleRequest,
+ ) => {
+      return axiosInstance<unknown>(
+      {url: `/schedules/${scheduleId}/regenerate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: regenerateScheduleRequest
+    },
+      );
+    }
+  
+/**
  * Invite a faculty member. Requires admin role.
 
 Looks up the faculty record by NUID, creates a User, registers them in
@@ -1124,6 +1493,21 @@ const createInviteApiInvitesPost = (
       {url: `/api/invites`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: inviteRequest
+    },
+      );
+    }
+  
+/**
+ * Create a pending admin from NUID and name/email (no faculty record). Requires admin.
+ * @summary Create Admin Invite
+ */
+const createAdminInviteApiInvitesAdminPost = (
+    adminInviteRequest: AdminInviteRequest,
+ ) => {
+      return axiosInstance<InviteResponse>(
+      {url: `/api/invites/admin`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: adminInviteRequest
     },
       );
     }
@@ -1195,7 +1579,7 @@ const rootGet = (
       );
     }
   
-return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getScheduleLocksSchedulesScheduleIdLocksGet,getAllSemestersSemestersGet,createSemesterSemestersPost,getSemesterSemestersSemesterIdGet,updateSemesterSemestersSemesterIdPut,deleteSemesterSemestersSemesterIdDelete,getCoursesCoursesGet,createCourseCoursesPost,getCourseCoursesCourseIdGet,updateCourseCoursesCourseIdPatch,deleteCourseCoursesCourseIdDelete,getFacultyFacultyGet,createFacultyFacultyPost,getFacultyProfileFacultyNuidGet,updateFacultyFacultyNuidPatch,deleteFacultyFacultyNuidDelete,buildProfilesFacultyBuildProfilesPost,getTimeBlocksTimeBlocksGet,getAllCampusesCampusesGet,createCampusCampusesPost,getCampusCampusesCampusIdGet,updateCampusCampusesCampusIdPut,deleteCampusCampusesCampusIdDelete,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,postCommentCommentsPost,postReplyCommentsParentIdPost,getCommentsCommentsSectionIdGet,deleteCommentCommentsCommentIdDelete,resolveCommentCommentsCommentIdPut,acquireLockSectionsSectionIdLockPost,releaseLockSectionsSectionIdUnlockPost,createInviteApiInvitesPost,exportInvitesApiInvitesExportGet,listUsersApiUsersGet,getMeApiUsersMeGet,getUserApiUsersUserIdGet,rootGet}};
+return {createSectionSectionsPost,updateSectionSectionsSectionIdPatch,deleteSectionSectionsSectionIdDelete,getSchedulesSchedulesGet,createScheduleSchedulesPost,getScheduleSchedulesScheduleIdGet,updateScheduleSchedulesScheduleIdPut,deleteScheduleSchedulesScheduleIdDelete,getScheduleSectionsSchedulesScheduleIdSectionsGet,getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet,exportScheduleCsvSchedulesScheduleIdExportCsvGet,getScheduleLocksSchedulesScheduleIdLocksGet,getAllSemestersSemestersGet,createSemesterSemestersPost,getSemesterSemestersSemesterIdGet,updateSemesterSemestersSemesterIdPut,deleteSemesterSemestersSemesterIdDelete,getCoursesCoursesGet,createCourseCoursesPost,getCourseCoursesCourseIdGet,updateCourseCoursesCourseIdPatch,deleteCourseCoursesCourseIdDelete,getFacultyFacultyGet,createFacultyFacultyPost,getFacultyProfileFacultyNuidGet,updateFacultyFacultyNuidPatch,deleteFacultyFacultyNuidDelete,buildProfilesFacultyBuildProfilesPost,getTimeBlocksTimeBlocksGet,createTimeBlockTimeBlocksPost,updateTimeBlockTimeBlocksTimeBlockIdPatch,deleteTimeBlockTimeBlocksTimeBlockIdDelete,getAllCampusesCampusesGet,createCampusCampusesPost,getCampusCampusesCampusIdGet,updateCampusCampusesCampusIdPut,deleteCampusCampusesCampusIdDelete,uploadCoursesUploadCoursesPost,uploadFacultyPreferencesUploadFacultyPreferencesPost,uploadTimePreferencesUploadTimePreferencesPost,postCommentCommentsPost,postReplyCommentsParentIdPost,getCommentsCommentsSectionIdGet,deleteCommentCommentsCommentIdDelete,resolveCommentCommentsCommentIdPut,acquireLockSectionsSectionIdLockPost,releaseLockSectionsSectionIdUnlockPost,getScheduleWarningsSchedulesScheduleIdWarningsGet,createWarningSchedulesScheduleIdWarningsPost,dismissWarningSchedulesScheduleIdWarningsWarningIdDismissPatch,restoreWarningSchedulesScheduleIdWarningsWarningIdRestorePatch,deleteWarningSchedulesScheduleIdWarningsWarningIdDelete,runAlgorithmSchedulesScheduleIdGeneratePost,regenerateAlgorithmSchedulesScheduleIdRegeneratePost,createInviteApiInvitesPost,createAdminInviteApiInvitesAdminPost,exportInvitesApiInvitesExportGet,listUsersApiUsersGet,getMeApiUsersMeGet,getUserApiUsersUserIdGet,rootGet}};
 export type CreateSectionSectionsPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createSectionSectionsPost']>>>
 export type UpdateSectionSectionsSectionIdPatchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateSectionSectionsSectionIdPatch']>>>
 export type DeleteSectionSectionsSectionIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteSectionSectionsSectionIdDelete']>>>
@@ -1225,6 +1609,9 @@ export type UpdateFacultyFacultyNuidPatchResult = NonNullable<Awaited<ReturnType
 export type DeleteFacultyFacultyNuidDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteFacultyFacultyNuidDelete']>>>
 export type BuildProfilesFacultyBuildProfilesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['buildProfilesFacultyBuildProfilesPost']>>>
 export type GetTimeBlocksTimeBlocksGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getTimeBlocksTimeBlocksGet']>>>
+export type CreateTimeBlockTimeBlocksPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createTimeBlockTimeBlocksPost']>>>
+export type UpdateTimeBlockTimeBlocksTimeBlockIdPatchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['updateTimeBlockTimeBlocksTimeBlockIdPatch']>>>
+export type DeleteTimeBlockTimeBlocksTimeBlockIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteTimeBlockTimeBlocksTimeBlockIdDelete']>>>
 export type GetAllCampusesCampusesGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getAllCampusesCampusesGet']>>>
 export type CreateCampusCampusesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createCampusCampusesPost']>>>
 export type GetCampusCampusesCampusIdGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getCampusCampusesCampusIdGet']>>>
@@ -1240,7 +1627,15 @@ export type DeleteCommentCommentsCommentIdDeleteResult = NonNullable<Awaited<Ret
 export type ResolveCommentCommentsCommentIdPutResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['resolveCommentCommentsCommentIdPut']>>>
 export type AcquireLockSectionsSectionIdLockPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['acquireLockSectionsSectionIdLockPost']>>>
 export type ReleaseLockSectionsSectionIdUnlockPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['releaseLockSectionsSectionIdUnlockPost']>>>
+export type GetScheduleWarningsSchedulesScheduleIdWarningsGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getScheduleWarningsSchedulesScheduleIdWarningsGet']>>>
+export type CreateWarningSchedulesScheduleIdWarningsPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createWarningSchedulesScheduleIdWarningsPost']>>>
+export type DismissWarningSchedulesScheduleIdWarningsWarningIdDismissPatchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['dismissWarningSchedulesScheduleIdWarningsWarningIdDismissPatch']>>>
+export type RestoreWarningSchedulesScheduleIdWarningsWarningIdRestorePatchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['restoreWarningSchedulesScheduleIdWarningsWarningIdRestorePatch']>>>
+export type DeleteWarningSchedulesScheduleIdWarningsWarningIdDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['deleteWarningSchedulesScheduleIdWarningsWarningIdDelete']>>>
+export type RunAlgorithmSchedulesScheduleIdGeneratePostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['runAlgorithmSchedulesScheduleIdGeneratePost']>>>
+export type RegenerateAlgorithmSchedulesScheduleIdRegeneratePostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['regenerateAlgorithmSchedulesScheduleIdRegeneratePost']>>>
 export type CreateInviteApiInvitesPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createInviteApiInvitesPost']>>>
+export type CreateAdminInviteApiInvitesAdminPostResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['createAdminInviteApiInvitesAdminPost']>>>
 export type ExportInvitesApiInvitesExportGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['exportInvitesApiInvitesExportGet']>>>
 export type ListUsersApiUsersGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['listUsersApiUsersGet']>>>
 export type GetMeApiUsersMeGetResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAutomatedCourseSchedulerAPI>['getMeApiUsersMeGet']>>>

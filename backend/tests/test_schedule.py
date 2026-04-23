@@ -70,12 +70,8 @@ def _make_user(db, nuid):
     return user
 
 
-def _make_course(
-    db, subject="CS", code=1800, name="CS 1800", description="Discrete Structures", credits=4
-):
-    course = CourseModel(
-        subject=subject, code=code, name=name, description=description, credits=credits
-    )
+def _make_course(db, subject="CS", code=1800, name="CS 1800", description="Discrete Structures", credits=4):
+    course = CourseModel(subject=subject, code=code, name=name, description=description, credits=credits)
     db.add(course)
     db.flush()
     return course
@@ -93,9 +89,9 @@ def _make_time_block(db, campus_id):
     return tb
 
 
-def _make_section(db, schedule_id, course_id, time_block_id):
+def _make_section(db, schedule_id, course_id, time_block_id, *, section_number=1):
     section = SectionModel(
-        section_number=1,
+        section_number=section_number,
         capacity=30,
         schedule_id=schedule_id,
         course_id=course_id,
@@ -247,9 +243,7 @@ def test_create_schedule_course_list_populated_from_history(client, db_session):
     schedule's course_list."""
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
-    historical_course = _make_historical_context(
-        db_session, campus, season="Fall", current_year=2024
-    )
+    historical_course = _make_historical_context(db_session, campus, season="Fall", current_year=2024)
     response = client.post(
         "/schedules",
         json={
@@ -295,9 +289,7 @@ def test_create_schedule_course_list_item_correct_values(client, db_session):
     """course_list items carry the correct name, subject, number, and section count."""
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
-    historical_course = _make_historical_context(
-        db_session, campus, season="Fall", current_year=2024
-    )
+    historical_course = _make_historical_context(db_session, campus, season="Fall", current_year=2024)
     response = client.post(
         "/schedules",
         json={
@@ -319,9 +311,7 @@ def test_create_schedule_course_list_includes_new_courses(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
     _make_historical_context(db_session, campus, season="Fall", current_year=2024)
-    new_course = _make_course(
-        db_session, name="CS 3800", description="Theory of Computation", credits=4
-    )
+    new_course = _make_course(db_session, name="CS 3800", description="Theory of Computation", credits=4)
     db_session.commit()
     response = client.post(
         "/schedules",
@@ -342,9 +332,7 @@ def test_create_schedule_new_courses_section_count_is_one(client, db_session):
     campus = _make_campus(db_session)
     semester = _make_semester(db_session, season="Fall", year=2024)
     _make_historical_context(db_session, campus, season="Fall", current_year=2024)
-    new_course = _make_course(
-        db_session, name="CS 3800", description="Theory of Computation", credits=4
-    )
+    new_course = _make_course(db_session, name="CS 3800", description="Theory of Computation", credits=4)
     db_session.commit()
     response = client.post(
         "/schedules",
@@ -466,9 +454,7 @@ def test_get_schedules_filter_multiple_params(client, db_session):
     semester = _make_semester(db_session)
     _make_schedule(db_session, campus_a.campus_id, semester.semester_id, name="Match")
     _make_schedule(db_session, campus_b.campus_id, semester.semester_id, name="Wrong Campus")
-    response = client.get(
-        f"/schedules?campus_id={campus_a.campus_id}&semester_id={semester.semester_id}"
-    )
+    response = client.get(f"/schedules?campus_id={campus_a.campus_id}&semester_id={semester.semester_id}")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -719,9 +705,7 @@ def test_get_schedule_locks_non_empty(client: TestClient, db_session: Session) -
     user = _make_user(db_session, nuid=1)
     course = _make_course(db_session)
     time_block = _make_time_block(db_session, campus.campus_id)
-    section = _make_section(
-        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id
-    )
+    section = _make_section(db_session, schedule.schedule_id, course.course_id, time_block.time_block_id)
 
     app.dependency_overrides[get_db_user] = lambda: user
     client.post(f"/sections/{section.section_id}/lock")
@@ -745,13 +729,25 @@ def test_get_schedule_locks_returns_active(client: TestClient, db_session: Sessi
     course = _make_course(db_session)
     time_block = _make_time_block(db_session, campus.campus_id)
     section1 = _make_section(
-        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id
+        db_session,
+        schedule.schedule_id,
+        course.course_id,
+        time_block.time_block_id,
+        section_number=1,
     )
     section2 = _make_section(
-        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id
+        db_session,
+        schedule.schedule_id,
+        course.course_id,
+        time_block.time_block_id,
+        section_number=2,
     )
     section3 = _make_section(
-        db_session, schedule.schedule_id, course.course_id, time_block.time_block_id
+        db_session,
+        schedule.schedule_id,
+        course.course_id,
+        time_block.time_block_id,
+        section_number=3,
     )
 
     # two active locks
@@ -778,9 +774,7 @@ def test_get_schedule_locks_returns_active(client: TestClient, db_session: Sessi
     assert user3.user_id not in locked_by_ids
 
 
-def test_get_schedule_locks_excludes_other_schedules(
-    client: TestClient, db_session: Session
-) -> None:
+def test_get_schedule_locks_excludes_other_schedules(client: TestClient, db_session: Session) -> None:
     campus = _make_campus(db_session)
     semester = _make_semester(db_session)
     schedule1 = _make_schedule(db_session, campus.campus_id, semester.semester_id, name="S1")
@@ -788,9 +782,7 @@ def test_get_schedule_locks_excludes_other_schedules(
     user = _make_user(db_session, nuid=1)
     course = _make_course(db_session)
     time_block = _make_time_block(db_session, campus.campus_id)
-    section = _make_section(
-        db_session, schedule1.schedule_id, course.course_id, time_block.time_block_id
-    )
+    section = _make_section(db_session, schedule1.schedule_id, course.course_id, time_block.time_block_id)
 
     app.dependency_overrides[get_db_user] = lambda: user
     client.post(f"/sections/{section.section_id}/lock")

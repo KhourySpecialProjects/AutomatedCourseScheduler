@@ -45,9 +45,7 @@ def _make_schedule(db, campus_id, semester_id, *, name="Test Schedule"):
     return schedule
 
 
-def _make_course(
-    db, subject, code, name, description="Test description", credits=4, priority=False
-):
+def _make_course(db, subject, code, name, description="Test description", credits=4, priority=False):
     course = Course(
         subject=subject,
         code=code,
@@ -350,9 +348,7 @@ class TestGetSectionCount:
         priority_courses = []
         for i, name in enumerate(course_service.HIGH_PRIORITY_COURSES):
             split = name.split(" ")
-            c = _make_course(
-                db_session, subject=split[0], code=int(split[1]), name=name, priority=True
-            )
+            c = _make_course(db_session, subject=split[0], code=int(split[1]), name=name, priority=True)
             _make_section(
                 db_session,
                 schedule.schedule_id,
@@ -387,9 +383,7 @@ class TestGetSectionCount:
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
         existing = _make_course(db_session, subject="CS", code=2000, name="CS 2000")
-        new_course = _make_course(
-            db_session, subject="CS", code=9999, name="CS 9999", description="new", credits=3
-        )
+        new_course = _make_course(db_session, subject="CS", code=9999, name="CS 9999", description="new", credits=3)
         _make_section(db_session, schedule.schedule_id, existing.course_id, tb.time_block_id)
         db_session.refresh(schedule)
 
@@ -478,9 +472,7 @@ class TestGenerateCourseList:
         course = _make_course(db_session, subject="CS", code=2000, name="CS 2000")
         _make_section(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
 
-        result = course_service.generate_course_list(
-            db_session, sem_prev.semester_id, [], campus.campus_id
-        )
+        result = course_service.generate_course_list(db_session, sem_prev.semester_id, [], campus.campus_id)
 
         assert any(r.name == "CS 2000" for r in result)
 
@@ -490,9 +482,7 @@ class TestGenerateCourseList:
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
 
-        priority_course = _make_course(
-            db_session, subject="CS", code=1800, name="CS 1800", priority=True
-        )
+        priority_course = _make_course(db_session, subject="CS", code=1800, name="CS 1800", priority=True)
         other_course = _make_course(
             db_session,
             subject="CS",
@@ -516,9 +506,7 @@ class TestGenerateCourseList:
             section_number=2,
         )
 
-        result = course_service.generate_course_list(
-            db_session, sem.semester_id, [], campus.campus_id
-        )
+        result = course_service.generate_course_list(db_session, sem.semester_id, [], campus.campus_id)
 
         assert result[0].priority is True
         assert result[0].name == "CS 1800"
@@ -530,14 +518,10 @@ class TestGenerateCourseList:
         tb = _make_time_block(db_session, campus.campus_id)
 
         existing = _make_course(db_session, subject="CS", code=2000, name="CS 2000")
-        new_course = _make_course(
-            db_session, subject="CS", code=8888, name="CS 8888", description="New", credits=3
-        )
+        new_course = _make_course(db_session, subject="CS", code=8888, name="CS 8888", description="New", credits=3)
         _make_section(db_session, schedule.schedule_id, existing.course_id, tb.time_block_id)
 
-        result = course_service.generate_course_list(
-            db_session, sem.semester_id, [new_course.course_id], campus.campus_id
-        )
+        result = course_service.generate_course_list(db_session, sem.semester_id, [new_course.course_id], campus.campus_id)
 
         new_resp = next((r for r in result if r.name == "CS 8888"), None)
         assert new_resp is not None
@@ -576,9 +560,7 @@ class TestGenerateCourseList:
                 section_number=i + 1,
             )
 
-        result = course_service.generate_course_list(
-            db_session, sem.semester_id, [], campus.campus_id
-        )
+        result = course_service.generate_course_list(db_session, sem.semester_id, [], campus.campus_id)
 
         assert result[0].section_count == 3
 
@@ -589,12 +571,8 @@ class TestGenerateCourseList:
         schedule = _make_schedule(db_session, campus.campus_id, sem.semester_id)
         tb = _make_time_block(db_session, campus.campus_id)
 
-        constrained = _make_course(
-            db_session, subject="CS", code=7000, name="CS 7000", description="d", credits=3
-        )
-        unconstrained = _make_course(
-            db_session, subject="CS", code=8000, name="CS 8000", description="d", credits=3
-        )
+        constrained = _make_course(db_session, subject="CS", code=7000, name="CS 7000", description="d", credits=3)
+        unconstrained = _make_course(db_session, subject="CS", code=8000, name="CS 8000", description="d", credits=3)
         _make_section(
             db_session,
             schedule.schedule_id,
@@ -623,9 +601,7 @@ class TestGenerateCourseList:
         for f in [f2, f3, f4, f5, f6]:
             _make_preference(db_session, f.nuid, unconstrained.course_id, PreferenceLevel.EAGER)
 
-        result = course_service.generate_course_list(
-            db_session, sem.semester_id, [], campus.campus_id
-        )
+        result = course_service.generate_course_list(db_session, sem.semester_id, [], campus.campus_id)
 
         non_priority = [r for r in result if not r.priority]
         assert non_priority[0].name == "CS 7000"
@@ -640,9 +616,7 @@ class TestGenerateCourseList:
         course = _make_course(db_session, subject="CS", code=3100, name="CS 3100")
         _make_section(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
 
-        result = course_service.generate_course_list(
-            db_session, sem.semester_id, [], campus.campus_id
-        )
+        result = course_service.generate_course_list(db_session, sem.semester_id, [], campus.campus_id)
 
         assert any(r.name == "CS 3100" for r in result)
 
@@ -654,8 +628,6 @@ class TestGenerateCourseList:
         course = _make_course(db_session, subject="CS", code=2700, name="CS 2700")
         _make_section(db_session, schedule.schedule_id, course.course_id, tb.time_block_id)
 
-        result = course_service.generate_course_list(
-            db_session, sem.semester_id, [], campus.campus_id
-        )
+        result = course_service.generate_course_list(db_session, sem.semester_id, [], campus.campus_id)
 
         assert len(result) == 1

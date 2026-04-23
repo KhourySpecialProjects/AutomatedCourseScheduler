@@ -24,6 +24,9 @@ export interface UseScheduleWebSocketResult {
 
 export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketResult {
   const { getAccessTokenSilently } = useAuth0();
+  const getAccessTokenSilentlyRef = useRef(getAccessTokenSilently);
+  getAccessTokenSilentlyRef.current = getAccessTokenSilently;
+
   const [sections, setSections] = useState<SectionRichResponse[]>([]);
   const [locks, setLocks] = useState<Map<number, LockInfo>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -55,7 +58,7 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
 
       let token: string;
       try {
-        token = await getAccessTokenSilently();
+        token = await getAccessTokenSilentlyRef.current();
       } catch {
         if (!cancelled) setStatus('disconnected');
         return;
@@ -133,6 +136,35 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
             setLocks(new Map(locksRef.current));
             break;
           }
+          case 'comment_added': {
+            const payload = msg.payload as { section_id: number };
+            const { section_id: sid } = payload;
+            sectionsRef.current = sectionsRef.current.map((s) =>
+              s.section_id === sid
+                ? { ...s, comment_count: (s.comment_count ?? 0) + 1 }
+                : s,
+            );
+            setSections([...sectionsRef.current]);
+            break;
+          }
+          case 'comment_deleted': {
+            const payload = msg.payload as {
+              section_id: number;
+              deleted_count?: number;
+            };
+            const { section_id: sid, deleted_count } = payload;
+            const n =
+              typeof deleted_count === 'number' && Number.isFinite(deleted_count)
+                ? Math.max(1, Math.floor(deleted_count))
+                : 1;
+            sectionsRef.current = sectionsRef.current.map((s) =>
+              s.section_id === sid
+                ? { ...s, comment_count: Math.max(0, (s.comment_count ?? 0) - n) }
+                : s,
+            );
+            setSections([...sectionsRef.current]);
+            break;
+          }
         }
       };
 
@@ -156,7 +188,7 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
       if (reconnectTimer) clearTimeout(reconnectTimer);
       ws?.close();
     };
-  }, [scheduleId]); // getAccessTokenSilently is stable
+  }, [scheduleId]);
 
   return { sections, locks, loading, status };
 }

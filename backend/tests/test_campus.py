@@ -188,9 +188,7 @@ def test_service_get_by_id_calls_repo():
     from app.services import campus as campus_service
 
     mock_db = MagicMock()
-    with patch(
-        "app.services.campus.campus_repo.get_by_id", return_value=MOCK_CAMPUSES[0]
-    ) as mock_repo:
+    with patch("app.services.campus.campus_repo.get_by_id", return_value=MOCK_CAMPUSES[0]) as mock_repo:
         campus_service.get_by_id(mock_db, 1)
     mock_repo.assert_called_once_with(mock_db, 1)
 

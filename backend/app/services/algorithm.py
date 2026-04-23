@@ -26,6 +26,50 @@ from app.services import faculty as faculty_service
 logger = logging.getLogger(__name__)
 
 
+# Time block validity
+
+
+def _is_valid_for_assignment(tb) -> bool:
+    """Return True only for time blocks that the auto-assignment algorithm should consider.
+
+    Three categories of blocks are excluded:
+
+    1. **3-hour blocks** — any block whose duration is 180 minutes or more.
+       These are typically extended lab or exam slots and are not suitable
+       for regular course auto-assignment.
+
+    2. **Single-day blocks** — blocks that meet on only one weekday (e.g. "M", "F").
+       Standard instructional blocks meet on at least two days per week.
+
+    3. **Split blocks** — blocks that share a `block_group` letter with a sibling row.
+       A split block is stored as two separate TimeBlock rows (e.g. "T 9:50–11:30"
+       and "R 1:30–2:50") that together form one logical meeting pattern.  Each row
+       has the same non-null `block_group` value to indicate the pairing.  Because
+       the algorithm assigns one time block per section, split blocks cannot be
+       represented correctly and must be excluded from automatic assignment.
+    """
+    start = tb.start_time
+    end = tb.end_time
+
+    # Duration check — reject blocks >= 3 hours
+    duration_minutes = (end.hour * 60 + end.minute) - (start.hour * 60 + start.minute)
+    if duration_minutes >= 180:
+        return False
+
+    # Single-day check — meeting_days is a string like "MWF" or "TR";
+    # strip whitespace and count unique alphabetic characters
+    unique_days = {c for c in tb.meeting_days.strip().upper() if c.isalpha()}
+    if len(unique_days) == 1:
+        return False
+
+    # Split-block check — a non-null block_group means this row is one half of a
+    # paired split block and should not be assigned independently by the algorithm
+    if tb.block_group is not None:
+        return False
+
+    return True
+
+
 # Status helpers
 
 
@@ -52,9 +96,7 @@ def _persist_warnings(db, schedule_id, phase2_warnings, unmatched_assignments):
     existing = warning_repo.get_by_schedule(db, schedule_id, include_dismissed=True)
 
     # Build set of dismissed warning keys so we don't re-create them
-    dismissed_keys = {
-        (w.type, w.course_id, w.faculty_nuid, w.time_block_id) for w in existing if w.dismissed
-    }
+    dismissed_keys = {(w.type, w.course_id, w.faculty_nuid, w.time_block_id) for w in existing if w.dismissed}
 
     # Delete only non-dismissed warnings (dismissed ones survive re-runs)
     for w in existing:
@@ -144,9 +186,12 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
     profiles = faculty_service.build_all_profiles(db, nuids)
     logger.info(f"Built {len(profiles)} faculty profiles")
 
-    # Step 4: Load time blocks
-    time_blocks = time_block_repo.get_all(db)
-    logger.info(f"Loaded {len(time_blocks)} time blocks")
+    # Step 4: Load time blocks — filter out blocks that are invalid for auto-assignment
+    # (3-hour duration, single-day, or split blocks).  Invalid blocks remain in the DB
+    # and can still be assigned manually; they are simply excluded from the algorithm.
+    all_time_blocks = time_block_repo.get_all(db)
+    time_blocks = [tb for tb in all_time_blocks if _is_valid_for_assignment(tb)]
+    logger.info(f"Loaded {len(all_time_blocks)} time blocks, {len(time_blocks)} valid for auto-assignment")
 
     # Step 5: Phase 1 — faculty-to-course matching
     algorithm_input = AlgorithmInput(
@@ -163,7 +208,6 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         logger.warning(
             f"Section {a.section_id} (course {a.course_id}) unmatched: {a.unmatched_reason}"
         )
-
     logger.info(f"Phase 1 complete: {len(matched)} matched, {len(unmatched)} unmatched")
 
     # Step 6: Bridge — CourseAssignment → MatchedAssignment
@@ -173,11 +217,7 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
             section_id=a.section_id,
             course_id=a.course_id,
             faculty_nuid=a.faculty_nuid,
-            department_code=(
-                course_lookup[a.course_id].subject
-                if a.course_id in course_lookup and course_lookup[a.course_id].subject
-                else ""
-            ),
+            department_code=(course_lookup[a.course_id].subject if a.course_id in course_lookup and course_lookup[a.course_id].subject else ""),
         )
         for a in matched
     ]
@@ -209,9 +249,7 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         if original is None:
             continue
 
-        section_number_tracker[original.course_id] = (
-            section_number_tracker.get(original.course_id, 0) + 1
-        )
+        section_number_tracker[original.course_id] = section_number_tracker.get(original.course_id, 0) + 1
         section_obj = Section(
             schedule_id=schedule_id,
             course_id=original.course_id,
@@ -232,9 +270,7 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
     _persist_warnings(db, schedule_id, phase2_result.warnings, unmatched)
 
     db.commit()
-    logger.info(
-        f"Algorithm completed for schedule {schedule_id}: {sections_written} sections written"
-    )
+    logger.info(f"Algorithm completed for schedule {schedule_id}: {sections_written} sections written")
 
 
 # Regenerate — re-run on unassigned sections, preserving existing
@@ -320,7 +356,11 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
         raise ValueError("No active faculty found")
     nuids = [f.nuid for f in all_faculty]
     profiles = faculty_service.build_all_profiles(db, nuids)
-    time_blocks = time_block_repo.get_all(db)
+    # Apply same validity filter as the full run — exclude 3-hour, single-day,
+    # and split blocks so regenerated sections land on standard time slots only.
+    all_time_blocks = time_block_repo.get_all(db)
+    time_blocks = [tb for tb in all_time_blocks if _is_valid_for_assignment(tb)]
+    logger.info(f"Regenerate: {len(all_time_blocks)} time blocks loaded, {len(time_blocks)} valid for auto-assignment")
 
     # Step 7: Phase 1 — match remaining sections
     algorithm_input = AlgorithmInput(
@@ -341,11 +381,7 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
             section_id=a.section_id,
             course_id=a.course_id,
             faculty_nuid=a.faculty_nuid,
-            department_code=(
-                course_lookup[a.course_id].subject
-                if a.course_id in course_lookup and course_lookup[a.course_id].subject
-                else ""
-            ),
+            department_code=(course_lookup[a.course_id].subject if a.course_id in course_lookup and course_lookup[a.course_id].subject else ""),
         )
         for a in matched
     ]
@@ -381,9 +417,7 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
         if original is None:
             continue
 
-        section_number_tracker[original.course_id] = (
-            section_number_tracker.get(original.course_id, 0) + 1
-        )
+        section_number_tracker[original.course_id] = section_number_tracker.get(original.course_id, 0) + 1
         section_obj = Section(
             schedule_id=schedule_id,
             course_id=original.course_id,
@@ -404,6 +438,4 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
     _persist_warnings(db, schedule_id, phase2_result.warnings, unmatched)
 
     db.commit()
-    logger.info(
-        f"Regenerate completed for schedule {schedule_id}: {sections_written} new sections written"
-    )
+    logger.info(f"Regenerate completed for schedule {schedule_id}: {sections_written} new sections written")

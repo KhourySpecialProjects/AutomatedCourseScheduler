@@ -32,12 +32,12 @@ class Settings(BaseSettings):
         """Returns DATABASE_URL if provided, otherwise build it manually."""
         if self.DATABASE_URL:
             return self.DATABASE_URL
-        return (
-            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-            f"@{self.POSTGRES_HOST}:5432/{self.POSTGRES_DB}"
-        )
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:5432/{self.POSTGRES_DB}"
 
-    model_config = {"env_file": Path(__file__).parent.parent.parent.parent / ".env"}
+    model_config = {
+        "env_file": Path(__file__).parent.parent.parent.parent / ".env",
+        "extra": "ignore",
+    }
 
 
 settings = Settings()

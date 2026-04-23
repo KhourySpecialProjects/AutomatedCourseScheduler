@@ -85,10 +85,7 @@ def _build_pref_lookup(all_faculty: list[FacultyState]) -> dict[int, dict[int, i
     """Builds a lookup of faculty NUID -> course ID -> preference level."""
     lookup = {}
     for faculty in all_faculty:
-        course_pref_dict = {
-            pref.course_id: PreferenceLevel(pref.preference).to_int()
-            for pref in faculty.course_preferences
-        }
+        course_pref_dict = {pref.course_id: PreferenceLevel(pref.preference).to_int() for pref in faculty.course_preferences}
         lookup[faculty.nuid] = course_pref_dict
     return lookup
 
@@ -154,10 +151,7 @@ def _find_displacement_target(
             continue  # not qualified
 
         # Time conflict with incoming section?
-        if (
-            section.time_block_id is not None
-            and section.time_block_id in faculty.assigned_time_blocks
-        ):
+        if section.time_block_id is not None and section.time_block_id in faculty.assigned_time_blocks:
             continue
 
         # Faculty must be at capacity (otherwise get_eligible would have found them)
@@ -215,9 +209,7 @@ def _build_output(
                 )
             )
         else:
-            has_qualified = any(
-                prefs.get(section.course_id, 4) <= 3 for prefs in pref_lookup.values()
-            )
+            has_qualified = any(prefs.get(section.course_id, 4) <= 3 for prefs in pref_lookup.values())
             reason = "insufficient_supply" if has_qualified else "no_qualified_faculty"
             output.append(
                 CourseAssignment(
@@ -262,9 +254,7 @@ def match_courses_to_faculty(
             unmatched.append(section)
             continue
 
-        target = _find_displacement_target(
-            section, faculty_states, assignments, section_lookup, pref_lookup
-        )
+        target = _find_displacement_target(section, faculty_states, assignments, section_lookup, pref_lookup)
 
         if target:
             displaced_sid, nuid = target

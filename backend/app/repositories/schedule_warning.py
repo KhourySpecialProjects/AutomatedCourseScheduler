@@ -36,6 +36,10 @@ def get_by_section(db: Session, section_id: int) -> list[ScheduleWarning]:
     return db.query(ScheduleWarning).filter(ScheduleWarning.section_id == section_id).all()
 
 
+def get_by_section(db: Session, section_id: int) -> list[ScheduleWarning]:
+    return db.query(ScheduleWarning).filter(ScheduleWarning.section_id == section_id).all()
+
+
 def create_many(db: Session, warnings: list[ScheduleWarning]) -> None:
     db.add_all(warnings)
 

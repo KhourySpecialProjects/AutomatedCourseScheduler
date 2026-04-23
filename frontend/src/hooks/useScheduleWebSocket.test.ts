@@ -58,6 +58,8 @@ const makeSection = (overrides: Partial<SectionRichResponse> = {}): SectionRichR
   section_number: 1,
   capacity: 30,
   schedule_id: 10,
+  comment_count: 0,
+  crosslisted_section_id: null,
   course: { course_id: 5, name: 'Algorithms', description: 'Algo', credits: 4 },
   time_block: { time_block_id: 2, days: 'MWR', start_time: '09:00', end_time: '10:30' },
   instructors: [],
@@ -149,6 +151,32 @@ describe('useScheduleWebSocket', () => {
 
     expect(result.current.sections).toHaveLength(1);
     expect(result.current.sections[0].section_id).toBe(2);
+  });
+
+  it('increments comment_count on "comment_added"', async () => {
+    const { result } = await renderConnected();
+    sendMessage('schedule', [makeSection({ section_id: 1, comment_count: 2 })]);
+    sendMessage('comment_added', { section_id: 1, comment_id: 9, user_id: 1, content: 'x' });
+    expect(result.current.sections[0].comment_count).toBe(3);
+  });
+
+  it('decrements comment_count on "comment_deleted"', async () => {
+    const { result } = await renderConnected();
+    sendMessage('schedule', [makeSection({ section_id: 1, comment_count: 2 })]);
+    sendMessage('comment_deleted', { section_id: 1, comment_id: 9 });
+    expect(result.current.sections[0].comment_count).toBe(1);
+  });
+
+  it('decrements comment_count by deleted_count when parent delete removes replies', async () => {
+    const { result } = await renderConnected();
+    sendMessage('schedule', [makeSection({ section_id: 1, comment_count: 2 })]);
+    sendMessage('comment_deleted', {
+      section_id: 1,
+      comment_id: 9,
+      deleted_comment_ids: [9, 10],
+      deleted_count: 2,
+    });
+    expect(result.current.sections[0].comment_count).toBe(0);
   });
 
   it('adds a lock on "lock_acquired" and removes it on "lock_released"', async () => {
