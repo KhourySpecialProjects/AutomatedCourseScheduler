@@ -1,6 +1,7 @@
 """Course router."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -45,6 +46,9 @@ def create_course(course: CourseCreate, db: Session = Depends(get_db)):
         return course_service.create_course(db, course)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="A course with this subject and code already exists") from e
 
 
 @router.patch("/{course_id}", response_model=CourseResponse)
