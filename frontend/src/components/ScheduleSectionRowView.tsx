@@ -106,6 +106,11 @@ export default function ScheduleSectionRowView({
   const [catalogCourses, setCatalogCourses] = useState<CourseResponse[]>([]);
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    const api = getAutomatedCourseSchedulerAPI();
+    api.getCoursesCoursesGet().then((cs) => setCatalogCourses(cs)).catch(() => {});
+  }, []);
+
   const handleInstructorMouseEnter = useCallback((e: React.MouseEvent<HTMLElement>, instructor: InstructorInfo) => {
     const rect = e.currentTarget.getBoundingClientRect();
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
@@ -124,42 +129,23 @@ export default function ScheduleSectionRowView({
     [],
   );
 
-  useEffect(() => {
-    const api = getAutomatedCourseSchedulerAPI();
-    api
-      .getCoursesCoursesGet()
-      .then((cs) => setCatalogCourses(cs))
-      .catch(() => {});
-  }, []);
-
-  const catalogById = useMemo(() => {
-    const m = new Map<number, CourseResponse>();
-    for (const c of catalogCourses) m.set(c.course_id, c);
-    return m;
-  }, [catalogCourses]);
-
   const courseMetaForUi = useCallback(
     (section: SectionRichResponse): { code: string | null; name: string } => {
-      const cat = catalogById.get(section.course.course_id);
-      const name = cat?.name ?? section.course.name;
-      const subject = cat?.subject?.trim();
-      const codeNo = cat?.code;
-      const code = subject && codeNo != null ? `${subject}${codeNo}` : null;
+      const { subject, code: codeNo, name } = section.course;
+      const code = subject.trim() && codeNo != null ? `${subject}${codeNo}` : null;
       return { code, name };
     },
-    [catalogById],
+    [],
   );
 
   const courseLabelForUi = useCallback(
-    (section: SectionRichResponse) => {
-      const cat = catalogById.get(section.course.course_id);
-      return formatCourseLabel({
-        name: cat?.name ?? section.course.name,
-        subject: cat?.subject,
-        code: cat?.code,
-      });
-    },
-    [catalogById],
+    (section: SectionRichResponse) =>
+      formatCourseLabel({
+        name: section.course.name,
+        subject: section.course.subject,
+        code: section.course.code,
+      }),
+    [],
   );
 
   const handleSort = (key: SortKey) => {
@@ -576,8 +562,8 @@ export default function ScheduleSectionRowView({
 
                       {/* Section # */}
                       <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1">
-                          Section {section.section_number}
+                        <span className="inline-flex items-center gap-1 ml-1">
+                          {section.section_number}
                           <CrosslistSectionHint section={section} allSections={sections} />
                         </span>
                       </td>
@@ -661,6 +647,8 @@ export default function ScheduleSectionRowView({
           timeBlocks={timeBlocks}
           campusId={campusId}
           campusName={campusName}
+          courses={catalogCourses}
+          scheduleSections={sections}
           onClose={handleEditClose}
           onTimeBlockCreated={(tb: TimeBlockFull) => setTimeBlocks((prev) => [...prev, tb].sort((a, b) => {
             const ta = parseTimeToMinutes(a.start_time);
@@ -679,6 +667,8 @@ export default function ScheduleSectionRowView({
           timeBlocks={timeBlocks}
           campusId={campusId}
           campusName={campusName}
+          courses={catalogCourses}
+          scheduleSections={sections}
           onClose={() => setCreating(false)}
           onTimeBlockCreated={(tb: TimeBlockFull) => setTimeBlocks((prev) => [...prev, tb].sort((a, b) => {
             const ta = parseTimeToMinutes(a.start_time);

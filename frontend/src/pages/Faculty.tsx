@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useUser } from '../context/UserContext';
 import {
   getAutomatedCourseSchedulerAPI,
   type CampusResponse,
   type InviteResponse,
   type ScheduleResponse,
   type SectionRichResponse,
-  type UserResponse,
 } from '../api/generated';
 import FacultyDrawer, { type FacultyRecord } from '../components/FacultyDrawer';
 import SearchableSelect, { type SelectOption } from '../components/SearchableSelect';
@@ -63,8 +63,7 @@ type SortDir = 'asc' | 'desc';
 
 export default function Faculty() {
   // Auth
-  const [me, setMe] = useState<UserResponse | null>(null);
-  const [meLoading, setMeLoading] = useState(true);
+  const { me, meLoading } = useUser();
 
   // Schedule / sections (shared with histogram)
   const [schedules, setSchedules] = useState<ScheduleResponse[]>([]);
@@ -84,8 +83,8 @@ export default function Faculty() {
 
   // Filters & sort
   const [nameSearch, setNameSearch] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('name');
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [sortKey, setSortKey] = useState<SortKey>('load');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   // Drawer state
   type DrawerState =
@@ -108,15 +107,6 @@ export default function Faculty() {
   const [adminInviteCopied, setAdminInviteCopied] = useState(false);
 
   const api = getAutomatedCourseSchedulerAPI();
-
-  // Fetch current user
-  useEffect(() => {
-    getAutomatedCourseSchedulerAPI()
-      .getMeApiUsersMeGet()
-      .then(setMe)
-      .catch(() => {})
-      .finally(() => setMeLoading(false));
-  }, []);
 
   // Fetch campuses + schedules + users on mount
   useEffect(() => {
@@ -694,7 +684,7 @@ export default function Faculty() {
                     autoComplete="off"
                     value={adminFormNuid}
                     onChange={(e) => setAdminFormNuid(e.target.value.replace(/\D/g, ''))}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
                     placeholder="e.g. 12345678"
                   />
                 </div>
@@ -707,7 +697,7 @@ export default function Faculty() {
                       type="text"
                       value={adminFormFirstName}
                       onChange={(e) => setAdminFormFirstName(e.target.value)}
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
                       placeholder="Jane"
                     />
                   </div>
@@ -719,7 +709,7 @@ export default function Faculty() {
                       type="text"
                       value={adminFormLastName}
                       onChange={(e) => setAdminFormLastName(e.target.value)}
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
                       placeholder="Doe"
                     />
                   </div>
@@ -733,7 +723,7 @@ export default function Faculty() {
                     autoComplete="email"
                     value={adminFormEmail}
                     onChange={(e) => setAdminFormEmail(e.target.value)}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
                     placeholder="j.doe@northeastern.edu"
                   />
                 </div>
@@ -767,7 +757,7 @@ export default function Faculty() {
                   <button
                     type="button"
                     onClick={closeInviteAdminModal}
-                    className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="px-4 py-2 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 transition-colors"
                   >
                     Done
                   </button>
@@ -786,7 +776,7 @@ export default function Faculty() {
                   type="button"
                   onClick={() => void handleGenerateAdminInvite()}
                   disabled={adminInviting}
-                  className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 disabled:opacity-50 transition-colors"
                 >
                   {adminInviting ? 'Generating…' : 'Generate invite link'}
                 </button>

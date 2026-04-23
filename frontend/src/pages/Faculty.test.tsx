@@ -24,6 +24,10 @@ const mockAdmin: UserResponse = {
   active: true,
 };
 
+vi.mock('../context/UserContext', () => ({
+  useUser: () => ({ me: mockAdmin, meError: null, meLoading: false }),
+}));
+
 const mockInviteRows: InviteLinkResponse[] = [
   {
     first_name: 'Jane',

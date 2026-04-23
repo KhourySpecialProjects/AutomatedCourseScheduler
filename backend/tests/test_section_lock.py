@@ -43,11 +43,11 @@ def _make_user(db, nuid=1, role="ADMIN"):
     return user
 
 
-def _make_section(db, season="Fall"):
+def _make_section(db, season="Fall", course_code=2500):
     campus = _make_campus(db)
     semester = _make_semester(db, season=season)
     schedule = Schedule(name="F24", semester_id=semester.semester_id, campus=campus.campus_id)
-    course = Course(subject="CS", code=2500, name="CS 2500", description="Fundamentals", credits=4)
+    course = Course(subject="CS", code=course_code, name=f"CS {course_code}", description="Fundamentals", credits=4)
     db.add_all([schedule, course])
     db.flush()
     time_block = TimeBlock(
@@ -121,7 +121,7 @@ def test_lock_different_user(client: TestClient, db_session: Session) -> None:
 def test_previous_lock_releases(client: TestClient, db_session: Session) -> None:
     user = _make_user(db_session)
     section1 = _make_section(db_session)
-    section2 = _make_section(db_session, season="Spring")
+    section2 = _make_section(db_session, season="Spring", course_code=3500)
     app.dependency_overrides[get_db_user] = lambda: user
 
     client.post(f"/sections/{section1.section_id}/lock")

@@ -4,7 +4,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Schedules from './Schedules';
 import * as wsModule from '../hooks/useScheduleWebSocket';
 import * as generated from '../api/generated';
-import type { SectionRichResponse } from '../api/generated';
+import type { SectionRichResponse, UserResponse } from '../api/generated';
 
 // ── Auth0 mock ────────────────────────────────────────────────────────────────
 vi.mock('@auth0/auth0-react', () => ({
@@ -12,6 +12,29 @@ vi.mock('@auth0/auth0-react', () => ({
     getAccessTokenSilently: vi.fn().mockResolvedValue('mock-token'),
     user: { name: 'Test User', email: 'test@test.com' },
   }),
+}));
+
+// ── UserContext mock ──────────────────────────────────────────────────────────
+const viewerUser: UserResponse = {
+  user_id: 1,
+  nuid: 100005,
+  first_name: 'John',
+  last_name: 'Doe',
+  email: 'j.doe@northeastern.edu',
+  role: 'VIEWER',
+  active: true,
+};
+
+const adminUser: UserResponse = { ...viewerUser, role: 'ADMIN' };
+
+let mockUserValue: { me: UserResponse | null; meError: string | null; meLoading: boolean } = {
+  me: viewerUser,
+  meError: null,
+  meLoading: false,
+};
+
+vi.mock('../context/UserContext', () => ({
+  useUser: () => mockUserValue,
 }));
 
 // ── Child component mock ──────────────────────────────────────────────────────
@@ -33,7 +56,7 @@ const mockSection: SectionRichResponse = {
   schedule_id: 42,
   comment_count: 0,
   crosslisted_section_id: null,
-  course: { course_id: 10, name: 'Algorithms', description: 'Algo course', credits: 4 },
+  course: { course_id: 10, subject: 'CS', code: 3500, name: 'Algorithms', description: 'Algo course', credits: 4 },
   time_block: { time_block_id: 5, days: 'MWR', start_time: '09:00', end_time: '10:30' },
   instructors: [],
 };
@@ -58,6 +81,7 @@ function renderAtRoute(path: string) {
 
 describe('Schedules page', () => {
   beforeEach(() => {
+    mockUserValue = { me: viewerUser, meError: null, meLoading: false };
     vi.spyOn(generated, 'getAutomatedCourseSchedulerAPI').mockReturnValue({
       getScheduleSchedulesScheduleIdGet: vi.fn().mockResolvedValue({
         schedule_id: 42, name: 'Fall 2025', semester_id: 1, draft: false, campus: 1, active: true,
@@ -68,15 +92,7 @@ describe('Schedules page', () => {
       getFacultyFacultyGet: vi.fn().mockResolvedValue([
         { NUID: 100005 },
       ]),
-      getMeApiUsersMeGet: vi.fn().mockResolvedValue({
-        user_id: 1,
-        nuid: 100005,
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'j.doe@northeastern.edu',
-        role: 'VIEWER',
-        active: true,
-      }),
+      getMeApiUsersMeGet: vi.fn().mockResolvedValue(viewerUser),
     } as unknown as ReturnType<typeof generated.getAutomatedCourseSchedulerAPI>);
   });
 
@@ -142,23 +158,7 @@ describe('Schedules page', () => {
 
   it('shows Faculty/Admin mode toggle for ADMIN users', async () => {
     vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue(defaultWsReturn);
-    vi.spyOn(generated, 'getAutomatedCourseSchedulerAPI').mockReturnValue({
-      getScheduleSchedulesScheduleIdGet: vi.fn().mockResolvedValue({
-        schedule_id: 42, name: 'Fall 2025', semester_id: 1, draft: false, campus: 1, active: true,
-      }),
-      getAllCampusesCampusesGet: vi.fn().mockResolvedValue([
-        { campus_id: 1, name: 'Boston', active: true },
-      ]),
-      getMeApiUsersMeGet: vi.fn().mockResolvedValue({
-        user_id: 1,
-        nuid: 100005,
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'j.doe@northeastern.edu',
-        role: 'ADMIN',
-        active: true,
-      }),
-    } as unknown as ReturnType<typeof generated.getAutomatedCourseSchedulerAPI>);
+    mockUserValue = { me: adminUser, meError: null, meLoading: false };
 
     renderAtRoute('/schedules/42');
 

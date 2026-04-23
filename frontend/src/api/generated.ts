@@ -115,6 +115,8 @@ export interface CourseCreate {
 
 export interface CourseInfo {
   course_id: number;
+  subject: string;
+  code: number;
   name: string;
   description: string;
   credits: number;

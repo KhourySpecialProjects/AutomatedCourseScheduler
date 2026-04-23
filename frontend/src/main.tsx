@@ -14,24 +14,24 @@ const required = [
 
 const missing = required.filter((k) => !import.meta.env[k]);
 
+const app = missing.length > 0 ? (
+  <MissingConfig missing={missing} />
+) : (
+  <Auth0Provider
+    domain={import.meta.env.VITE_AUTH0_DOMAIN}
+    clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
+    authorizationParams={{
+      redirect_uri: window.location.origin,
+      audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+    }}
+    useRefreshTokens={true}
+    // This may be insecure - jwt stored in browser memory
+    cacheLocation="localstorage"
+  >
+    <App />
+  </Auth0Provider>
+);
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    {missing.length > 0 ? (
-      <MissingConfig missing={missing} />
-    ) : (
-      <Auth0Provider
-        domain={import.meta.env.VITE_AUTH0_DOMAIN}
-        clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
-        authorizationParams={{
-          redirect_uri: window.location.origin,
-          audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        }}
-        useRefreshTokens={true}
-        // This may be insecure - jwt stored in browser memory
-        cacheLocation="localstorage"
-      >
-        <App />
-      </Auth0Provider>
-    )}
-  </React.StrictMode>,
+  import.meta.env.PROD ? app : <React.StrictMode>{app}</React.StrictMode>,
 );
