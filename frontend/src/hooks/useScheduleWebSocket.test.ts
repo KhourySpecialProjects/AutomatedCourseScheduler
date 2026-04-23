@@ -18,6 +18,7 @@ vi.mock('../api/generated', async (importOriginal) => {
     ...actual,
     getAutomatedCourseSchedulerAPI: vi.fn(() => ({
       getScheduleLocksSchedulesScheduleIdLocksGet: vi.fn().mockResolvedValue([]),
+      getScheduleWarningsSchedulesScheduleIdWarningsGet: vi.fn().mockResolvedValue([]),
     })),
   };
 });

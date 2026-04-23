@@ -174,7 +174,7 @@ def create_section(db: Session, section: SectionCreate) -> Section:
     saved = section_repo.save(db, section_made)
     detected = error_check(db, saved)
     warnings_repo.sync_section_warnings(db, saved.section_id, saved.schedule_id, detected)
-    return saved
+    return {"created": saved, "warnings": detected}
 
 
 def update_section(db: Session, section_id: int, section: SectionUpdate) -> dict | None:
@@ -325,10 +325,7 @@ def error_check(db: Session, section: Section, updates: SectionUpdate | None = N
             warnings.append(WarningType.TIME_BLOCK_OVERLOAD)
 
     for nuid in faculty_nuids:
-        other_assignments = [
-            a for a in faculty_repo.get_assginments(db, nuid, section.schedule_id)
-            if a.section_id != section.section_id
-        ]
+        other_assignments = [a for a in faculty_repo.get_assginments(db, nuid, section.schedule_id) if a.section_id != section.section_id]
         if section.time_block_id is not None:
             if not faculty_repo.find_meeting_time_preference(db, nuid, section.time_block_id):
                 warnings.append(WarningType.UNPREFERENCED_TIME)
