@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { getAutomatedCourseSchedulerAPI, type SectionRichResponse } from '../api/generated';
+import { getAutomatedCourseSchedulerAPI, type SectionRichResponse, type WarningResponse } from '../api/generated';
 
 const WS_BASE = import.meta.env.VITE_API_BASE_URL
   ? import.meta.env.VITE_API_BASE_URL.replace(/^http/, 'ws')
@@ -18,6 +18,7 @@ export interface LockInfo {
 export interface UseScheduleWebSocketResult {
   sections: SectionRichResponse[];
   locks: Map<number, LockInfo>;
+  warnings: WarningResponse[];
   loading: boolean;
   status: WsStatus;
 }
@@ -29,21 +30,27 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
 
   const [sections, setSections] = useState<SectionRichResponse[]>([]);
   const [locks, setLocks] = useState<Map<number, LockInfo>>(new Map());
+  const [warnings, setWarnings] = useState<WarningResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<WsStatus>('connecting');
   const sectionsRef = useRef<SectionRichResponse[]>([]);
   const locksRef = useRef<Map<number, LockInfo>>(new Map());
+  const warningsRef = useRef<WarningResponse[]>([]);
 
-  // Fetch initial lock state (locks are not broadcast on connect, only on change)
+  // Fetch initial lock + warning state (neither is broadcast on connect, only on change)
   useEffect(() => {
-    const { getScheduleLocksSchedulesScheduleIdLocksGet } = getAutomatedCourseSchedulerAPI();
-    getScheduleLocksSchedulesScheduleIdLocksGet(scheduleId).then((activeLocks) => {
+    const api = getAutomatedCourseSchedulerAPI();
+    api.getScheduleLocksSchedulesScheduleIdLocksGet(scheduleId).then((activeLocks) => {
       const map = new Map<number, LockInfo>();
       for (const l of activeLocks) {
         map.set(l.section_id, l);
       }
       locksRef.current = map;
       setLocks(new Map(map));
+    }).catch(() => {});
+    api.getScheduleWarningsSchedulesScheduleIdWarningsGet(scheduleId).then((list) => {
+      warningsRef.current = list;
+      setWarnings(list);
     }).catch(() => {});
   }, [scheduleId]);
 
@@ -52,6 +59,13 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let attempts = 0;
     let cancelled = false;
+
+    function fetchWarnings() {
+      getAutomatedCourseSchedulerAPI()
+        .getScheduleWarningsSchedulesScheduleIdWarningsGet(scheduleId)
+        .then((list) => { warningsRef.current = list; setWarnings(list); })
+        .catch(() => {});
+    }
 
     async function connect() {
       if (cancelled) return;
@@ -165,6 +179,10 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
             setSections([...sectionsRef.current]);
             break;
           }
+          case 'section_warnings': {
+            fetchWarnings();
+            break;
+          }
         }
       };
 
@@ -190,5 +208,5 @@ export function useScheduleWebSocket(scheduleId: number): UseScheduleWebSocketRe
     };
   }, [scheduleId]);
 
-  return { sections, locks, loading, status };
+  return { sections, locks, warnings, loading, status };
 }

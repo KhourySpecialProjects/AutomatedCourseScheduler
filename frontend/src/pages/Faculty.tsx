@@ -198,7 +198,7 @@ export default function Faculty() {
     for (const s of sections) {
       for (const inst of s.instructors) {
         const pref = inst.meeting_preferences.find(
-          (mp) => mp.time_block_id === s.time_block.time_block_id,
+          (mp) => mp.time_block_id === s.time_block?.time_block_id, //
         )?.preference;
         c[preferenceToBucket(pref)] += 1;
       }

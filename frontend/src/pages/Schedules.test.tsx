@@ -41,6 +41,7 @@ const mockSection: SectionRichResponse = {
 const defaultWsReturn: wsModule.UseScheduleWebSocketResult = {
   sections: [],
   locks: new Map(),
+  warnings: [],
   loading: false,
   status: 'connected',
 };

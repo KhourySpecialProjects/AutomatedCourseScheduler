@@ -171,7 +171,10 @@ def create_section(db: Session, section: SectionCreate) -> Section:
         raise ValueError("Could not create this section because it conflicts with an existing section. Please try again.") from None
     if section.faculty_nuids:
         section_repo.replace_faculty_assignments(db, section_made.section_id, section.faculty_nuids)
-    return section_repo.save(db, section_made)
+    saved = section_repo.save(db, section_made)
+    detected = error_check(db, saved)
+    warnings_repo.sync_section_warnings(db, saved.section_id, saved.schedule_id, detected)
+    return saved
 
 
 def update_section(db: Session, section_id: int, section: SectionUpdate) -> dict | None:
@@ -308,44 +311,35 @@ def get_dept_time_block_counts(db: Session, schedule_id: int) -> dict:
     return section_repo.get_dept_time_blocks_counts(db, schedule_id)
 
 
-def error_check(db: Session, section: Section, updates: SectionUpdate) -> list[WarningType]:
+def error_check(db: Session, section: Section, updates: SectionUpdate | None = None) -> list[WarningType]:
+    if updates is not None and not updates.model_fields_set:
+        return []
     warnings = []
-    assignments = section_repo.get_faculty_assignmnets(db, section.section_id)
-    if "time_block_id" in updates.model_fields_set:
-        meeting_time = section.time_block_id
+    faculty_nuids = section_repo.get_faculty_assignmnets(db, section.section_id)
+
+    if section.time_block_id is not None:
         schedule = schedule_repo.get_by_id(db, section.schedule_id)
         course = course_repo.get_by_id(db, section.course_id)
-        split_name = course.name.split(" ", 1)
-        course_subject = split_name[0]
-        if exceeds_meeting_time_capcacity(db, schedule, meeting_time, course_subject):
+        course_subject = course.name.split(" ", 1)[0]
+        if exceeds_meeting_time_capcacity(db, schedule, section.time_block_id, course_subject):
             warnings.append(WarningType.TIME_BLOCK_OVERLOAD)
-        for nuid in assignments:
-            time_pref_exists = faculty_repo.find_meeting_time_preference(db, nuid, section.time_block_id)
-            double_booked = section_repo.double_booked(
-                db,
-                faculty_repo.get_assignments(db, nuid, section.schedule_id),
-                section.time_block_id,
-            )
-            if not time_pref_exists:
+
+    for nuid in faculty_nuids:
+        other_assignments = [
+            a for a in faculty_repo.get_assginments(db, nuid, section.schedule_id)
+            if a.section_id != section.section_id
+        ]
+        if section.time_block_id is not None:
+            if not faculty_repo.find_meeting_time_preference(db, nuid, section.time_block_id):
                 warnings.append(WarningType.UNPREFERENCED_TIME)
-            if double_booked:
+            if section_repo.double_booked(db, other_assignments, section.time_block_id):
                 warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
-    if "course_id" in updates.model_fields_set:
-        for nuid in assignments:
-            course_pref_exists = faculty_repo.find_course_preference(db, nuid, section.course_id)
-            if not course_pref_exists:
-                warnings.append(WarningType.UNPREFERENCED_COURSE)
-    if "faculty_nuids" in updates.model_fields_set:
-        for faculty_id in updates.faculty_nuids or []:
-            f = faculty_repo.get_by_nuid(db, faculty_id)
-            assigned = faculty_repo.get_assignments(db, faculty_id, section.schedule_id)
-            assignment_count = len(assigned)
-            if section_repo.double_booked(db, assigned, section.time_block_id):
-                warnings.append(WarningType.FACULTY_DOUBLE_BOOKED)
-            if assignment_count + 1 > f.max_load:
-                warnings.append(WarningType.FACULTY_OVERLOAD)
-            if not faculty_repo.find_course_preference(db, faculty_id, section.course_id):
-                warnings.append(WarningType.UNPREFERENCED_COURSE)
+        if not faculty_repo.find_course_preference(db, nuid, section.course_id):
+            warnings.append(WarningType.UNPREFERENCED_COURSE)
+        f = faculty_repo.get_by_nuid(db, nuid)
+        if len(other_assignments) + 1 > f.max_load:
+            warnings.append(WarningType.FACULTY_OVERLOAD)
+
     return warnings
 
 
