@@ -11,19 +11,21 @@ Each semester, scheduling administrators must coordinate course offerings, facul
 - **CSV Data Ingestion** — Upload historical course offering data and faculty preferences via formatted CSV files
 - **Scheduling Algorithm** — Constraint-based optimization that respects hard constraints, prioritizes ranked faculty preferences, and balances time block distribution
 - **Schedule Visualization** — Grid-based views organized by professor, department, or time pattern with color-coded constraint violation indicators
-- **Manual Editing** — Intuitive drag-and-drop modifications with a two-phase warning system (immediate feedback + holistic scoring)
+- **Manual Editing** — Intuitive modifications with live WebSocket updates so all collaborators see changes in real time, backed by a two-phase warning system (immediate per-section feedback + holistic constraint scoring)
 - **Collaboration** — Role-based access control, Notion-style commenting, draft versioning, and schedule finalization workflows
 - **Export** — CSV export formatted for CourseLeaf entry, plus PDF/image exports for sharing
 
 ## Tech Stack
 
-| Layer            | Technology                                 |
-|------------------|--------------------------------------------|
-| Frontend         | React, TypeScript, Tailwind CSS, Orval     |
-| Backend          | FastAPI, Pydantic, Python                  |
-| ORM              | SQLAlchemy                                 |
-| Database         | PostgreSQL                                 |
-| Containerization | Docker                                     |
+| Layer            | Technology                                    |
+|------------------|-----------------------------------------------|
+| Frontend         | React, TypeScript, Tailwind CSS v4, Orval     |
+| Backend          | FastAPI, Pydantic, Python 3.12                |
+| ORM              | SQLAlchemy                                    |
+| Database         | PostgreSQL 16                                 |
+| Authentication   | Auth0 (JWT, RBAC)                             |
+| Containerization | Docker                                        |
+| Deployment       | AWS ECS, ECR, S3, CloudFront                  |
 
 ## Project Structure
 
@@ -60,21 +62,41 @@ automated-course-scheduler/
 ### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
-- Node.js 18+ (for local frontend development)
-- Python 3.11+ (for local backend development)
+- Node.js 20+ (for local frontend development)
+- Python 3.12+ (for local backend development)
+- An [Auth0](https://auth0.com/) account with an API and SPA application configured
 
 ### Running with Docker
 
 ```bash
 # Clone the repository
 git clone https://github.com/KhourySpecialProjects/AutomatedCourseScheduler.git
-cd automated-course-scheduler
+cd AutomatedCourseScheduler
 
-# Copy the example environment file and configure
+# Copy the example environment file and fill in your values
 cp .env.example .env
+```
 
+The `.env` file requires Auth0 credentials before the app will start:
+
+```
+AUTH0_DOMAIN=your.domain.auth0.com
+AUTH0_AUDIENCE=https://your.api.audience
+AUTH0_SPA_CLIENT_ID=your_spa_client_id
+```
+
+See `.env.example` for the full list of required variables.
+
+```bash
 # Build and start all services
-make docker-build
+make build
+
+# Seed the database with development data
+make seed
+
+# Bootstrap the first admin user (run once)
+docker compose exec api python bootstrap_admin.py \
+  --nuid <nuid> --first-name <First> --last-name <Last> --email <email>
 ```
 
 The application will be available at:
@@ -111,18 +133,52 @@ make fe-dev       # npm run dev  (port 3000)
 | **Admin**   | Upload data, run algorithm, edit schedules, override warnings, export |
 | **Viewer**  | View schedules, leave comments                                     |
 
-## CI
+## Authentication
 
-GitHub Actions runs on every pull request targeting `main`. The pipeline is path-scoped so only relevant jobs trigger based on what changed.
+Auth0 handles all login/logout flows. The backend verifies JWT tokens on every request and enforces role-based access. Roles are assigned via Auth0 and synced to the local `User` table on first login.
+
+The first admin user must be provisioned manually after the initial deploy:
+
+```bash
+docker compose exec api python bootstrap_admin.py \
+  --nuid <nuid> --first-name <First> --last-name <Last> --email <email>
+```
+
+Required environment variables are listed in `.env.example` under the `Auth0` section.
+
+## CI/CD
+
+GitHub Actions runs on every pull request and on every push to `main`. The pipeline is path-scoped so only relevant jobs trigger based on what changed.
 
 | Workflow | Trigger | Steps |
 |---|---|---|
-| **Backend CI** | Changes to `backend/**` | Ruff lint → Ruff format check → pytest |
-| **Frontend CI** | Changes to `frontend/**` | ESLint → Vitest |
+| **Backend CI** | PR with changes to `backend/**` | Ruff lint → Ruff format check → pytest |
+| **Frontend CI** | PR with changes to `frontend/**` | ESLint → Vitest |
+| **Deploy** | Push to `main` | Frontend: build → S3 sync → CloudFront invalidation; Backend: Docker build → ECR push → ECS service deploy |
 
-All checks must pass before a PR can merge.
+All CI checks must pass before a PR can merge.
 
-To run the same checks locally:
+### Deployment secrets and variables
+
+The Deploy workflow reads from GitHub Actions **Secrets** and **Variables**:
+
+| Name | Type | Description |
+|---|---|---|
+| `AWS_ROLE_TO_ASSUME` | Secret | IAM role ARN for OIDC authentication |
+| `VITE_API_BASE_URL` | Secret | Backend API URL for the production build |
+| `VITE_AUTH0_DOMAIN` | Secret | Auth0 domain for the production SPA |
+| `VITE_AUTH0_CLIENT_ID` | Secret | Auth0 SPA client ID |
+| `VITE_AUTH0_AUDIENCE` | Secret | Auth0 API audience |
+| `AWS_REGION` | Variable | AWS region (e.g. `us-east-1`) |
+| `S3_BUCKET` | Variable | S3 bucket name for frontend assets |
+| `CLOUDFRONT_DISTRIBUTION_ID` | Variable | CloudFront distribution to invalidate |
+| `ECR_REPOSITORY` | Variable | ECR repository name for the backend image |
+| `ECS_CLUSTER` | Variable | ECS cluster name |
+| `ECS_SERVICE` | Variable | ECS service name |
+| `ECS_TASK_FAMILY` | Variable | ECS task definition family |
+| `ECS_CONTAINER_NAME` | Variable | Container name within the task definition |
+
+To run the same CI checks locally:
 
 **Backend:**
 
@@ -160,6 +216,10 @@ class SectionResponse(BaseModel):
 `from_attributes = True` allows the schema to be constructed directly from SQLAlchemy ORM instances without a manual conversion step.
 
 FastAPI automatically exposes the full OpenAPI spec at `/docs` (Swagger UI) and `/openapi.json`, which the frontend uses with **Orval** to generate a fully-typed TypeScript API client. This means frontend types stay in sync with backend schemas automatically — a schema change on the backend propagates to the frontend after re-running `npm run generate`.
+
+### Real-Time Updates
+
+The backend exposes a WebSocket endpoint (`/ws`) that broadcasts schedule change events to all connected clients. The frontend subscribes via the `useScheduleWebSocket` hook so edits made by one user are reflected immediately in other open sessions — no polling required.
 
 ## License
 
