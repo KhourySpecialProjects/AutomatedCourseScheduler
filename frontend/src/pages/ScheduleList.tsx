@@ -282,6 +282,8 @@ function StepIndicator({ current }: { current: Step }) {
 function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCreated: (s: ScheduleResponse) => void }) {
   const [step, setStep] = useState<Step>('upload');
   const [createdSchedule, setCreatedSchedule] = useState<ScheduleResponse | null>(null);
+  const createInFlightRef = useRef(false);
+  const generateInFlightRef = useRef(false);
 
   /* ---------- step 1: csv uploads ---------- */
   const [uploadResults, setUploadResults] = useState<Record<UploadKind, UploadResponse | null>>({
@@ -348,12 +350,14 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
   }
 
   async function handleCreate() {
+    if (createInFlightRef.current) return;
     if (!name.trim() || semesterId === '' || campusId === '') {
       setFormError('All fields are required.');
       return;
     }
     setFormError(null);
     setCreating(true);
+    createInFlightRef.current = true;
     try {
       const api = getAutomatedCourseSchedulerAPI();
       const created = await api.createScheduleSchedulesPost({
@@ -371,13 +375,16 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
       setFormError(typeof detail === 'string' ? detail : 'Failed to create schedule.');
     } finally {
       setCreating(false);
+      createInFlightRef.current = false;
     }
   }
 
   async function handleGenerate() {
     if (!createdSchedule) return;
+    if (generateInFlightRef.current) return;
     setGenerateError(null);
     setGenerating(true);
+    generateInFlightRef.current = true;
     try {
       await axiosInstance({
         url: `/schedules/${createdSchedule.schedule_id}/generate`,
@@ -393,6 +400,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
       setGenerateError(typeof detail === 'string' ? detail : 'Failed to start schedule generation.');
     } finally {
       setGenerating(false);
+      generateInFlightRef.current = false;
     }
   }
 
@@ -661,7 +669,10 @@ export default function ScheduleList() {
   }, []);
 
   function handleCreated(s: ScheduleResponse) {
-    setSchedules((prev) => [s, ...prev]);
+    setSchedules((prev) => {
+      if (prev.some((p) => p.schedule_id === s.schedule_id)) return prev;
+      return [s, ...prev];
+    });
   }
 
   async function handleUpdate(scheduleId: number, data: { name?: string; draft?: boolean }) {
