@@ -68,6 +68,14 @@ def replace_faculty_assignments(db: Session, section_id: int, faculty_nuids: lis
         db.add(FacultyAssignment(faculty_nuid=nuid, section_id=section_id))
 
 
+def get_faculty_assignmnets(db: Session, section_id: int) -> list[FacultyAssignment]:
+    assignments = db.query(FacultyAssignment).filter(FacultyAssignment.section_id == section_id).all()
+    instructors = []
+    for assignment in assignments:
+        instructors.append(assignment.faculty_nuid)
+    return instructors
+
+
 def get_by_instructor(db: Session, instructor_id: int) -> list[FacultyAssignment]:
     current_year = datetime.now().year
     assignments = (
@@ -84,3 +92,11 @@ def get_by_instructor(db: Session, instructor_id: int) -> list[FacultyAssignment
     )
 
     return assignments
+
+
+def double_booked(db: Session, assignments: list[FacultyAssignment], meeting_time: int) -> bool:
+    for assignment in assignments:
+        section = get_by_id(db, assignment.section_id)
+        if section.time_block_id == meeting_time:
+            return True
+    return False
