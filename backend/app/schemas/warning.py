@@ -19,4 +19,5 @@ class WarningResponse(Warning):
 
     warning_id: int = Field(..., description="Unique warning ID")
     dismissed: bool = Field(default=False, description="Whether this warning was dismissed")
+    dismissed_by: str | None = Field(default=None, description="Display name of the user who dismissed the warning")
     section_id: int | None = Field(default=None, description="Directly linked section (manual-edit warnings only)")

@@ -604,6 +604,11 @@ export type WarningResponseCourseID = number | null;
 export type WarningResponseBlockID = number | null;
 
 /**
+ * Display name of the user who dismissed the warning
+ */
+export type WarningResponseDismissedBy = string | null;
+
+/**
  * Directly linked section (manual-edit warnings only)
  */
 export type WarningResponseSectionId = number | null;
@@ -628,6 +633,8 @@ export interface WarningResponse {
   warning_id: number;
   /** Whether this warning was dismissed */
   dismissed?: boolean;
+  /** Display name of the user who dismissed the warning */
+  dismissed_by?: WarningResponseDismissedBy;
   /** Directly linked section (manual-edit warnings only) */
   section_id?: WarningResponseSectionId;
 }

@@ -91,13 +91,25 @@ def _set_status(db, schedule_id: int, status: str, error_message: str | None = N
 # Warning persistence — respects dismissed warnings
 
 
-def _persist_warnings(db, schedule_id, phase2_warnings, unmatched_assignments):
-    """Persist warnings, preserving dismissed ones and skipping duplicates."""
+def _persist_warnings(
+    db,
+    schedule_id,
+    phase2_warnings,
+    phase2_warning_section_ids,
+    unmatched_assignments,
+    algo_to_db_section_id,
+):
+    """Persist warnings, preserving dismissed ones and skipping duplicates.
+
+    ``algo_to_db_section_id`` maps each algorithm-internal section id to the real DB
+    section id that was just written, so row-level warnings land on the right row.
+    """
     # Load all existing warnings (including dismissed)
     existing = warning_repo.get_by_schedule(db, schedule_id, include_dismissed=True)
 
-    # Build set of dismissed warning keys so we don't re-create them
-    dismissed_keys = {(w.type, w.course_id, w.faculty_nuid, w.time_block_id) for w in existing if w.dismissed}
+    # Build set of dismissed warning keys so we don't re-create them.
+    # section_id is part of the key so per-section dismissals survive across runs.
+    dismissed_keys = {(w.type, w.section_id, w.course_id, w.faculty_nuid, w.time_block_id) for w in existing if w.dismissed}
 
     # Delete only non-dismissed warnings (dismissed ones survive re-runs)
     for w in existing:
@@ -107,19 +119,17 @@ def _persist_warnings(db, schedule_id, phase2_warnings, unmatched_assignments):
     count = 0
 
     # Persist Phase 2 warnings (time block assignment issues)
-    for w in phase2_warnings:
-        key = (
-            w.Type.value if w.Type else "unknown",
-            w.CourseID,
-            w.FacultyID,
-            w.BlockID,
-        )
+    for w, algo_sid in zip(phase2_warnings, phase2_warning_section_ids, strict=True):
+        real_sid = algo_to_db_section_id.get(algo_sid) if algo_sid is not None else None
+        type_value = w.Type.value if w.Type else "unknown"
+        key = (type_value, real_sid, w.CourseID, w.FacultyID, w.BlockID)
         if key in dismissed_keys:
             continue
         db.add(
             ScheduleWarningModel(
                 schedule_id=schedule_id,
-                type=key[0],
+                section_id=real_sid,
+                type=type_value,
                 severity=w.SeverityRank.value,
                 message=w.Message,
                 faculty_nuid=w.FacultyID,
@@ -131,12 +141,14 @@ def _persist_warnings(db, schedule_id, phase2_warnings, unmatched_assignments):
 
     # Persist unmatched section warnings
     for a in unmatched_assignments:
-        key = (WarningType.INSUFFICIENT_FACULTY_SUPPLY.value, a.course_id, None, None)
+        real_sid = algo_to_db_section_id.get(a.section_id)
+        key = (WarningType.INSUFFICIENT_FACULTY_SUPPLY.value, real_sid, a.course_id, None, None)
         if key in dismissed_keys:
             continue
         db.add(
             ScheduleWarningModel(
                 schedule_id=schedule_id,
+                section_id=real_sid,
                 type=WarningType.INSUFFICIENT_FACULTY_SUPPLY.value,
                 severity=str(WarningType.INSUFFICIENT_FACULTY_SUPPLY.severity.value),
                 message=f"Section {a.section_id} unmatched: {a.unmatched_reason}",
@@ -146,6 +158,37 @@ def _persist_warnings(db, schedule_id, phase2_warnings, unmatched_assignments):
         count += 1
 
     logger.info(f"Persisted {count} warnings ({len(dismissed_keys)} dismissed preserved)")
+
+
+def _persist_per_section_warnings(db, schedule_id: int, section_ids: list[int]) -> int:
+    """Run error_check on each section and stage ScheduleWarning rows (no commit)."""
+    from app.services import section as section_service
+
+    # Refresh schedule so its sections relationship reflects the just-written rows.
+    schedule = db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
+    if schedule is not None:
+        db.refresh(schedule)
+
+    count = 0
+    for sid in section_ids:
+        section = section_repo.get_by_id(db, sid)
+        if section is None:
+            continue
+        # error_check appends once per faculty, so the same type can repeat.
+        # Dedupe so each section gets at most one row per type.
+        for wt in set(section_service.error_check(db, section)):
+            db.add(
+                ScheduleWarningModel(
+                    schedule_id=schedule_id,
+                    section_id=sid,
+                    type=wt.value,
+                    severity=str(wt.severity.value),
+                    message=wt.value,
+                )
+            )
+            count += 1
+    logger.info(f"Persisted {count} per-section warnings")
+    return count
 
 
 # Generate — full run from scratch
@@ -246,6 +289,7 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
     matched_lookup = {a.section_id: a for a in matched}
     section_number_tracker: dict[int, int] = {}
     sections_written = 0
+    algo_to_db_section_id: dict[int, int] = {}
 
     # Matched sections (placed or unplaced) — write with faculty, time block optional
     for sa in phase2_result.assignments:
@@ -263,6 +307,7 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
         )
         db.add(section_obj)
         db.flush()
+        algo_to_db_section_id[sa.section_id] = section_obj.section_id
         fa = FacultyAssignment(
             faculty_nuid=original.faculty_nuid,
             section_id=section_obj.section_id,
@@ -281,10 +326,20 @@ def _run_algorithm(db, schedule_id: int, parameters: AlgorithmParameters):
             capacity=30,
         )
         db.add(section_obj)
+        db.flush()
+        algo_to_db_section_id[a.section_id] = section_obj.section_id
         sections_written += 1
 
     # Step 9: Persist warnings (respects dismissed)
-    _persist_warnings(db, schedule_id, phase2_result.warnings, unmatched)
+    _persist_warnings(
+        db,
+        schedule_id,
+        phase2_result.warnings,
+        phase2_result.warning_section_ids,
+        unmatched,
+        algo_to_db_section_id,
+    )
+    _persist_per_section_warnings(db, schedule_id, list(algo_to_db_section_id.values()))
 
     db.commit()
     logger.info(f"Algorithm completed for schedule {schedule_id}: {sections_written} sections written")
@@ -427,6 +482,7 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
         section_number_tracker[s.course_id] = max(current, s.section_number)
 
     sections_written = 0
+    algo_to_db_section_id: dict[int, int] = {}
 
     # Matched sections (placed or unplaced) — write with faculty, time block optional
     for sa in phase2_result.assignments:
@@ -444,6 +500,7 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
         )
         db.add(section_obj)
         db.flush()
+        algo_to_db_section_id[sa.section_id] = section_obj.section_id
         fa = FacultyAssignment(
             faculty_nuid=original.faculty_nuid,
             section_id=section_obj.section_id,
@@ -462,10 +519,20 @@ def _run_regenerate(db, schedule_id: int, parameters: AlgorithmParameters):
             capacity=30,
         )
         db.add(section_obj)
+        db.flush()
+        algo_to_db_section_id[a.section_id] = section_obj.section_id
         sections_written += 1
 
     # Step 11: Persist warnings (append to existing, respect dismissed)
-    _persist_warnings(db, schedule_id, phase2_result.warnings, unmatched)
+    _persist_warnings(
+        db,
+        schedule_id,
+        phase2_result.warnings,
+        phase2_result.warning_section_ids,
+        unmatched,
+        algo_to_db_section_id,
+    )
+    _persist_per_section_warnings(db, schedule_id, list(algo_to_db_section_id.values()))
 
     db.commit()
     logger.info(f"Regenerate completed for schedule {schedule_id}: {sections_written} new sections written")

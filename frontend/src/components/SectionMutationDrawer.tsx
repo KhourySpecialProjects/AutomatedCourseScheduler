@@ -501,6 +501,34 @@ export default function SectionMutationDrawer(props: Props) {
   const isEdit = props.mode === 'edit';
   const section = isEdit ? props.section : null;
   const sectionWarnings: WarningResponse[] = isEdit ? (props.warnings ?? []) : [];
+  const activeWarnings = sectionWarnings.filter((w) => !w.dismissed);
+  const dismissedWarnings = sectionWarnings.filter((w) => w.dismissed);
+  const [showDismissed, setShowDismissed] = useState(false);
+  const [pendingWarningId, setPendingWarningId] = useState<number | null>(null);
+
+  async function handleDismissWarning(w: WarningResponse) {
+    setPendingWarningId(w.warning_id);
+    try {
+      await getAutomatedCourseSchedulerAPI().dismissWarningSchedulesScheduleIdWarningsWarningIdDismissPatch(
+        scheduleId,
+        w.warning_id,
+      );
+    } finally {
+      setPendingWarningId(null);
+    }
+  }
+
+  async function handleRestoreWarning(w: WarningResponse) {
+    setPendingWarningId(w.warning_id);
+    try {
+      await getAutomatedCourseSchedulerAPI().restoreWarningSchedulesScheduleIdWarningsWarningIdRestorePatch(
+        scheduleId,
+        w.warning_id,
+      );
+    } finally {
+      setPendingWarningId(null);
+    }
+  }
   const [originalCrosslistedId, setOriginalCrosslistedId] = useState<number | null>(
     section?.crosslisted_section_id ?? null,
   );
@@ -1011,7 +1039,7 @@ export default function SectionMutationDrawer(props: Props) {
                 <div className="pt-4 border-t border-gray-100">
                   <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Warnings</h3>
                   <div className="space-y-1.5">
-                    {sectionWarnings.map((w) => {
+                    {activeWarnings.map((w) => {
                       const sev = w.SeverityRank;
                       const badgeClass =
                         sev === Severity.NUMBER_3
@@ -1020,14 +1048,62 @@ export default function SectionMutationDrawer(props: Props) {
                             ? 'text-amber-700 bg-amber-50 border border-amber-200'
                             : 'text-yellow-700 bg-yellow-50 border border-yellow-200';
                       const label = sev === Severity.NUMBER_3 ? 'High' : sev === Severity.NUMBER_2 ? 'Medium' : 'Low';
+                      const busy = pendingWarningId === w.warning_id;
                       return (
                         <div key={w.warning_id} className="flex items-start justify-between gap-2 text-xs">
-                          <span className="text-gray-700">{w.Message}</span>
-                          <span className={`shrink-0 px-1.5 py-0.5 rounded-full font-medium ${badgeClass}`}>{label}</span>
+                          <span className="text-gray-700 flex-1">{w.Message}</span>
+                          <div className="shrink-0 flex items-center gap-2">
+                            <span className={`px-1.5 py-0.5 rounded-full font-medium ${badgeClass}`}>{label}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleDismissWarning(w)}
+                              disabled={busy}
+                              className="text-xs text-gray-500 hover:text-gray-900 disabled:opacity-50"
+                            >
+                              Dismiss
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
                   </div>
+
+                  {dismissedWarnings.length > 0 && (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowDismissed((v) => !v)}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        {showDismissed ? 'Hide' : 'Show'} {dismissedWarnings.length} dismissed
+                      </button>
+                      {showDismissed && (
+                        <div className="space-y-1.5 mt-2">
+                          {dismissedWarnings.map((w) => {
+                            const busy = pendingWarningId === w.warning_id;
+                            return (
+                              <div key={w.warning_id} className="flex items-start justify-between gap-2 text-xs opacity-60">
+                                <span className="text-gray-700 flex-1">
+                                  {w.Message}
+                                  {w.dismissed_by && (
+                                    <span className="ml-1.5 text-gray-400">· dismissed by {w.dismissed_by}</span>
+                                  )}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRestoreWarning(w)}
+                                  disabled={busy}
+                                  className="shrink-0 text-xs text-gray-500 hover:text-gray-900 disabled:opacity-50"
+                                >
+                                  Restore
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -662,7 +662,7 @@ export default function ScheduleSectionRowView({
           mode="edit"
           scheduleId={scheduleId}
           section={editingSection}
-          warnings={warnings.filter((w) => w.section_id === editingSection.section_id && !w.dismissed)}
+          warnings={warnings.filter((w) => w.section_id === editingSection.section_id)}
           timeBlocks={timeBlocks}
           campusId={campusId}
           campusName={campusName}

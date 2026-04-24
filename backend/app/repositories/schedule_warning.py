@@ -44,25 +44,35 @@ def sync_section_warnings(
     schedule_id: int,
     detected: list[WarningType],
 ) -> None:
-
+    # Replace strategy with dismissed preservation:
+    #   - drop any row whose type is no longer detected (condition resolved)
+    #   - for types still detected: keep dismissed rows, drop non-dismissed duplicates,
+    #     and add exactly one non-dismissed row per type (unless a dismissed row already exists).
+    # Diff-based reconciliation can't clean up duplicates (error_check can emit the same
+    # type once per faculty), so it was orphaning rows.
     existing = get_by_section(db, section_id)
-    existing_by_type = {w.type: w for w in existing}
     detected_values = {wt.value for wt in detected}
+    dismissed_types: set[str] = set()
 
-    for type_str, warning in existing_by_type.items():
-        if type_str not in detected_values:
-            db.delete(warning)
+    for w in existing:
+        if w.type not in detected_values:
+            db.delete(w)
+        elif w.dismissed:
+            dismissed_types.add(w.type)
+        else:
+            db.delete(w)
 
-    for wt in detected:
-        if wt.value not in existing_by_type:
-            db.add(
-                ScheduleWarning(
-                    schedule_id=schedule_id,
-                    section_id=section_id,
-                    type=wt.value,
-                    severity=str(wt.severity.value),
-                    message=wt.value,
-                    dismissed=False,
-                )
+    for wt in set(detected):
+        if wt.value in dismissed_types:
+            continue
+        db.add(
+            ScheduleWarning(
+                schedule_id=schedule_id,
+                section_id=section_id,
+                type=wt.value,
+                severity=str(wt.severity.value),
+                message=wt.value,
+                dismissed=False,
             )
+        )
     db.commit()

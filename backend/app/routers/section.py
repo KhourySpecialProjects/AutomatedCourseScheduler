@@ -101,17 +101,18 @@ async def update_section(
                 },
             )
 
-    if warnings:
-        await manager.broadcast(
-            updated.schedule_id,
-            {
-                "type": "section_warnings",
-                "payload": {
-                    "section_id": section_id,
-                    "warnings": [w.value for w in warnings],
-                },
+    # Broadcast unconditionally: an edit that clears the last warning still needs to
+    # prompt clients to refetch, otherwise stale warning state lingers in the UI.
+    await manager.broadcast(
+        updated.schedule_id,
+        {
+            "type": "section_warnings",
+            "payload": {
+                "section_id": section_id,
+                "warnings": [w.value for w in warnings],
             },
-        )
+        },
+    )
 
     return updated
 

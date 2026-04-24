@@ -33,7 +33,7 @@ def test_persist_warnings_creates_unmatched_rows(db_session):
     db_session.commit()
 
     unmatched = [CourseAssignment(section_id=1, course_id=42, is_matched=False, unmatched_reason="No qualified faculty")]
-    _persist_warnings(db_session, schedule.schedule_id, [], unmatched)
+    _persist_warnings(db_session, schedule.schedule_id, [], [], unmatched, {})
     db_session.flush()
 
     rows = db_session.query(ScheduleWarning).filter(ScheduleWarning.schedule_id == schedule.schedule_id).all()
@@ -67,7 +67,7 @@ def test_persist_warnings_skips_dismissed_unmatched(db_session):
     db_session.commit()
 
     unmatched = [CourseAssignment(section_id=1, course_id=42, is_matched=False, unmatched_reason="No qualified faculty")]
-    _persist_warnings(db_session, schedule.schedule_id, [], unmatched)
+    _persist_warnings(db_session, schedule.schedule_id, [], [], unmatched, {})
     db_session.flush()
 
     rows = db_session.query(ScheduleWarning).filter(ScheduleWarning.schedule_id == schedule.schedule_id).all()
@@ -97,7 +97,7 @@ def test_persist_warnings_replaces_non_dismissed_on_rerun(db_session):
     db_session.add(old)
     db_session.commit()
 
-    _persist_warnings(db_session, schedule.schedule_id, [], [])
+    _persist_warnings(db_session, schedule.schedule_id, [], [], [], {})
     db_session.flush()
 
     rows = db_session.query(ScheduleWarning).filter(ScheduleWarning.schedule_id == schedule.schedule_id).all()
