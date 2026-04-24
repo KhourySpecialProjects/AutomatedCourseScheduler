@@ -6,35 +6,65 @@ import Faculty from './pages/Faculty';
 import Courses from './pages/Courses';
 import Sidebar from './components/Sidebar';
 import LoginButton from './components/LoginButton';
+import AccessDenied from './components/AccessDenied';
 import { useAuthInterceptor } from './hooks/useAuthInterceptor';
-import { UserProvider } from './context/UserContext';
+import { UserProvider, useUser } from './context/UserContext';
+
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3 text-gray-500">
+        <div className="w-8 h-8 border-4 border-burgundy-200 border-t-burgundy-600 rounded-full animate-spin" />
+        <span className="text-sm font-medium">Loading...</span>
+      </div>
+    </div>
+  );
+}
+
+function ErrorScreen({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-8 max-w-sm w-full text-center">
+        <div className="text-3xl mb-2">⚠️</div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Something went wrong</h2>
+        <p className="text-sm text-gray-500">{message}</p>
+      </div>
+    </div>
+  );
+}
+
+function AuthorizedApp() {
+  const { status, errorMessage } = useUser();
+
+  if (status === 'loading') return <LoadingScreen />;
+  if (status === 'blocked') return <AccessDenied />;
+  if (status === 'error') return <ErrorScreen message={errorMessage ?? 'Could not load your user profile.'} />;
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto">
+        <div className="p-8">
+          <Routes>
+            <Route path="/" element={<Navigate to="/schedules" replace />} />
+            <Route path="/schedules" element={<ScheduleList />} />
+            <Route path="/schedules/:scheduleId" element={<Schedules />} />
+            <Route path="/faculty/schedules/:scheduleId" element={<Schedules readOnly />} />
+            <Route path="/faculty" element={<Faculty />} />
+            <Route path="/courses" element={<Courses />} />
+          </Routes>
+        </div>
+      </main>
+    </div>
+  );
+}
 
 function App() {
   const { isAuthenticated, isLoading, error } = useAuth0();
   useAuthInterceptor();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-gray-500">
-          <div className="w-8 h-8 border-4 border-burgundy-200 border-t-burgundy-600 rounded-full animate-spin" />
-          <span className="text-sm font-medium">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-8 max-w-sm w-full text-center">
-          <div className="text-3xl mb-2">⚠️</div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Something went wrong</h2>
-          <p className="text-sm text-gray-500">{error.message}</p>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <LoadingScreen />;
+  if (error) return <ErrorScreen message={error.message} />;
 
   return (
     <BrowserRouter>
@@ -58,21 +88,7 @@ function App() {
         </div>
       ) : (
         <UserProvider>
-          <div className="flex h-screen overflow-hidden bg-gray-50">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto">
-              <div className="p-8">
-                <Routes>
-                  <Route path="/" element={<Navigate to="/schedules" replace />} />
-                  <Route path="/schedules" element={<ScheduleList />} />
-                  <Route path="/schedules/:scheduleId" element={<Schedules />} />
-                  <Route path="/faculty/schedules/:scheduleId" element={<Schedules readOnly />} />
-                  <Route path="/faculty" element={<Faculty />} />
-                  <Route path="/courses" element={<Courses />} />
-                </Routes>
-              </div>
-            </main>
-          </div>
+          <AuthorizedApp />
         </UserProvider>
       )}
     </BrowserRouter>

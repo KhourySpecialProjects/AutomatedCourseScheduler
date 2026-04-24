@@ -148,6 +148,8 @@ async def get_or_link_user(db: Session, sub: str, access_token: str) -> User:
 
     user = user_repo.get_by_auth0_sub(db, sub)
     if user is not None:
+        if not user.active:
+            raise LookupError(f"User account for {user.email} is deactivated. Contact an admin.")
         return user
 
     # First login: look up email from Auth0 userinfo
@@ -163,8 +165,8 @@ async def get_or_link_user(db: Session, sub: str, access_token: str) -> User:
         raise ValueError("Could not retrieve email from Auth0 userinfo")
 
     user = user_repo.get_by_email(db, email)
-    if user is None:
-        raise LookupError(f"No user record found for {email}. Contact an admin.")
+    if user is None or not user.active:
+        raise LookupError(f"No active user record found for {email}. Contact an admin.")
 
     user_repo.set_auth0_sub(db, user, sub)
     return user
