@@ -37,6 +37,7 @@ automated-course-scheduler/
 │   │   ├── components/      # Reusable UI components
 │   │   ├── hooks/           # Custom React hooks
 │   │   ├── pages/           # Route-level page components
+│   │   ├── stores/          # Zustand stores (shared client state)
 │   │   ├── types/           # TypeScript type definitions
 │   │   └── utils/           # Helper utilities
 │   ├── package.json
@@ -219,7 +220,7 @@ FastAPI automatically exposes the full OpenAPI spec at `/docs` (Swagger UI) and 
 
 ### Real-Time Updates
 
-The backend exposes a WebSocket endpoint (`/ws`) that broadcasts schedule change events to all connected clients. The frontend subscribes via the `useScheduleWebSocket` hook so edits made by one user are reflected immediately in other open sessions — no polling required.
+The backend exposes a WebSocket endpoint (`/ws`) that broadcasts schedule change events to all connected clients. The frontend subscribes via the `useScheduleData` hook, which reads from a shared zustand store so the Schedules and Faculty pages reuse one cached connection per schedule — no polling and no duplicate fetches on navigation.
 
 ## License
 

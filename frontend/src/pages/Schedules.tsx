@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ScheduleSectionRowView from '../components/ScheduleSectionRowView';
 import AlgorithmWarningsBanner from '../components/AlgorithmWarningsBanner';
-import { useScheduleWebSocket, type WsStatus } from '../hooks/useScheduleWebSocket';
+import { useScheduleData, type WsStatus } from '../hooks/useScheduleData';
 import { getAutomatedCourseSchedulerAPI, type ScheduleResponse } from '../api/generated';
 import { useUser } from '../context/UserContext';
 import { downloadScheduleCsv } from '../utils/exportCsv';
@@ -52,7 +52,7 @@ function CalendarIcon({ active }: { active: boolean }) {
 }
 
 function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?: boolean }) {
-  const { sections, locks, warnings, loading, status } = useScheduleWebSocket(scheduleId);
+  const { sections, locks, warnings, loading, status } = useScheduleData(scheduleId);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [schedulePersona, setSchedulePersona] = useState<SchedulePersona>('admin');
   const [selectedCourseCount, setSelectedCourseCount] = useState(0);
