@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   getAutomatedCourseSchedulerAPI,
@@ -17,12 +17,14 @@ import { useUser } from '../context/UserContext';
 
 function ScheduleCard({
   schedule,
+  semesterLabel,
   onClick,
   isAdmin,
   onUpdate,
   onDelete,
 }: {
   schedule: ScheduleResponse;
+  semesterLabel: string | null;
   onClick: () => void;
   isAdmin: boolean;
   onUpdate: (id: number, data: { name?: string; draft?: boolean }) => Promise<void>;
@@ -161,7 +163,9 @@ function ScheduleCard({
             <h3 className="text-base font-semibold text-gray-900 truncate">
               {schedule.name}
             </h3>
-            <p className="mt-0.5 text-sm text-gray-500">Semester {schedule.semester_id}</p>
+            {semesterLabel && (
+              <p className="mt-0.5 text-sm text-gray-500">{semesterLabel}</p>
+            )}
             <div className="mt-3 flex items-center gap-2">
               {schedule.draft ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
@@ -699,6 +703,7 @@ function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCr
 
 export default function ScheduleList() {
   const [schedules, setSchedules] = useState<ScheduleResponse[]>([]);
+  const [semesters, setSemesters] = useState<SemesterResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -717,7 +722,13 @@ export default function ScheduleList() {
         setError('Failed to load schedules.');
         setLoading(false);
       });
+    api.getAllSemestersSemestersGet().then(setSemesters).catch(() => {});
   }, []);
+
+  const semesterLabelById = useMemo(
+    () => new Map(semesters.map((s) => [s.semester_id, `${s.season} ${s.year}`])),
+    [semesters],
+  );
 
   function handleCreated(s: ScheduleResponse) {
     setSchedules((prev) => {
@@ -790,6 +801,7 @@ export default function ScheduleList() {
             <ScheduleCard
               key={s.schedule_id}
               schedule={s}
+              semesterLabel={semesterLabelById.get(s.semester_id) ?? null}
               isAdmin={isAdmin}
               onClick={() => navigate(`/schedules/${s.schedule_id}`)}
               onUpdate={handleUpdate}

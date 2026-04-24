@@ -60,12 +60,16 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
   const { me, meError } = useUser();
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [campusName, setCampusName] = useState<string | null>(null);
+  const [semesterLabel, setSemesterLabel] = useState<string | null>(null);
 
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
     api.getScheduleSchedulesScheduleIdGet(scheduleId)
       .then((s) => {
         setSchedule(s);
+        api.getSemesterSemestersSemesterIdGet(s.semester_id)
+          .then((sem) => setSemesterLabel(`${sem.season} ${sem.year}`))
+          .catch(() => {});
         // Resolve campus name for drawer filtering
         return api.getAllCampusesCampusesGet().then((campuses) => {
           const match = campuses.find((c) => c.campus_id === s.campus);
@@ -128,8 +132,8 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
               {modeLabel}
             </span>
           </div>
-          {schedule && (
-            <p className="mt-0.5 text-sm text-gray-500">Semester {schedule.semester_id}</p>
+          {schedule && semesterLabel && (
+            <p className="mt-0.5 text-sm text-gray-500">{semesterLabel}</p>
           )}
           {meError && (
             <div className="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">

@@ -86,6 +86,9 @@ describe('Schedules page', () => {
       getScheduleSchedulesScheduleIdGet: vi.fn().mockResolvedValue({
         schedule_id: 42, name: 'Fall 2025', semester_id: 1, draft: false, campus: 1, active: true,
       }),
+      getSemesterSemestersSemesterIdGet: vi.fn().mockResolvedValue({
+        semester_id: 1, season: 'Fall', year: 2025, active: true,
+      }),
       getAllCampusesCampusesGet: vi.fn().mockResolvedValue([
         { campus_id: 1, name: 'Boston', active: true },
       ]),
