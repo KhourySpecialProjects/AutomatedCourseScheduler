@@ -100,3 +100,19 @@ def double_booked(db: Session, assignments: list[FacultyAssignment], meeting_tim
         if section.time_block_id == meeting_time:
             return True
     return False
+
+
+def crosslist_group_section_ids(db: Session, section_id: int) -> set[int]:
+    ids: set[int] = {section_id}
+    section = get_by_id(db, section_id)
+    if section is None:
+        return ids
+
+    if section.crosslisted_section_id is not None:
+        ids.add(section.crosslisted_section_id)
+
+    reverse = db.query(Section).filter(Section.crosslisted_section_id == section_id).first()
+    if reverse is not None:
+        ids.add(reverse.section_id)
+
+    return ids
