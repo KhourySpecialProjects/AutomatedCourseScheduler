@@ -61,6 +61,9 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [campusName, setCampusName] = useState<string | null>(null);
   const [semesterLabel, setSemesterLabel] = useState<string | null>(null);
+  const [showRegenModal, setShowRegenModal] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenError, setRegenError] = useState<string | null>(null);
 
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
@@ -85,6 +88,46 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
     } catch {
       alert('Failed to export CSV. Please try again.');
     }
+  }
+
+  async function handleRegenerate() {
+    const api = getAutomatedCourseSchedulerAPI();
+    setRegenError(null);
+    try {
+      await api.regenerateAlgorithmSchedulesScheduleIdRegeneratePost(scheduleId, { parameters: {} });
+    } catch (e: unknown) {
+      const err = e as { response?: { status?: number; data?: { detail?: unknown } }; message?: unknown };
+      if (err?.response?.status === 409) {
+        setRegenError('Algorithm is already running. Please wait for it to finish.');
+      } else {
+        const detail = err?.response?.data?.detail ?? err?.message;
+        setRegenError(typeof detail === 'string' ? detail : 'Failed to start re-generation.');
+      }
+      return;
+    }
+    setShowRegenModal(false);
+    setRegenerating(true);
+
+    // Poll schedule status until it leaves "running", with a 60s safety cap.
+    const start = Date.now();
+    const poll = async () => {
+      try {
+        const s = await api.getScheduleSchedulesScheduleIdGet(scheduleId);
+        setSchedule(s);
+        if (s.status !== 'running') {
+          setRegenerating(false);
+          return;
+        }
+      } catch {
+        // Ignore transient errors and keep polling
+      }
+      if (Date.now() - start > 60_000) {
+        setRegenerating(false);
+        return;
+      }
+      window.setTimeout(() => { void poll(); }, 2000);
+    };
+    window.setTimeout(() => { void poll(); }, 1500);
   }
 
   const scheduleName = schedule?.name ?? `Schedule ${scheduleId}`;
@@ -143,6 +186,31 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
         </div>
 
         <div className="flex items-center gap-3">
+          {sectionsEditable && schedule && (
+            <button
+              type="button"
+              onClick={() => { setRegenError(null); setShowRegenModal(true); }}
+              disabled={regenerating}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-burgundy-200 text-burgundy-700 hover:bg-burgundy-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              {regenerating ? (
+                <>
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Re-generating…
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Re-generate
+                </>
+              )}
+            </button>
+          )}
           {schedule && !schedule.draft && (
             <button
               type="button"
@@ -249,6 +317,61 @@ function ScheduleView({ scheduleId, readOnly }: { scheduleId: number; readOnly?:
           isAdmin={sectionsEditable}
           userRoleLoaded={userRoleLoaded}
         />
+      )}
+
+      {showRegenModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          onClick={() => setShowRegenModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">Re-generate sections</h2>
+              <button
+                type="button"
+                onClick={() => setShowRegenModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3 text-sm text-gray-700">
+              <p>
+                Re-run the algorithm on courses that still need sections. Existing sections,
+                faculty assignments, and time blocks will be preserved.
+              </p>
+              <p className="text-gray-500">
+                Previously dismissed warnings will remain dismissed.
+              </p>
+              {regenError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  {regenError}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-100 bg-gray-50">
+              <button
+                type="button"
+                onClick={() => setShowRegenModal(false)}
+                className="px-3 py-1.5 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => { void handleRegenerate(); }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-burgundy-600 text-white hover:bg-burgundy-700 transition-colors"
+              >
+                Re-generate
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

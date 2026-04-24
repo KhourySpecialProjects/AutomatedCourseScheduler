@@ -1,5 +1,6 @@
 """Algorithm service — runs as background task with own DB session."""
 
+import asyncio
 import logging
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -86,6 +87,38 @@ def _set_status(db, schedule_id: int, status: str, error_message: str | None = N
             schedule.completed_at = datetime.now(UTC)
         schedule.error_message = error_message
         db.commit()
+
+
+# Broadcast schedule snapshot to connected WebSocket clients
+
+
+def _broadcast_schedule_complete(db, schedule_id: int) -> None:
+    """Push the fresh schedule snapshot and warnings signal to subscribers.
+
+    The algorithm runs as a FastAPI BackgroundTask in a threadpool thread, so
+    there is no running event loop. We bridge with ``asyncio.run``. Lazy imports
+    avoid circular-dependency concerns with section_service.
+    """
+    from app.schemas.section import SectionRichResponse
+    from app.services import section as section_service
+    from app.services.connection_manager import manager
+
+    try:
+        db.expire_all()
+        rich = section_service.get_rich_sections(db, schedule_id)
+        schedule_msg = {
+            "type": "schedule",
+            "payload": [SectionRichResponse.model_validate(s).model_dump(mode="json") for s in rich],
+        }
+        warnings_msg = {"type": "section_warnings", "payload": {"schedule_id": schedule_id}}
+
+        async def _send_all():
+            await manager.broadcast(schedule_id, schedule_msg)
+            await manager.broadcast(schedule_id, warnings_msg)
+
+        asyncio.run(_send_all())
+    except Exception as e:
+        logger.warning(f"Failed to broadcast completion for schedule {schedule_id}: {e}")
 
 
 # Warning persistence — respects dismissed warnings
@@ -200,6 +233,7 @@ def run_algorithm_task(schedule_id: int, parameters: AlgorithmParameters):
     try:
         _run_algorithm(db, schedule_id, parameters)
         _set_status(db, schedule_id, ScheduleStatus.GENERATED)
+        _broadcast_schedule_complete(db, schedule_id)
     except Exception as e:
         logger.error(f"Algorithm failed for schedule {schedule_id}: {e}")
         try:
@@ -352,6 +386,7 @@ def run_regenerate_task(schedule_id: int, parameters: AlgorithmParameters):
     try:
         _run_regenerate(db, schedule_id, parameters)
         _set_status(db, schedule_id, ScheduleStatus.GENERATED)
+        _broadcast_schedule_complete(db, schedule_id)
     except Exception as e:
         logger.error(f"Regenerate failed for schedule {schedule_id}: {e}")
         try:
