@@ -96,6 +96,7 @@ def assign_time_blocks(
     cap = float(params.MaxTimeBlockCapacity)  # 0.15
 
     warnings: list[Warning] = []
+    warning_section_ids: list[int | None] = []
     out: list[SectionAssignment] = []
 
     # set of time_block_ids already assigned to them.
@@ -194,6 +195,7 @@ def assign_time_blocks(
                     BlockID=None,
                 )
             )
+            warning_section_ids.append(assign.section_id)
             # return all the SectionAssignments we have so far
             # plus the ones with time_block_id=None to indicate unplaced
             out.append(
@@ -228,7 +230,7 @@ def assign_time_blocks(
 
     # Final sort by section_id for display
     out.sort(key=lambda s: s.section_id)
-    return TimeBlockAssignmentResult(assignments=out, warnings=warnings)
+    return TimeBlockAssignmentResult(assignments=out, warnings=warnings, warning_section_ids=warning_section_ids)
 
 
 # The following function is the exact same department cap logic used in assign_time_blocks

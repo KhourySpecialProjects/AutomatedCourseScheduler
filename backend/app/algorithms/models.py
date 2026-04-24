@@ -33,6 +33,7 @@ class TimeBlockAssignmentResult:
 
     assignments: list[SectionAssignment]
     warnings: list[Warning]
+    warning_section_ids: list[int | None] = field(default_factory=list)
 
 
 @dataclass
