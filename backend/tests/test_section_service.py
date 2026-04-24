@@ -397,6 +397,39 @@ def test_error_check_empty_faculty_nuids_no_warning(db_session):
     assert WarningType.FACULTY_OVERLOAD not in warnings
 
 
+def test_error_check_crosslisted_sections_not_double_booked(db_session):
+    campus = _make_campus(db_session)
+    semester = _make_semester(db_session)
+    schedule = _make_schedule(db_session, campus, semester)
+    course = _make_course(db_session, name="CS 2500", code=2500)
+    tb = _make_time_block(db_session, campus)
+    faculty = _make_faculty(db_session, campus, nuid=1001, email="f1@test.edu")
+
+    a = _make_section(db_session, schedule, course, tb, number=1)
+    b = _make_section(db_session, schedule, course, tb, number=2)
+    # Crosslist them as partners.
+    a.crosslisted_section_id = b.section_id
+    b.crosslisted_section_id = a.section_id
+
+    db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=a.section_id))
+    db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=b.section_id))
+    db_session.commit()
+
+    warnings_a = section_service.error_check(db_session, a, SectionUpdate(faculty_nuids=[faculty.nuid]))
+    warnings_b = section_service.error_check(db_session, b, SectionUpdate(faculty_nuids=[faculty.nuid]))
+
+    assert WarningType.FACULTY_DOUBLE_BOOKED not in warnings_a
+    assert WarningType.FACULTY_DOUBLE_BOOKED not in warnings_b
+
+    # A third, non-crosslisted section at the same time block should still trigger a real double-booking warning.
+    c = _make_section(db_session, schedule, course, tb, number=3)
+    db_session.add(FacultyAssignment(faculty_nuid=faculty.nuid, section_id=c.section_id))
+    db_session.commit()
+
+    warnings_c = section_service.error_check(db_session, c, SectionUpdate(faculty_nuids=[faculty.nuid]))
+    assert WarningType.FACULTY_DOUBLE_BOOKED in warnings_c
+
+
 # ---------------------------------------------------------------------------
 # update_section — basic behavior
 # ---------------------------------------------------------------------------

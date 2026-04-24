@@ -318,6 +318,7 @@ def error_check(db: Session, section: Section, updates: SectionUpdate | None = N
         return []
     warnings = []
     faculty_nuids = section_repo.get_faculty_assignmnets(db, section.section_id)
+    crosslist_ids = section_repo.crosslist_group_section_ids(db, section.section_id)
 
     if section.time_block_id is not None:
         schedule = schedule_repo.get_by_id(db, section.schedule_id)
@@ -327,7 +328,11 @@ def error_check(db: Session, section: Section, updates: SectionUpdate | None = N
             warnings.append(WarningType.TIME_BLOCK_OVERLOAD)
 
     for nuid in faculty_nuids:
-        other_assignments = [a for a in faculty_repo.get_assignments(db, nuid, section.schedule_id) if a.section_id != section.section_id]
+        other_assignments = [
+            a
+            for a in faculty_repo.get_assignments(db, nuid, section.schedule_id)
+            if a.section_id not in crosslist_ids
+        ]
         if section.time_block_id is not None:
             if not faculty_repo.find_meeting_time_preference(db, nuid, section.time_block_id):
                 warnings.append(WarningType.UNPREFERENCED_TIME)
