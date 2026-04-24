@@ -119,37 +119,67 @@ function generateBlockGroup(): string {
 
 /**
  * Compound AM/PM time selector — three linked selects for hour, minute, period.
- * Reports the chosen time as a "HH:MM" 24-hour string via `onChange`.
+ * Reports the chosen time as a "HH:MM" 24-hour string via `onChange`, but only
+ * once hour and minute are both set. Local state retains partial selections so
+ * each dropdown "sticks" as the user works through them.
  */
-function TimeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [h24, m] = value ? value.split(':') : ['', ''];
-  const hNum = h24 ? Number(h24) : null;
-  const hour = hNum !== null ? String(hNum % 12 || 12) : '';
-  const minute = m ?? '';
-  const period: 'AM' | 'PM' = hNum !== null && hNum >= 12 ? 'PM' : 'AM';
+function parseTimeValue(value: string): { hour: string; minute: string; period: 'AM' | 'PM' } {
+  if (!value) return { hour: '', minute: '', period: 'AM' };
+  const [h24, m] = value.split(':');
+  const hNum = Number(h24);
+  return {
+    hour: Number.isFinite(hNum) ? String(hNum % 12 || 12) : '',
+    minute: m ?? '',
+    period: Number.isFinite(hNum) && hNum >= 12 ? 'PM' : 'AM',
+  };
+}
 
-  function emit(newHour: string, newMinute: string, newPeriod: 'AM' | 'PM') {
-    if (newHour && newMinute) onChange(to24Hour(newHour, newMinute, newPeriod));
+function TimeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [draft, setDraft] = useState(() => parseTimeValue(value));
+
+  // Re-sync local draft when the parent changes `value` externally.
+  useEffect(() => {
+    setDraft(parseTimeValue(value));
+  }, [value]);
+
+  function update(next: { hour: string; minute: string; period: 'AM' | 'PM' }) {
+    setDraft(next);
+    if (next.hour && next.minute) onChange(to24Hour(next.hour, next.minute, next.period));
   }
 
-  const sel = 'text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-burgundy-500 bg-white';
+  const sel = 'text-xs border border-gray-200 rounded px-1.5 py-1 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-burgundy-500 bg-white';
 
   return (
     <div className="flex items-center gap-1">
-      <select className={sel} value={hour} onChange={(e) => emit(e.target.value, minute, period)}>
+      <select
+        aria-label="Hour"
+        className={sel}
+        value={draft.hour}
+        onChange={(e) => update({ ...draft, hour: e.target.value })}
+      >
         <option value="">hr</option>
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
           <option key={n} value={String(n)}>{n}</option>
         ))}
       </select>
-      <span className="text-xs text-gray-400">:</span>
-      <select className={sel} value={minute} onChange={(e) => emit(hour, e.target.value, period)}>
+      <span className="text-xs text-gray-400" aria-hidden="true">:</span>
+      <select
+        aria-label="Minute"
+        className={sel}
+        value={draft.minute}
+        onChange={(e) => update({ ...draft, minute: e.target.value })}
+      >
         <option value="">min</option>
         {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((mm) => (
           <option key={mm} value={mm}>{mm}</option>
         ))}
       </select>
-      <select className={sel} value={period} onChange={(e) => emit(hour, minute, e.target.value as 'AM' | 'PM')}>
+      <select
+        aria-label="AM or PM"
+        className={sel}
+        value={draft.period}
+        onChange={(e) => update({ ...draft, period: e.target.value as 'AM' | 'PM' })}
+      >
         <option value="AM">AM</option>
         <option value="PM">PM</option>
       </select>
@@ -511,6 +541,8 @@ export default function SectionMutationDrawer(props: Props) {
 
   // Controls visibility of the inline "create time block" form
   const [showAddBlock, setShowAddBlock] = useState(false);
+  // When true, narrow the time block dropdown to the curated NEU sequences
+  const [showOnlyStandard, setShowOnlyStandard] = useState(false);
 
   // Submission state
   const [saving, setSaving] = useState(false);
@@ -636,22 +668,21 @@ export default function SectionMutationDrawer(props: Props) {
   const courseOptions: SelectOption<number>[] = courses.map(courseOptionFromApi);
 
   const timeBlockOptions: SelectOption<number>[] = useMemo(() => {
-    // Only show multi-day blocks (the standard named sequences) and split block halves.
-    // Exclude single-day blocks (days.length === 1 and no block_group) — those are legacy
-    // seed blocks that aren't useful for manual section assignment.
-    const eligible = timeBlocks.filter((tb) => {
-      // Always keep split-block halves
-      if (tb.block_group != null) return true;
-      // Only show blocks that exactly match a known standard sequence —
-      // this filters out legacy seed blocks that don't correspond to any
-      // official NEU meeting pattern.
-      return STANDARD_SEQUENCES.some(
-        (s) => s.days === tb.days && s.start === tb.start_time && s.end === tb.end_time,
-      );
-    });
+    const filtered = showOnlyStandard
+      ? timeBlocks.filter((tb) => {
+          // Always keep the currently-selected block so toggling the filter
+          // never hides the user's existing choice.
+          if (tb.time_block_id === timeBlockId) return true;
+          // Split-block halves are part of a named pattern — keep them.
+          if (tb.block_group != null) return true;
+          return STANDARD_SEQUENCES.some(
+            (s) => s.days === tb.days && s.start === tb.start_time && s.end === tb.end_time,
+          );
+        })
+      : timeBlocks;
 
-    // Sort by start time so the earlier block of a pair is always processed first
-    const sorted = [...eligible].sort((a, b) => a.start_time.localeCompare(b.start_time));
+    // Sort by start time so the earlier block of a split pair is processed first
+    const sorted = [...filtered].sort((a, b) => a.start_time.localeCompare(b.start_time));
     const seen = new Set<number>();
     const opts: SelectOption<number>[] = [];
 
@@ -678,7 +709,7 @@ export default function SectionMutationDrawer(props: Props) {
     }
 
     return opts.sort((a, b) => a.label.localeCompare(b.label));
-  }, [timeBlocks]);
+  }, [timeBlocks, showOnlyStandard, timeBlockId]);
 
   const facultyOptions: SelectOption<number>[] = useMemo(() => {
     const rows = faculty.map((f) => {
@@ -824,18 +855,29 @@ export default function SectionMutationDrawer(props: Props) {
 
               {/* Time Block */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-1.5 gap-3">
                   <Label>Time block</Label>
-                  {/* Only show "Add new" when a campus is known — we need it to create the block */}
-                  {campusId != null && !showAddBlock && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAddBlock(true)}
-                      className="text-xs text-burgundy-600 hover:text-burgundy-800 transition-colors"
-                    >
-                      + Add new
-                    </button>
-                  )}
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none normal-case tracking-normal">
+                      <input
+                        type="checkbox"
+                        checked={showOnlyStandard}
+                        onChange={(e) => setShowOnlyStandard(e.target.checked)}
+                        className="h-3 w-3 rounded border-gray-300 text-burgundy-600 focus:ring-burgundy-500"
+                      />
+                      Standard only
+                    </label>
+                    {/* Only show "Add new" when a campus is known — we need it to create the block */}
+                    {campusId != null && !showAddBlock && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAddBlock(true)}
+                        className="text-xs text-burgundy-600 hover:text-burgundy-800 transition-colors"
+                      >
+                        + Add new
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <SearchableSelect
                   options={timeBlockOptions}
