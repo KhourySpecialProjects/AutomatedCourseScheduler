@@ -55,6 +55,7 @@ describe('Faculty page — Export Invite CSV', () => {
     mockApi = {
       getMeApiUsersMeGet: vi.fn().mockResolvedValue(mockAdmin),
       getAllCampusesCampusesGet: vi.fn().mockResolvedValue([]),
+      getAllSemestersSemestersGet: vi.fn().mockResolvedValue([]),
       getSchedulesSchedulesGet: vi.fn().mockResolvedValue([]),
       listUsersApiUsersGet: vi.fn().mockResolvedValue([]),
       getFacultyFacultyGet: vi.fn().mockResolvedValue([]),

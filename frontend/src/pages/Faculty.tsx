@@ -5,6 +5,7 @@ import {
   type CampusResponse,
   type InviteResponse,
   type ScheduleResponse,
+  type SemesterResponse,
 } from '../api/generated';
 import FacultyDrawer, { type FacultyRecord } from '../components/FacultyDrawer';
 import SearchableSelect, { type SelectOption } from '../components/SearchableSelect';
@@ -73,6 +74,9 @@ export default function Faculty() {
   // Campuses
   const [campuses, setCampuses] = useState<CampusResponse[]>([]);
 
+  // Semesters
+  const [semesters, setSemesters] = useState<SemesterResponse[]>([]);
+
   // Faculty list
   const [facultyList, setFacultyList] = useState<FacultyRecord[]>([]);
   const [facultyLoading, setFacultyLoading] = useState(true);
@@ -111,6 +115,7 @@ export default function Faculty() {
   useEffect(() => {
     const api = getAutomatedCourseSchedulerAPI();
     api.getAllCampusesCampusesGet().then(setCampuses).catch(() => {});
+    api.getAllSemestersSemestersGet().then(setSemesters).catch(() => {});
     api
       .getSchedulesSchedulesGet()
       .then((data) => {
@@ -172,15 +177,21 @@ export default function Faculty() {
   }, [sections]);
   const totalTimeAssignments = timeCounts.first + timeCounts.second + timeCounts.third + timeCounts.none;
 
+  // Semester label lookup
+  const semesterLabelMap = useMemo(
+    () => new Map(semesters.map((s) => [s.semester_id, `${s.season} ${s.year}`])),
+    [semesters],
+  );
+
   // Schedule dropdown options
   const scheduleOptions: SelectOption<number>[] = useMemo(
     () =>
       schedules.map((s) => ({
         value: s.schedule_id,
         label: s.name,
-        sublabel: `Semester ${s.semester_id}`,
+        sublabel: semesterLabelMap.get(s.semester_id) ?? '',
       })),
-    [schedules],
+    [schedules, semesterLabelMap],
   );
 
   // Campus name lookup
