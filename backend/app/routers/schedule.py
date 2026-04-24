@@ -159,14 +159,17 @@ def export_schedule_csv(schedule_id: int, db: Session = Depends(get_db)):
     )
 
     for section in sections:
-        raw_tb = tb_by_id.get(section.time_block.time_block_id)
-        if raw_tb and raw_tb.block_group:
-            siblings = tb_by_group.get(raw_tb.block_group, [raw_tb])
-            time_block = " / ".join(f"{p.meeting_days} {_fmt(p.start_time)}-{_fmt(p.end_time)}" for p in siblings)
-        elif raw_tb:
-            time_block = f"{raw_tb.meeting_days} {_fmt(raw_tb.start_time)}-{_fmt(raw_tb.end_time)}"
+        if section.time_block is None:
+            time_block = ""
         else:
-            time_block = f"{section.time_block.days} {section.time_block.start_time}-{section.time_block.end_time}"
+            raw_tb = tb_by_id.get(section.time_block.time_block_id)
+            if raw_tb and raw_tb.block_group:
+                siblings = tb_by_group.get(raw_tb.block_group, [raw_tb])
+                time_block = " / ".join(f"{p.meeting_days} {_fmt(p.start_time)}-{_fmt(p.end_time)}" for p in siblings)
+            elif raw_tb:
+                time_block = f"{raw_tb.meeting_days} {_fmt(raw_tb.start_time)}-{_fmt(raw_tb.end_time)}"
+            else:
+                time_block = f"{section.time_block.days} {section.time_block.start_time}-{section.time_block.end_time}"
 
         instructors = sorted(section.instructors, key=lambda i: (i.last_name, i.nuid))
         if instructors:
