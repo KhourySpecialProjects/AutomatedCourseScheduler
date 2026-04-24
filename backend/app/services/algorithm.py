@@ -174,7 +174,9 @@ def _persist_per_section_warnings(db, schedule_id: int, section_ids: list[int]) 
         section = section_repo.get_by_id(db, sid)
         if section is None:
             continue
-        for wt in section_service.error_check(db, section):
+        # error_check appends once per faculty, so the same type can repeat.
+        # Dedupe so each section gets at most one row per type.
+        for wt in set(section_service.error_check(db, section)):
             db.add(
                 ScheduleWarningModel(
                     schedule_id=schedule_id,
