@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CourseResponse, InstructorInfo, SectionRichResponse, TimeBlockInfo, WarningResponse } from '../api/generated';
 import { getAutomatedCourseSchedulerAPI, Severity } from '../api/generated';
 import { axiosInstance } from '../api/axiosInstance';
-import type { LockInfo } from '../hooks/useScheduleWebSocket';
+import type { LockInfo } from '../stores/scheduleDataStore';
 import CrosslistSectionHint from './CrosslistSectionHint';
 import FacultyTooltip from './FacultyTooltip';
 import MultiSearchableSelect from './MultiSearchableSelect';
@@ -97,8 +97,27 @@ export default function ScheduleSectionRowView({
   const [timeBlockFilterIds, setTimeBlockFilterIds] = useState<number[]>([]);
   const [selectedSection, setSelectedSection] = useState<SectionRichResponse | null>(null);
   const [editingSection, setEditingSection] = useState<SectionRichResponse | null>(null);
+  const editingSectionRef = useRef<SectionRichResponse | null>(null);
   const [creating, setCreating] = useState(false);
   const [lockError, setLockError] = useState<{ sectionId: number; msg: string } | null>(null);
+
+  useEffect(() => {
+    editingSectionRef.current = editingSection;
+  }, [editingSection]);
+
+  // Release any held lock on unmount so navigating away with the editor open
+  // does not leave a dangling lock (the shared WebSocket no longer closes on
+  // page navigation, so the server's disconnect-release failsafe won't fire).
+  useEffect(() => {
+    return () => {
+      const active = editingSectionRef.current;
+      if (active) {
+        void getAutomatedCourseSchedulerAPI()
+          .releaseLockSectionsSectionIdUnlockPost(active.section_id)
+          .catch(() => {});
+      }
+    };
+  }, []);
   const [hoveredInstructor, setHoveredInstructor] = useState<{
     instructor: InstructorInfo;
     rect: DOMRect;

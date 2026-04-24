@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Schedules from './Schedules';
-import * as wsModule from '../hooks/useScheduleWebSocket';
+import * as wsModule from '../hooks/useScheduleData';
 import * as generated from '../api/generated';
 import type { SectionRichResponse, UserResponse } from '../api/generated';
 
@@ -61,7 +61,7 @@ const mockSection: SectionRichResponse = {
   instructors: [],
 };
 
-const defaultWsReturn: wsModule.UseScheduleWebSocketResult = {
+const defaultWsReturn: wsModule.UseScheduleDataResult = {
   sections: [],
   locks: new Map(),
   warnings: [],
@@ -101,7 +101,7 @@ describe('Schedules page', () => {
   });
 
   it('shows spinner while WebSocket is loading', () => {
-    vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue({
+    vi.spyOn(wsModule, 'useScheduleData').mockReturnValue({
       ...defaultWsReturn, loading: true, status: 'connecting',
     });
     renderAtRoute('/schedules/42');
@@ -110,7 +110,7 @@ describe('Schedules page', () => {
   });
 
   it('renders ScheduleSectionRowView with sections once loaded', () => {
-    vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue({
+    vi.spyOn(wsModule, 'useScheduleData').mockReturnValue({
       ...defaultWsReturn, sections: [mockSection],
     });
     renderAtRoute('/schedules/42');
@@ -121,7 +121,7 @@ describe('Schedules page', () => {
   });
 
   it('passes parsed scheduleId from URL to the WebSocket hook', () => {
-    const hookSpy = vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue(defaultWsReturn);
+    const hookSpy = vi.spyOn(wsModule, 'useScheduleData').mockReturnValue(defaultWsReturn);
     renderAtRoute('/schedules/7');
     expect(hookSpy).toHaveBeenCalledWith(7);
   });
@@ -138,26 +138,26 @@ describe('Schedules page', () => {
   });
 
   it('renders breadcrumb link back to /schedules', () => {
-    vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue(defaultWsReturn);
+    vi.spyOn(wsModule, 'useScheduleData').mockReturnValue(defaultWsReturn);
     renderAtRoute('/schedules/42');
     expect(screen.getByRole('link', { name: 'Schedules' })).toHaveAttribute('href', '/schedules');
   });
 
   it('displays schedule name fetched from API', async () => {
-    vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue(defaultWsReturn);
+    vi.spyOn(wsModule, 'useScheduleData').mockReturnValue(defaultWsReturn);
     renderAtRoute('/schedules/42');
     expect(await screen.findByRole('heading', { name: 'Fall 2025' })).toBeInTheDocument();
   });
 
   it('does not show Faculty/Admin toggle for non-admin users', async () => {
-    vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue(defaultWsReturn);
+    vi.spyOn(wsModule, 'useScheduleData').mockReturnValue(defaultWsReturn);
     renderAtRoute('/schedules/42');
     await screen.findByRole('heading', { name: 'Fall 2025' });
     expect(screen.queryByRole('group', { name: 'Schedule mode' })).not.toBeInTheDocument();
   });
 
   it('shows Faculty/Admin mode toggle for ADMIN users', async () => {
-    vi.spyOn(wsModule, 'useScheduleWebSocket').mockReturnValue(defaultWsReturn);
+    vi.spyOn(wsModule, 'useScheduleData').mockReturnValue(defaultWsReturn);
     mockUserValue = { me: adminUser, meError: null, meLoading: false };
 
     renderAtRoute('/schedules/42');

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { InstructorInfo, SectionRichResponse } from '../api/generated';
-import type { LockInfo } from '../hooks/useScheduleWebSocket';
+import type { LockInfo } from '../stores/scheduleDataStore';
 import { expandDays, parseTimeToMinutes } from '../utils/scheduleCalendar';
 
 function dayLabel(letter: string): string {

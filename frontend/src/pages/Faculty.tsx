@@ -5,10 +5,10 @@ import {
   type CampusResponse,
   type InviteResponse,
   type ScheduleResponse,
-  type SectionRichResponse,
 } from '../api/generated';
 import FacultyDrawer, { type FacultyRecord } from '../components/FacultyDrawer';
 import SearchableSelect, { type SelectOption } from '../components/SearchableSelect';
+import { useScheduleData } from '../hooks/useScheduleData';
 
 // ── Histogram helpers ──────────────────────────────────────────────────────
 
@@ -68,8 +68,7 @@ export default function Faculty() {
   // Schedule / sections (shared with histogram)
   const [schedules, setSchedules] = useState<ScheduleResponse[]>([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
-  const [sections, setSections] = useState<SectionRichResponse[]>([]);
-  const [sectionsLoading, setSectionsLoading] = useState(false);
+  const { sections, loading: sectionsLoading } = useScheduleData(selectedScheduleId);
 
   // Campuses
   const [campuses, setCampuses] = useState<CampusResponse[]>([]);
@@ -133,30 +132,6 @@ export default function Faculty() {
       .catch(() => {})
       .finally(() => setFacultyLoading(false));
   }, []);
-
-  // Fetch sections when schedule changes
-  useEffect(() => {
-    if (!selectedScheduleId) {
-      setSections([]);
-      return;
-    }
-    let cancelled = false;
-    setSectionsLoading(true);
-    getAutomatedCourseSchedulerAPI()
-      .getScheduleSectionsRichSchedulesScheduleIdSectionsRichGet(selectedScheduleId)
-      .then((secs) => {
-        if (!cancelled) setSections(secs);
-      })
-      .catch(() => {
-        if (!cancelled) setSections([]);
-      })
-      .finally(() => {
-        if (!cancelled) setSectionsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedScheduleId]);
 
   // Current load per faculty in selected schedule
   const loadMap = useMemo(() => {
