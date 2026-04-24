@@ -73,7 +73,7 @@ function fetchInitialSnapshot(scheduleId: number) {
     })
     .catch(() => {});
   api
-    .getScheduleWarningsSchedulesScheduleIdWarningsGet(scheduleId)
+    .getScheduleWarningsSchedulesScheduleIdWarningsGet(scheduleId, { include_dismissed: true })
     .then((list) => {
       if (currentScheduleId !== scheduleId) return;
       useScheduleDataStore.setState({ warnings: list });
@@ -157,7 +157,7 @@ function handleMessage(msg: { type: string; payload: unknown }, scheduleId: numb
     }
     case 'section_warnings': {
       getAutomatedCourseSchedulerAPI()
-        .getScheduleWarningsSchedulesScheduleIdWarningsGet(scheduleId)
+        .getScheduleWarningsSchedulesScheduleIdWarningsGet(scheduleId, { include_dismissed: true })
         .then((list) => {
           if (currentScheduleId !== scheduleId) return;
           useScheduleDataStore.setState({ warnings: list });
