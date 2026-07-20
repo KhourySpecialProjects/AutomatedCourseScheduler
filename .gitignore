@@ -15,6 +15,10 @@ frontend/.vite/
 .env.local
 .env.*.local
 
+# Docker (per-machine local overrides)
+docker-compose.override.yml
+docker-compose.override.yaml
+
 # OS
 .DS_Store
 
