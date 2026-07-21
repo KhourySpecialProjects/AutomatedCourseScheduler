@@ -22,6 +22,7 @@ const mockAdmin: UserResponse = {
   email: 'admin@example.com',
   role: 'ADMIN',
   active: true,
+  has_signed_up: true,
 };
 
 vi.mock('../context/UserContext', () => ({

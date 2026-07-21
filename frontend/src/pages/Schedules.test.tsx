@@ -23,6 +23,7 @@ const viewerUser: UserResponse = {
   email: 'j.doe@northeastern.edu',
   role: 'VIEWER',
   active: true,
+  has_signed_up: true,
 };
 
 const adminUser: UserResponse = { ...viewerUser, role: 'ADMIN' };
