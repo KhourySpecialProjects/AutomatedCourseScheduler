@@ -4,6 +4,7 @@ import ScheduleList from './pages/ScheduleList';
 import Schedules from './pages/Schedules';
 import Faculty from './pages/Faculty';
 import Courses from './pages/Courses';
+import Admins from './pages/Admins';
 import Sidebar from './components/Sidebar';
 import LoginButton from './components/LoginButton';
 import AccessDenied from './components/AccessDenied';
@@ -52,6 +53,7 @@ function AuthorizedApp() {
             <Route path="/faculty/schedules/:scheduleId" element={<Schedules readOnly />} />
             <Route path="/faculty" element={<Faculty />} />
             <Route path="/courses" element={<Courses />} />
+            <Route path="/admins" element={<Admins />} />
           </Routes>
         </div>
       </main>

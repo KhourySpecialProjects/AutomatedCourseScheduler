@@ -30,6 +30,11 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(50), default="VIEWER")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    @property
+    def has_signed_up(self) -> bool:
+        """True once the user has completed Auth0 signup (auth0_sub is set)."""
+        return self.auth0_sub is not None
+
     # Relationships — Comment and SectionLock reference user.user_id
     section_locks: Mapped[list["SectionLock"]] = relationship("SectionLock", back_populates="user")
     comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="user")
