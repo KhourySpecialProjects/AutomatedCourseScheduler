@@ -1,0 +1,66 @@
+# =============================================================================
+# Coolify deployment compose (dev / staging / prod servers).
+# Differences vs. the local docker-compose.yaml:
+#   - DB publishes NO host port (reachable only on the internal network).
+#   - api runs WITHOUT --reload and WITHOUT a source bind mount (built image).
+#   - frontend receives VITE_* as BUILD ARGS (baked into the static bundle).
+#   - all secrets come from the environment Coolify injects (see
+#     .env.coolify.example) — no values are committed here.
+# Coolify terminates TLS and routes external traffic to the api/frontend
+# services, so we only `expose` internal ports rather than publishing them.
+# =============================================================================
+
+services:
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # No `ports:` on purpose — the DB must not be internet-reachable.
+
+  api:
+    build: ./backend
+    restart: always
+    # Production command: no --reload.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}}
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      AUTH0_SPA_CLIENT_ID: ${AUTH0_SPA_CLIENT_ID}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      APP_BASE_URL: ${APP_BASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+    # In Coolify, map this service's domain to internal port 8000.
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the bundle at build time — must be set BEFORE build.
+        VITE_AUTH0_DOMAIN: ${VITE_AUTH0_DOMAIN}
+        VITE_AUTH0_CLIENT_ID: ${VITE_AUTH0_CLIENT_ID}
+        VITE_AUTH0_AUDIENCE: ${VITE_AUTH0_AUDIENCE}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    restart: always
+    depends_on:
+      - api
+    expose:
+      - "80"
+    # In Coolify, map this service's domain to internal port 80.
+
+volumes:
+  postgres_data:
