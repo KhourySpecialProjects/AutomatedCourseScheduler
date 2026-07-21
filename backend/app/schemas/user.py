@@ -15,6 +15,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
     active: bool
+    has_signed_up: bool
 
     model_config = {"from_attributes": True}
 
