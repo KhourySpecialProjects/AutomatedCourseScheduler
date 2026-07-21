@@ -534,6 +534,7 @@ export interface UserResponse {
   email: string;
   role: string;
   active: boolean;
+  has_signed_up: boolean;
 }
 
 export type ValidationErrorLocItem = string | number;

@@ -19,6 +19,7 @@ const adminUser: UserResponse = {
   email: 'ada@northeastern.edu',
   role: 'ADMIN',
   active: true,
+  has_signed_up: true,
 };
 
 const viewerUser: UserResponse = {
