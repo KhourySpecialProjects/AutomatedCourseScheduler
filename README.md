@@ -159,6 +159,11 @@ GitHub Actions runs on every pull request and on every push to `main`. The pipel
 
 All CI checks must pass before a PR can merge.
 
+> **Coolify (self-hosted):** the `develop` branch deploys to a Coolify server via
+> [`docker-compose.coolify.yaml`](docker-compose.coolify.yaml), independent of the
+> AWS `Deploy` workflow above. See [`docs/coolify-deploy.md`](docs/coolify-deploy.md)
+> for the full runbook.
+
 ### Deployment secrets and variables
 
 The Deploy workflow reads from GitHub Actions **Secrets** and **Variables**:
